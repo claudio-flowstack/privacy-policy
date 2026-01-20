@@ -35,7 +35,7 @@ export const Hero = () => {
             <img
               src="/claudio-hero.jpg"
               alt="Claudio Di Franco - Prozessautomatisierung"
-              className="w-full h-full object-cover object-bottom"
+              className="w-full h-full object-contain"
             />
             {/* Play button overlay - uncomment when video is ready
             <div className="absolute inset-0 flex items-center justify-center">
