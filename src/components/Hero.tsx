@@ -30,12 +30,12 @@ export const Hero = () => {
       <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center max-w-6xl mx-auto">
         {/* Left: Visual */}
         <div className="relative">
-          <div className="aspect-video rounded-xl overflow-hidden border border-border/50 bg-muted">
-            {/* TODO: Replace with video when available */}
+          <div className="rounded-xl overflow-hidden border border-border/50 bg-muted">
+            {/* TODO: Replace with video when available - add aspect-video class back */}
             <img
               src="/claudio-hero.jpg"
               alt="Claudio Di Franco - Prozessautomatisierung"
-              className="w-full h-full object-contain"
+              className="w-full h-auto"
             />
             {/* Play button overlay - uncomment when video is ready
             <div className="absolute inset-0 flex items-center justify-center">
