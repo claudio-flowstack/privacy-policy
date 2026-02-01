@@ -48,7 +48,7 @@ export const ProblemMirror = () => {
               </div>
 
               {/* Description */}
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-base text-muted-foreground leading-relaxed">
                 {problem.description}
               </p>
             </div>

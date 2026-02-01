@@ -13,7 +13,7 @@ export const Differentiator = () => {
 
         {/* Comparison boxes */}
         <div className="grid md:grid-cols-2 gap-6 mb-10">
-          {/* Der alte Weg */}
+          {/* Der alte Weg - jetzt links */}
           <div className="p-8 rounded-lg border border-red-400/20 bg-red-500/5 text-left">
             <h3 className="text-2xl font-light text-muted-foreground mb-4">
               {comparison.before.title}
@@ -27,7 +27,7 @@ export const Differentiator = () => {
             </ul>
           </div>
 
-          {/* Mit Flowstack Systems */}
+          {/* Mit Flowstack Systems - jetzt rechts */}
           <div className="p-8 rounded-lg border border-primary/50 bg-primary/5 text-left relative">
             <div className="absolute -left-3 top-1/2 -translate-y-1/2 hidden md:block">
               <ArrowRight className="h-6 w-6 text-primary" />

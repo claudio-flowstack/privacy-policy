@@ -5,9 +5,9 @@ import { ArrowDown, Check } from "lucide-react";
 
 export const Hero = () => {
   return (
-    <section className="container min-h-[90vh] py-16 md:py-24">
+    <section className="container py-12 md:py-16">
       {/* Headline + Subheadline - zentriert */}
-      <div className="text-center space-y-4 max-w-4xl mx-auto mb-16">
+      <div className="text-center space-y-3 max-w-4xl mx-auto mb-10">
         {/* Eyebrow / Zielgruppe */}
         <p className="text-sm md:text-base text-primary font-medium uppercase tracking-widest">
           {siteConfig.eyebrow}
@@ -27,7 +27,7 @@ export const Hero = () => {
       </div>
 
       {/* ABTF Layout: Video/Bild links, Bullet Points + CTA rechts */}
-      <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center max-w-6xl mx-auto">
+      <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center max-w-6xl mx-auto">
         {/* Left: Visual */}
         <div className="relative">
           <div className="rounded-xl overflow-hidden border border-border/50 bg-muted">
@@ -48,23 +48,23 @@ export const Hero = () => {
         </div>
 
         {/* Right: Bullet Points + CTA */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           <p className="text-sm text-muted-foreground uppercase tracking-widest">
             Kommt dir das bekannt vor?
           </p>
 
           {/* Bullet Points: Symptome & Frustrationen */}
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {siteConfig.bulletPoints?.map((point, index) => (
               <li key={index} className="flex items-start gap-3">
                 <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                <span className="text-foreground/90 text-lg">{point}</span>
+                <span className="text-foreground/90 text-base">{point}</span>
               </li>
             ))}
           </ul>
 
           {/* CTA Button */}
-          <div className="pt-4">
+          <div className="pt-2">
             <Button
               asChild
               size="lg"
@@ -82,7 +82,7 @@ export const Hero = () => {
       </div>
 
       {/* Scroll Indicator */}
-      <div className="mt-16 md:mt-24 flex flex-col items-center gap-2 text-muted-foreground">
+      <div className="mt-10 md:mt-14 flex flex-col items-center gap-2 text-muted-foreground">
         <ArrowDown className="w-4 h-4 animate-bounce" />
         <span className="text-xs tracking-widest uppercase">Mehr erfahren</span>
       </div>

@@ -15,19 +15,19 @@ export const siteConfig = {
   title: "Verdopple deine Gewinnmarge durch KI-Automatisierung",
   titleAccent: "– Done-for-You in 2-4 Wochen",
   tagline:
-    "Das Flowstack-System™ ersetzt zeitfressende Routineaufgaben durch KI-Workflows, die rund um die Uhr arbeiten – damit du mehr Kunden betreust, ohne mehr Personal zu brauchen.",
+    "Das Flowstack-System ersetzt deine zeitfressenden Routineaufgaben durch KI-Workflows, die rund um die Uhr arbeiten – damit du skalierst, ohne für jeden neuen Kunden einen neuen Mitarbeiter zu brauchen.",
   bulletPoints: [
-    "Eliminiere bis zu 80% deiner manuellen Fulfillment-Aufgaben durch intelligente KI-Workflows, die nie krank werden",
-    "Steigere deine Gewinnmarge um 30-50%, weil Token-Kosten statt Gehälter anfallen",
-    "Skaliere dein Kundenvolumen, ohne für jeden neuen Kunden einen neuen Mitarbeiter einzustellen",
-    "Erhalte ein schlüsselfertiges System in 2-4 Wochen – komplett implementiert, nicht nur erklärt",
+    "80% deiner manuellen Fulfillment-Arbeit läuft automatisch – ohne Krankmeldungen, ohne Urlaubsvertretung, ohne Motivationslöcher",
+    "Deine Marge springt von 20% auf 40-50%, weil KI-Token Centbeträge kosten – nicht 4.500€ Monatsgehalt",
+    "Du nimmst neue Kunden an, ohne zu rechnen ob du \"noch einen einstellen musst\"",
+    "In 2-4 Wochen hast du ein laufendes System – komplett gebaut, nicht nur erklärt",
   ],
   cta: {
     text: "Jetzt kostenlose Prozess-Analyse sichern",
     href: "/kostenlose-beratung",
     isInternal: true,
   },
-  ctaSubtext: "Bereits 47+ Agenturen setzen auf das Flowstack-System",
+  ctaSubtext: "Done-for-You KI-Automation für Agenturen",
   available: true,
 };
 
@@ -46,10 +46,10 @@ export const navLinks = [
 // ============================================
 export const trustMetrics = {
   metrics: [
-    { value: "47+", label: "Agenturen vertrauen uns" },
-    { value: "12.000+", label: "Arbeitsstunden automatisiert" },
-    { value: "Ø 43%", label: "mehr Marge nach 90 Tagen" },
-    { value: "2-4 Wochen", label: "bis Go-Live" },
+    { value: "80%", label: "weniger Routinearbeit möglich" },
+    { value: "2-4 Wochen", label: "bis dein System live ist" },
+    { value: "30-50%", label: "mehr Marge durch Automation" },
+    { value: "0", label: "zusätzliche Mitarbeiter nötig" },
   ],
 };
 
@@ -159,7 +159,7 @@ export const solutionPreview = {
 // Section 6: Flowstack System (4 Stufen)
 // ============================================
 export const flowstackSystem = {
-  headline: "Das Flowstack-System™: Dein Weg zu 50%+ Marge in 4 klaren Stufen",
+  headline: "Das Flowstack-System: Dein Weg zu 50%+ Marge in 4 klaren Stufen",
   subheadline: "Wir implementieren KI-Workflows, die deine Routineprozesse automatisieren – Done-for-You, schlüsselfertig, in 2-4 Wochen live.",
   stages: [
     {
@@ -378,13 +378,12 @@ export const outcomes = {
     },
   ],
   stats: {
-    headline: "Das erreichen unsere Kunden im Durchschnitt:",
+    headline: "Was KI-Automation für Agenturen verändert:",
     items: [
-      "+127% Gewinnmarge nach 90 Tagen",
-      "80% weniger Zeit für Routineaufgaben",
-      "2-3x mehr Kundenkapazität ohne neue Festanstellungen",
-      "ROI innerhalb von 60-90 Tagen erreicht",
-      "4-6 Stunden pro Woche zurückgewonnen (pro Person!)",
+      "Routineaufgaben, die heute 20+ Stunden pro Woche fressen? Laufen im Hintergrund – ohne menschliches Zutun.",
+      "Die Marge, die bei 20% feststeckt? Springt auf 40-50%, weil KI für Centbeträge arbeitet, nicht für Gehälter.",
+      "Das Gefühl, bei jedem neuen Kunden \"noch einen einstellen\" zu müssen? Verschwindet. Dein System wächst mit – dein Team muss es nicht.",
+      "Die Zeit, die du in Mikromanagement verbrennst? Zurück bei dir. Für Strategie. Für Akquise. Für das, was nur du kannst.",
     ],
   },
 };
@@ -515,20 +514,20 @@ export const timeline = {
 // Section 13: Team
 // ============================================
 export const teamContent = {
-  headline: "Die Menschen hinter dem Flowstack-System",
-  intro: "Wir sind keine theoretischen Berater, die Konzepte präsentieren und dann verschwinden.\n\nWir haben selbst Agenturen aufgebaut, skaliert und dabei jeden Fehler gemacht, den man machen kann. Das Flowstack-System ist das Ergebnis von allem, was wir gelernt haben – destilliert in einen wiederholbaren Prozess.\n\nDone-for-You heißt bei uns: Wir bauen. Du profitierst.",
+  headline: "Wir bauen Systeme. Keine Luftschlösser.",
+  intro: "Flowstack ist keine Beratung, die dir sagt was du tun sollst – und dich dann alleine lässt.\n\nWir sind Praktiker. Wir haben selbst Agenturen geführt, im Chaos gesteckt, die gleichen Fehler gemacht. Der Unterschied: Wir haben einen Weg raus gefunden.\n\nJetzt bauen wir diesen Weg für andere.\n\nDone-for-You bedeutet bei uns: Du gibst uns Zugang zu deinen Prozessen. Wir kommen in 2-4 Wochen mit einem funktionierenden System zurück. Fertig.",
   members: [
     {
       name: "Claudio Di Franco",
-      role: "Gründer & Prozessarchitekt",
+      role: "Gründer & Systemarchitekt",
       image: "/claudio.jpg",
-      description: "Ex-Agenturinhaber. Hat selbst erlebt, wie schnell Wachstum zum Chaos wird. Jetzt hilft er anderen, es besser zu machen.",
+      description: "→ Selbst Agentur aufgebaut und skaliert\n→ Hat den \"Mehr Kunden = Mehr Chaos\"-Albtraum am eigenen Leib erlebt\n→ Spezialisiert auf Prozessanalyse und Workflow-Architektur\n→ Baut Systeme, die ohne ihn funktionieren – genau wie deins funktionieren wird",
     },
     {
-      name: "Anak",
-      role: "Automation Engineer",
+      name: "Anak Wannaphaschaiyong",
+      role: "Automation & AI Engineer",
       image: "/anak.jpg",
-      description: "Technische Implementierung, KI-Integration und Workflow-Automatisierung. Macht das Unmögliche möglich.",
+      description: "→ Master in Machine Learning & Deep Learning (Florida Atlantic University)\n→ AWS-Architekt: Kinesis, Lambda, DynamoDB, S3, API Gateway, Terraform\n→ Hat Cloud-basierte Streaming-Plattform für COVID-19 Datenerfassung gebaut\n→ Publizierter Forscher im Bereich KI\n→ Python, n8n, Make, MLOps – baut Systeme die unter Last performen",
     },
   ],
 };
@@ -561,7 +560,7 @@ export const finalCta = {
     "Sachliche Analyse",
     "Ergebnis unabhängig von Zusammenarbeit",
   ],
-  trust: "47+ Agenturen vertrauen uns",
+  trust: "Done-for-You in 2-4 Wochen",
 };
 
 // ============================================
@@ -625,7 +624,7 @@ export const footerLinks = {
 // ============================================
 export const metaContent = {
   title: "KI-Automatisierung für Agenturen | Done-for-You in 2-4 Wochen | Flowstack Systems",
-  description: "Verdopple deine Gewinnmarge durch KI-Automatisierung. Das Flowstack-System ersetzt zeitfressende Routineaufgaben – Done-for-You, schlüsselfertig. ✓ 47+ Agenturen ✓ Ø 43% mehr Marge ✓ 2-4 Wochen bis Go-Live",
+  description: "Verdopple deine Gewinnmarge durch KI-Automatisierung. Das Flowstack-System ersetzt zeitfressende Routineaufgaben – Done-for-You, schlüsselfertig. ✓ 80% weniger Routinearbeit ✓ 30-50% mehr Marge ✓ 2-4 Wochen bis Go-Live",
 };
 
 // ============================================
@@ -648,9 +647,9 @@ export const benefits = {
   })),
 };
 export const comparison = {
-  headline: flowstackSystem.headline,
-  before: { title: "Vorher", items: outcomes.comparison.map(c => `${c.right.title} ${c.right.highlight}`) },
-  after: { title: "Nachher", items: outcomes.comparison.map(c => `${c.left.title} ${c.left.highlight}`) },
+  headline: "Das verändert sich, wenn das Flowstack-System läuft:",
+  before: { title: "Manuell", items: outcomes.comparison.map(c => `${c.right.title} ${c.right.highlight}`) },
+  after: { title: "Mit Flowstack", items: outcomes.comparison.map(c => `${c.left.title} ${c.left.highlight}`) },
 };
 export const processSteps = timeline.steps.map((s, idx) => ({
   step: String(idx + 1).padStart(2, '0'),

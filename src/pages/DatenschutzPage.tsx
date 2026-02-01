@@ -244,10 +244,100 @@ const DatenschutzPage = () => {
             </p>
           </section>
 
+          {/* Meta Marketing API */}
+          <section className="bg-card border border-border/50 rounded-xl p-6 md:p-8">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              8. Nutzung der Meta Marketing API (Facebook / Instagram)
+            </h2>
+            <p>
+              Diese Website und die damit verbundenen internen Systeme nutzen
+              Programmierschnittstellen der{" "}
+              <strong className="text-foreground">
+                Meta Platforms Ireland Ltd., 4 Grand Canal Square, Dublin 2,
+                Irland
+              </strong>{" "}
+              („Meta"), insbesondere die{" "}
+              <strong className="text-foreground">Meta Marketing API</strong>,
+              um Werbekampagnen auf Facebook und Instagram automatisiert zu
+              erstellen, zu verwalten und auszuwerten.
+            </p>
+            <p className="mt-3">
+              Im Rahmen dieser Nutzung können insbesondere folgende Daten
+              verarbeitet werden:
+            </p>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>
+                Kampagnen-, Anzeigengruppen- und Anzeigeninformationen (z. B.
+                Namen, IDs, Status, Budgets)
+              </li>
+              <li>
+                Leistungskennzahlen aus Werbekampagnen (z. B. Impressionen,
+                Klicks, Reichweite, Ausgaben, Conversions)
+              </li>
+              <li>
+                Zuordnung dieser Leistungsdaten zu unseren eigenen Werbekonten,
+                Pixeln oder Conversions-APIs.
+              </li>
+            </ul>
+            <p className="mt-3">
+              Es findet{" "}
+              <strong className="text-foreground">
+                keine Verarbeitung privater Facebook- oder
+                Instagram-Nutzerprofile
+              </strong>{" "}
+              durch uns statt, die über die von Meta im Rahmen der
+              Werbeauslieferung bereitgestellten Aggregat- und Reportingdaten
+              hinausgeht. Die Nutzung der Meta Marketing API erfolgt
+              ausschließlich zur{" "}
+              <strong className="text-foreground">
+                internen Automatisierung von Marketing-, Reporting- und
+                Optimierungsprozessen
+              </strong>{" "}
+              für unsere eigenen Werbekonten bzw. für Werbekonten, für die wir
+              vom jeweiligen Verantwortlichen eine entsprechende Berechtigung
+              erhalten haben.
+            </p>
+            <p className="mt-3">
+              Die Verarbeitung dieser Daten erfolgt auf Grundlage von{" "}
+              <strong className="text-foreground">
+                Art. 6 Abs. 1 lit. f DSGVO
+              </strong>{" "}
+              (berechtigtes Interesse an einer effizienten, wirtschaftlichen und
+              technisch zuverlässigen Verwaltung unserer Werbekampagnen und an
+              der Auswertung ihrer Performance) sowie – sofern wir
+              Werbekampagnen im Rahmen eines Vertragsverhältnisses für Kunden
+              betreuen – zusätzlich auf Grundlage von{" "}
+              <strong className="text-foreground">
+                Art. 6 Abs. 1 lit. b DSGVO
+              </strong>{" "}
+              (Vertragserfüllung bzw. Durchführung vorvertraglicher Maßnahmen).
+            </p>
+            <p className="mt-3">
+              Eine Weitergabe der über die Meta Marketing API abgerufenen Daten
+              an unbefugte Dritte findet nicht statt. Die Daten werden nur so
+              lange gespeichert, wie dies für die oben genannten Zwecke
+              erforderlich ist oder gesetzliche Aufbewahrungspflichten bestehen.
+            </p>
+            <p className="mt-3">
+              Weitere Informationen zur Datenverarbeitung durch Meta,
+              einschließlich der Rechtsgrundlagen und der
+              Widerspruchsmöglichkeiten, finden Sie in der Datenrichtlinie von
+              Meta unter:{" "}
+              <a
+                href="https://www.facebook.com/privacy/policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                https://www.facebook.com/privacy/policy
+              </a>
+            </p>
+          </section>
+
           {/* Aktualität */}
           <section className="bg-card border border-border/50 rounded-xl p-6 md:p-8">
             <h2 className="text-xl font-semibold text-foreground mb-4">
-              8. Aktualität und Änderung dieser Datenschutzerklärung
+              9. Aktualität und Änderung dieser Datenschutzerklärung
             </h2>
             <p>
               Diese Datenschutzerklärung ist aktuell gültig und hat den Stand

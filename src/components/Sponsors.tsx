@@ -14,7 +14,7 @@ export const Sponsors = () => {
               <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-primary mb-1">
                 {metric.value}
               </p>
-              <p className="text-xs md:text-sm text-muted-foreground">
+              <p className="text-sm md:text-base text-muted-foreground">
                 {metric.label}
               </p>
             </div>
@@ -47,7 +47,7 @@ export const Sponsors = () => {
                 alt={tool.name}
                 className="h-10 w-10 md:h-14 md:w-14 object-contain opacity-60 hover:opacity-90 transition-opacity"
               />
-              <span className="text-sm text-muted-foreground font-medium hidden md:inline">
+              <span className="text-base text-muted-foreground font-medium hidden md:inline">
                 {tool.name}
               </span>
             </div>

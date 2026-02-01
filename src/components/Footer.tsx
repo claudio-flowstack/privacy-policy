@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { siteConfig } from "@/config/content";
-import { Linkedin, Mail, MapPin, Phone, Shield, Clock, Award } from "lucide-react";
+import { Linkedin, Mail, MapPin, Phone, Clock } from "lucide-react";
 
 interface FooterProps {
   hideCta?: boolean;
@@ -41,17 +41,6 @@ export const Footer = ({ hideCta = false }: FooterProps) => {
               Wir automatisieren operative Prozesse in B2B-Unternehmen und Agenturen mit KI-gestützten Systemen.
             </p>
 
-            {/* Trust Badges */}
-            <div className="flex flex-wrap gap-4 mt-6">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Shield className="w-4 h-4 text-primary" />
-                <span>DSGVO-konform</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Award className="w-4 h-4 text-primary" />
-                <span>ISO 27001</span>
-              </div>
-            </div>
           </div>
 
           {/* Leistungen */}
@@ -125,21 +114,21 @@ export const Footer = ({ hideCta = false }: FooterProps) => {
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span className="text-muted-foreground">
-                  Flowstack Systems GmbH<br />
-                  Musterstraße 123<br />
-                  80331 München
+                  Flowstack Systems<br />
+                  [ADRESSE]<br />
+                  [PLZ ORT]
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                <a href="tel:+4989123456789" className="text-muted-foreground hover:text-primary transition-colors">
-                  +49 (0) 89 123 456 789
-                </a>
+                <span className="text-muted-foreground">
+                  [TELEFON]
+                </span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                <a href="mailto:info@flowstack.de" className="text-muted-foreground hover:text-primary transition-colors">
-                  info@flowstack.de
+                <a href="mailto:info@flowstack-system.de" className="text-muted-foreground hover:text-primary transition-colors">
+                  info@flowstack-system.de
                 </a>
               </li>
               <li className="flex items-center gap-3">

@@ -11,7 +11,7 @@ export const TeamSection = () => {
           </h2>
 
           {/* Intro Text */}
-          <div className="text-muted-foreground leading-relaxed">
+          <div className="text-muted-foreground text-lg leading-relaxed">
             {teamContent.intro.split("\n\n").map((paragraph, index) => (
               <p key={index} className={index > 0 ? "mt-4" : ""}>
                 {paragraph}
@@ -45,7 +45,7 @@ export const TeamSection = () => {
               </p>
 
               {/* Description */}
-              <p className="text-muted-foreground text-sm leading-relaxed">
+              <p className="text-muted-foreground text-base leading-relaxed">
                 {member.description}
               </p>
             </div>

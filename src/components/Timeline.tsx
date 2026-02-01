@@ -48,7 +48,7 @@ export const Timeline = () => {
                       <h3 className="text-lg font-semibold text-foreground mb-2">
                         {step.title}
                       </h3>
-                      <p className="text-muted-foreground">
+                      <p className="text-muted-foreground text-base">
                         {step.description}
                       </p>
                     </div>

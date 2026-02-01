@@ -38,23 +38,23 @@ export const FlowstackSystem = () => {
                     </div>
 
                     {/* Step Content Card */}
-                    <div className="p-5 rounded-2xl border border-border bg-card hover:shadow-md hover:border-primary/30 transition-all text-center h-full">
-                      <Badge variant="outline" className="mb-3 text-xs border-primary/30 text-primary">
+                    <div className="p-5 rounded-2xl border border-border bg-background hover:shadow-md hover:border-primary/30 transition-all text-center h-full">
+                      <Badge variant="outline" className="mb-3 text-sm border-primary/30 text-primary">
                         {stage.duration}
                       </Badge>
-                      <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+                      <p className="text-sm uppercase tracking-widest text-muted-foreground mb-2">
                         {stage.title}
                       </p>
-                      <h3 className="text-base font-medium text-foreground mb-3">
+                      <h3 className="text-xl font-medium text-foreground mb-3">
                         {stage.subtitle}
                       </h3>
-                      <p className="text-xs text-muted-foreground mb-4 line-clamp-3">
+                      <p className="text-base text-muted-foreground mb-4 line-clamp-3">
                         {stage.description}
                       </p>
-                      <ul className="space-y-1.5 text-left">
+                      <ul className="space-y-2 text-left">
                         {stage.items.slice(0, 3).map((item, i) => (
-                          <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                            <Check className="w-3 h-3 text-primary mt-0.5 flex-shrink-0" />
+                          <li key={i} className="flex items-start gap-2 text-base text-muted-foreground">
+                            <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                             <span className="line-clamp-1">{item}</span>
                           </li>
                         ))}
@@ -78,17 +78,17 @@ export const FlowstackSystem = () => {
                     </div>
                     <div className="flex-1 pb-2">
                       <div className="flex items-center gap-2 mb-2">
-                        <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                        <p className="text-sm uppercase tracking-widest text-muted-foreground">
                           {stage.title}
                         </p>
-                        <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+                        <Badge variant="outline" className="text-sm border-primary/30 text-primary">
                           {stage.duration}
                         </Badge>
                       </div>
-                      <h3 className="text-base font-medium text-foreground mb-2">
+                      <h3 className="text-xl font-medium text-foreground mb-2">
                         {stage.subtitle}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-base text-muted-foreground">
                         {stage.description}
                       </p>
                     </div>
