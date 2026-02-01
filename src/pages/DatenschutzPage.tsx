@@ -250,7 +250,7 @@ const DatenschutzPage = () => {
               8. Nutzung der Meta Marketing API (Facebook / Instagram)
             </h2>
             <p>
-              Diese Website und die damit verbundenen internen Systeme nutzen
+              Diese Website sowie die damit verbundenen internen Systeme nutzen
               Programmierschnittstellen der{" "}
               <strong className="text-foreground">
                 Meta Platforms Ireland Ltd., 4 Grand Canal Square, Dublin 2,
@@ -259,24 +259,29 @@ const DatenschutzPage = () => {
               („Meta"), insbesondere die{" "}
               <strong className="text-foreground">Meta Marketing API</strong>,
               um Werbekampagnen auf Facebook und Instagram automatisiert zu
-              erstellen, zu verwalten und auszuwerten.
+              erstellen, zu verwalten, zu optimieren und auszuwerten.
             </p>
             <p className="mt-3">
-              Im Rahmen dieser Nutzung können insbesondere folgende Daten
-              verarbeitet werden:
+              Die Anwendung wird sowohl für eigene Werbekonten als auch für
+              Werbekonten von Kunden eingesetzt, sofern hierfür eine
+              entsprechende vertragliche Beauftragung sowie eine Berechtigung
+              durch den jeweiligen Verantwortlichen vorliegt.
+            </p>
+            <p className="mt-3">
+              Im Rahmen der Nutzung der Meta Marketing API können insbesondere
+              folgende Daten verarbeitet werden:
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>
                 Kampagnen-, Anzeigengruppen- und Anzeigeninformationen (z. B.
-                Namen, IDs, Status, Budgets)
+                Namen, IDs, Status, Budgets, Laufzeiten)
               </li>
               <li>
-                Leistungskennzahlen aus Werbekampagnen (z. B. Impressionen,
-                Klicks, Reichweite, Ausgaben, Conversions)
+                Leistungs- und Statistikdaten aus Werbekampagnen (z. B.
+                Impressionen, Klicks, Reichweite, Ausgaben, Conversions)
               </li>
               <li>
-                Zuordnung dieser Leistungsdaten zu unseren eigenen Werbekonten,
-                Pixeln oder Conversions-APIs.
+                Technische Zuordnungen zu Werbekonten, Pixeln oder Conversion-APIs
               </li>
             </ul>
             <p className="mt-3">
@@ -285,44 +290,41 @@ const DatenschutzPage = () => {
                 keine Verarbeitung privater Facebook- oder
                 Instagram-Nutzerprofile
               </strong>{" "}
-              durch uns statt, die über die von Meta im Rahmen der
-              Werbeauslieferung bereitgestellten Aggregat- und Reportingdaten
-              hinausgeht. Die Nutzung der Meta Marketing API erfolgt
-              ausschließlich zur{" "}
-              <strong className="text-foreground">
-                internen Automatisierung von Marketing-, Reporting- und
-                Optimierungsprozessen
-              </strong>{" "}
-              für unsere eigenen Werbekonten bzw. für Werbekonten, für die wir
-              vom jeweiligen Verantwortlichen eine entsprechende Berechtigung
-              erhalten haben.
+              statt. Insbesondere werden keine privaten Nachrichten, Profildaten,
+              Freundeslisten oder sonstige personenbezogene Inhalte von
+              Endnutzern verarbeitet.
             </p>
             <p className="mt-3">
-              Die Verarbeitung dieser Daten erfolgt auf Grundlage von{" "}
+              Die Anwendung richtet sich nicht an Endnutzer und stellt keine
+              öffentliche Plattform oder App für Facebook- oder Instagram-Nutzer
+              dar. Sie dient ausschließlich der internen Automatisierung von
+              Marketing-, Reporting- und Optimierungsprozessen sowie der
+              Betreuung von Werbekampagnen für Kunden.
+            </p>
+            <p className="mt-3">
+              Die Verarbeitung erfolgt auf Grundlage von{" "}
               <strong className="text-foreground">
                 Art. 6 Abs. 1 lit. f DSGVO
               </strong>{" "}
               (berechtigtes Interesse an einer effizienten, wirtschaftlichen und
-              technisch zuverlässigen Verwaltung unserer Werbekampagnen und an
-              der Auswertung ihrer Performance) sowie – sofern wir
-              Werbekampagnen im Rahmen eines Vertragsverhältnisses für Kunden
-              betreuen – zusätzlich auf Grundlage von{" "}
+              technisch zuverlässigen Verwaltung und Auswertung von
+              Werbekampagnen). Sofern die Verarbeitung im Rahmen eines
+              Vertragsverhältnisses mit Kunden erfolgt, zusätzlich auf Grundlage
+              von{" "}
               <strong className="text-foreground">
                 Art. 6 Abs. 1 lit. b DSGVO
               </strong>{" "}
               (Vertragserfüllung bzw. Durchführung vorvertraglicher Maßnahmen).
             </p>
             <p className="mt-3">
-              Eine Weitergabe der über die Meta Marketing API abgerufenen Daten
-              an unbefugte Dritte findet nicht statt. Die Daten werden nur so
-              lange gespeichert, wie dies für die oben genannten Zwecke
+              Eine Weitergabe der über die Meta Marketing API verarbeiteten
+              Daten an unbefugte Dritte findet nicht statt. Die Daten werden nur
+              so lange gespeichert, wie dies für die genannten Zwecke
               erforderlich ist oder gesetzliche Aufbewahrungspflichten bestehen.
             </p>
             <p className="mt-3">
-              Weitere Informationen zur Datenverarbeitung durch Meta,
-              einschließlich der Rechtsgrundlagen und der
-              Widerspruchsmöglichkeiten, finden Sie in der Datenrichtlinie von
-              Meta unter:{" "}
+              Weitere Informationen zur Datenverarbeitung durch Meta finden Sie
+              unter:{" "}
               <a
                 href="https://www.facebook.com/privacy/policy"
                 target="_blank"
