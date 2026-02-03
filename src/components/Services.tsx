@@ -91,7 +91,7 @@ export const Services = () => {
                     <div className="p-1 rounded-full bg-primary/10 mt-0.5">
                       <Check className="w-3.5 h-3.5 text-primary" />
                     </div>
-                    <span className="text-sm text-foreground/80">{item}</span>
+                    <span className="text-base text-foreground/80">{item}</span>
                   </li>
                 ))}
               </ul>

@@ -27,7 +27,7 @@ export const CtaFinal = () => {
               {finalCta.bullets.map((bullet, index) => (
                 <li key={index} className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-foreground/90">{bullet}</span>
+                  <span className="text-base text-foreground/90">{bullet}</span>
                 </li>
               ))}
             </ul>

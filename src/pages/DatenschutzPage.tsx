@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 
 const DatenschutzPage = () => {
   useEffect(() => {
-    document.title = "Datenschutz – Flowstack Systems";
+    document.title = "Datenschutz - Flowstack Systems";
     window.scrollTo(0, 0);
   }, []);
 
@@ -107,8 +107,8 @@ const DatenschutzPage = () => {
               Die von Ihnen an uns per Kontaktanfragen übersandten Daten
               verbleiben bei uns, bis Sie uns zur Löschung auffordern, Ihre
               Einwilligung zur Speicherung widerrufen oder der Zweck für die
-              Datenspeicherung entfällt. Zwingende gesetzliche Bestimmungen –
-              insbesondere gesetzliche Aufbewahrungsfristen – bleiben unberührt.
+              Datenspeicherung entfällt. Zwingende gesetzliche Bestimmungen -
+              insbesondere gesetzliche Aufbewahrungsfristen - bleiben unberührt.
             </p>
           </section>
 

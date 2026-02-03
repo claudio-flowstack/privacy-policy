@@ -6,7 +6,7 @@ export const EmpathyOpening = () => {
       <div className="max-w-4xl mx-auto">
         {/* Headline - emotional, direkt */}
         <h2 className="text-2xl md:text-3xl lg:text-4xl font-light tracking-elegant text-center mb-12 leading-tight">
-          Du arbeitest härter als je zuvor — und trotzdem bleibt am Monatsende nicht mehr übrig?
+          Du arbeitest härter als je zuvor. Und trotzdem bleibt am Monatsende nicht mehr übrig?
         </h2>
 
         {/* Das Grundproblem - visuell hervorgehoben */}
@@ -26,7 +26,7 @@ export const EmpathyOpening = () => {
                 "Mehr Kunden",
                 "Mehr Arbeit",
                 "Mehr Kosten",
-                "Weniger Marge"
+                "Weniger Umsatzrendite"
               ].map((step, index) => (
                 <div key={index} className="flex items-center gap-3 md:gap-4">
                   <div className={`
@@ -61,7 +61,7 @@ export const EmpathyOpening = () => {
             {/* Reframe */}
             <div className="text-center">
               <p className="text-lg md:text-xl text-foreground">
-                Das ist kein Fleiß-Problem. Das ist ein <span className="text-foreground font-semibold">System-Problem</span> — und es lässt sich lösen.
+                Das ist kein Fleiß-Problem. Das ist ein <span className="text-foreground font-semibold">System-Problem</span>. Und es lässt sich lösen.
               </p>
             </div>
           </div>

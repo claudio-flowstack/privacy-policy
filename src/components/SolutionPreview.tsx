@@ -33,7 +33,7 @@ export const SolutionPreview = () => {
                 <h3 className="text-lg font-semibold text-primary mb-4">
                   {benefit.title}
                 </h3>
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-base text-muted-foreground leading-relaxed">
                   {benefit.description}
                 </p>
               </div>

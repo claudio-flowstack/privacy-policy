@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 
 const NotFoundPage = () => {
   useEffect(() => {
-    document.title = "Seite nicht gefunden – Flowstack Systems";
+    document.title = "Seite nicht gefunden - Flowstack Systems";
     window.scrollTo(0, 0);
   }, []);
 

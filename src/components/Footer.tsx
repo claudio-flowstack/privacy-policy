@@ -6,7 +6,7 @@ interface FooterProps {
   hideCta?: boolean;
 }
 
-export const Footer = ({ hideCta = false }: FooterProps) => {
+export const Footer = ({ hideCta = true }: FooterProps) => {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -114,27 +114,27 @@ export const Footer = ({ hideCta = false }: FooterProps) => {
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span className="text-muted-foreground">
-                  Flowstack Systems<br />
-                  [ADRESSE]<br />
-                  [PLZ ORT]
+                  Claudio Di Franco<br />
+                  Falkenweg 2<br />
+                  76327 Pfinztal
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                <span className="text-muted-foreground">
-                  [TELEFON]
-                </span>
+                <a href="tel:+491735837927" className="text-muted-foreground hover:text-primary transition-colors">
+                  +49 173 5837927
+                </a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                <a href="mailto:info@flowstack-system.de" className="text-muted-foreground hover:text-primary transition-colors">
-                  info@flowstack-system.de
+                <a href="mailto:claudio@flowstack-system.de" className="text-muted-foreground hover:text-primary transition-colors">
+                  claudio@flowstack-system.de
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Clock className="w-4 h-4 text-primary flex-shrink-0" />
                 <span className="text-muted-foreground">
-                  Mo–Fr: 09:00–18:00 Uhr
+                  Mo-Fr: 09:00-18:00 Uhr
                 </span>
               </li>
             </ul>

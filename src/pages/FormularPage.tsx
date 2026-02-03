@@ -14,7 +14,7 @@ const FormularPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    document.title = "Erstgespräch anfragen – Flowstack Systems";
+    document.title = "Erstgespräch anfragen - Flowstack Systems";
     window.scrollTo(0, 0);
   }, []);
 
@@ -52,7 +52,7 @@ const FormularPage = () => {
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Lass uns besprechen, wie Flowstack Systems dein Fulfillment
-            automatisieren kann. Kein Verkaufsgespräch – nur Klarheit.
+            automatisieren kann.
           </p>
         </div>
 

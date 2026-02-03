@@ -35,7 +35,7 @@ export const Hero = () => {
             <img
               src="/claudio-hero.jpg"
               alt="Claudio Di Franco - Prozessautomatisierung"
-              className="w-full h-auto"
+              className="w-full h-auto md:max-h-[450px] object-cover object-top"
             />
             {/* Play button overlay - uncomment when video is ready
             <div className="absolute inset-0 flex items-center justify-center">
@@ -58,7 +58,7 @@ export const Hero = () => {
             {siteConfig.bulletPoints?.map((point, index) => (
               <li key={index} className="flex items-start gap-3">
                 <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                <span className="text-foreground/90 text-base">{point}</span>
+                <span className="text-foreground/90 text-lg">{point}</span>
               </li>
             ))}
           </ul>
@@ -74,9 +74,6 @@ export const Hero = () => {
                 {siteConfig.cta.text}
               </Link>
             </Button>
-            <p className="text-sm text-muted-foreground mt-3">
-              Kein Verkaufsgespräch. Nur Klarheit.
-            </p>
           </div>
         </div>
       </div>

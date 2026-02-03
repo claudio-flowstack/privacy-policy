@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 
 const ImpressumPage = () => {
   useEffect(() => {
-    document.title = "Impressum – Flowstack Systems";
+    document.title = "Impressum - Flowstack Systems";
     window.scrollTo(0, 0);
   }, []);
 

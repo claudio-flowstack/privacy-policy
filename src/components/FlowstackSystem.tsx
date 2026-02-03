@@ -48,17 +48,22 @@ export const FlowstackSystem = () => {
                       <h3 className="text-xl font-medium text-foreground mb-3">
                         {stage.subtitle}
                       </h3>
-                      <p className="text-base text-muted-foreground mb-4 line-clamp-3">
+                      <p className="text-base text-muted-foreground mb-4">
                         {stage.description}
                       </p>
-                      <ul className="space-y-2 text-left">
-                        {stage.items.slice(0, 3).map((item, i) => (
+                      <ul className="space-y-2 text-left mb-4">
+                        {stage.items.map((item, i) => (
                           <li key={i} className="flex items-start gap-2 text-base text-muted-foreground">
                             <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                            <span className="line-clamp-1">{item}</span>
+                            <span>{item}</span>
                           </li>
                         ))}
                       </ul>
+                      {stage.result && (
+                        <div className="pt-3 border-t border-border/50">
+                          <p className="text-sm text-primary font-medium">{stage.result}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
               ))}
@@ -88,9 +93,20 @@ export const FlowstackSystem = () => {
                       <h3 className="text-xl font-medium text-foreground mb-2">
                         {stage.subtitle}
                       </h3>
-                      <p className="text-base text-muted-foreground">
+                      <p className="text-base text-muted-foreground mb-3">
                         {stage.description}
                       </p>
+                      <ul className="space-y-2 mb-3">
+                        {stage.items.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-base text-muted-foreground">
+                            <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {stage.result && (
+                        <p className="text-sm text-primary font-medium">{stage.result}</p>
+                      )}
                     </div>
                   </div>
               ))}

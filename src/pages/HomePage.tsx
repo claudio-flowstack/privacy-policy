@@ -67,11 +67,11 @@ export const HomePage = () => {
       {/* 14. TEAM */}
       <TeamSection />
 
-      {/* 15. FINALER CTA */}
-      <CtaFinal />
-
-      {/* 16. FAQ */}
+      {/* 15. FAQ */}
       <FAQ />
+
+      {/* 16. FINALER CTA */}
+      <CtaFinal />
 
       {/* 17. FOOTER */}
       <Footer />

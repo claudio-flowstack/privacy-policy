@@ -40,16 +40,16 @@ export const Sponsors = () => {
           {allTools.map((tool, index) => (
             <div
               key={`${tool.name}-${index}`}
-              className="flex-shrink-0 mx-8 flex items-center justify-center gap-3"
+              className="flex-shrink-0 mx-6 flex items-center justify-center"
             >
               <img
                 src={tool.logo}
                 alt={tool.name}
-                className="h-10 w-10 md:h-14 md:w-14 object-contain opacity-60 hover:opacity-90 transition-opacity"
+                className={`h-8 md:h-10 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity ${
+                  tool.name === "OpenAI" ? "brightness-0 invert" : ""
+                }`}
+                loading="lazy"
               />
-              <span className="text-base text-muted-foreground font-medium hidden md:inline">
-                {tool.name}
-              </span>
             </div>
           ))}
         </div>

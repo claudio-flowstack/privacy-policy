@@ -36,7 +36,7 @@ export const CtaInline = ({ variant = "primary" }: CtaInlineProps) => {
                         <div className="p-1 rounded-full bg-primary/10 mt-0.5">
                           <Check className="w-3 h-3 text-primary" />
                         </div>
-                        <span className="text-foreground/80 text-sm">{bullet}</span>
+                        <span className="text-foreground/80 text-base">{bullet}</span>
                       </li>
                     ))}
                   </ul>

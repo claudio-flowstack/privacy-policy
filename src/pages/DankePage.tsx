@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 
 const DankePage = () => {
   useEffect(() => {
-    document.title = "Vielen Dank – Flowstack Systems";
+    document.title = "Vielen Dank - Flowstack Systems";
     window.scrollTo(0, 0);
   }, []);
 
