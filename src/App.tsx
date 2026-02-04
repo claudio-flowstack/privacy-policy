@@ -5,6 +5,9 @@
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
+import HomePageV2 from "./pages/HomePageV2";
+import HomePageV3 from "./pages/HomePageV3";
+import LandingPage from "./pages/LandingPage";
 import FormularPage from "./pages/FormularPage";
 import DankePage from "./pages/DankePage";
 import ImpressumPage from "./pages/ImpressumPage";
@@ -17,7 +20,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePageV3 />} />
+        <Route path="/v1" element={<HomePage />} />
+        <Route path="/v2" element={<HomePageV2 />} />
+        <Route path="/lp" element={<LandingPage />} />
         <Route path="/kostenlose-beratung" element={<FormularPage />} />
         <Route path="/danke" element={<DankePage />} />
         <Route path="/impressum" element={<ImpressumPage />} />

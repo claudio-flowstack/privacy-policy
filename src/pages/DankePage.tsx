@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { CheckCircle, ArrowRight, Zap, Mail, Clock, FileText } from "lucide-react";
+import { siteConfig } from "@/config/content";
 
 const DankePage = () => {
   useEffect(() => {
@@ -11,74 +10,120 @@ const DankePage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar hideCta />
+    <div className="min-h-screen bg-[#0a0a0e] text-white">
+      {/* Simple Header */}
+      <header className="py-6 border-b border-gray-800/50">
+        <div className="max-w-7xl mx-auto px-6">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <Zap className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold">{siteConfig.name}</span>
+          </Link>
+        </div>
+      </header>
 
-      <main className="container flex items-center justify-center min-h-[80vh] px-6 py-20">
-        <div className="max-w-2xl mx-auto text-center">
-          {/* Success Icon */}
-          <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-8">
-            <CheckCircle className="w-10 h-10 text-primary-foreground" />
+      <main className="flex items-center justify-center min-h-[80vh] px-6 py-16">
+        <div className="max-w-3xl mx-auto">
+          {/* Success Animation */}
+          <div className="text-center mb-12">
+            <div className="relative inline-block mb-8">
+              <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl animate-pulse" />
+              <div className="relative w-24 h-24 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-12 h-12 text-white" />
+              </div>
+            </div>
+
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+              Vielen Dank für deine{" "}
+              <span className="text-purple-400">Anfrage!</span>
+            </h1>
+
+            <p className="text-lg text-gray-400 max-w-lg mx-auto">
+              Deine Anfrage ist bei uns eingegangen. Wir melden uns innerhalb von 48 Stunden bei dir.
+            </p>
           </div>
-
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-light tracking-elegant text-foreground mb-4">
-            Vielen Dank für deine{" "}
-            <span className="font-display italic text-primary">Anfrage!</span>
-          </h1>
-
-          <p className="text-lg text-muted-foreground mb-10 max-w-lg mx-auto">
-            Deine Anfrage ist bei uns eingegangen. Wir melden uns innerhalb von
-            48 Stunden bei dir.
-          </p>
 
           {/* Process Steps */}
           <div className="grid md:grid-cols-3 gap-6 mb-12">
-            <div className="bg-card rounded-xl p-6 border border-border/50">
-              <div className="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center mx-auto mb-3 text-sm font-semibold">
-                1
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500/20 to-purple-600/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative bg-gray-900/50 rounded-2xl p-6 border border-gray-800/50 h-full">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4">
+                  <CheckCircle className="w-5 h-5 text-purple-400" />
+                </div>
+                <div className="text-xs text-purple-400 font-semibold mb-2">SCHRITT 1</div>
+                <h3 className="text-white font-semibold mb-2">Anfrage eingegangen</h3>
+                <p className="text-gray-500 text-sm">Deine Daten sind sicher bei uns angekommen.</p>
               </div>
-              <h3 className="text-foreground font-semibold mb-2">
-                Anfrage eingegangen
-              </h3>
-              <p className="text-muted-foreground text-sm">
-                Deine Daten sind sicher bei uns.
-              </p>
             </div>
 
-            <div className="bg-card rounded-xl p-6 border border-border/50">
-              <div className="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center mx-auto mb-3 text-sm font-semibold">
-                2
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500/20 to-purple-600/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative bg-gray-900/50 rounded-2xl p-6 border border-gray-800/50 h-full">
+                <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center mb-4">
+                  <FileText className="w-5 h-5 text-gray-400" />
+                </div>
+                <div className="text-xs text-gray-500 font-semibold mb-2">SCHRITT 2</div>
+                <h3 className="text-white font-semibold mb-2">Prüfung</h3>
+                <p className="text-gray-500 text-sm">Wir prüfen, ob wir dir helfen können.</p>
               </div>
-              <h3 className="text-foreground font-semibold mb-2">Prüfung</h3>
-              <p className="text-muted-foreground text-sm">
-                Wir prüfen, ob wir dir helfen können.
-              </p>
             </div>
 
-            <div className="bg-card rounded-xl p-6 border border-border/50">
-              <div className="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center mx-auto mb-3 text-sm font-semibold">
-                3
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500/20 to-purple-600/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative bg-gray-900/50 rounded-2xl p-6 border border-gray-800/50 h-full">
+                <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center mb-4">
+                  <Mail className="w-5 h-5 text-gray-400" />
+                </div>
+                <div className="text-xs text-gray-500 font-semibold mb-2">SCHRITT 3</div>
+                <h3 className="text-white font-semibold mb-2">Terminvorschlag</h3>
+                <p className="text-gray-500 text-sm">Du erhältst einen Terminvorschlag per E-Mail.</p>
               </div>
-              <h3 className="text-foreground font-semibold mb-2">
-                Terminvorschlag
-              </h3>
-              <p className="text-muted-foreground text-sm">
-                Du erhältst einen Terminvorschlag per E-Mail.
-              </p>
+            </div>
+          </div>
+
+          {/* Info Box */}
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-6 mb-10">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Clock className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-white mb-1">Was passiert als nächstes?</h4>
+                <p className="text-gray-400 text-sm">
+                  Unser Team prüft deine Anfrage und meldet sich innerhalb von 48 Stunden mit einem Terminvorschlag für dein kostenloses Erstgespräch.
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Back Button */}
-          <Link
-            to="/"
-            className="inline-block px-8 py-3 bg-card border border-border text-foreground rounded-lg hover:bg-accent transition-colors"
-          >
-            Zurück zur Startseite
-          </Link>
+          <div className="text-center">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gray-900/50 border border-gray-800/50 text-white rounded-xl hover:bg-gray-800/50 transition-all"
+            >
+              Zurück zur Startseite
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       </main>
 
-      <Footer hideCta />
+      {/* Simple Footer */}
+      <footer className="py-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-6 text-sm text-gray-500">
+              <Link to="/" className="hover:text-white transition-colors">Startseite</Link>
+              <Link to="/impressum" className="hover:text-white transition-colors">Impressum</Link>
+              <Link to="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link>
+            </div>
+            <p className="text-sm text-gray-600">&copy; {new Date().getFullYear()} {siteConfig.name}</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
