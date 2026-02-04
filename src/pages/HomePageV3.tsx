@@ -11,7 +11,6 @@ import {
   problemSection,
   solutionPreview,
   flowstackSystem,
-  ctaInline,
   outcomes,
   targetAudience,
   services,
@@ -481,7 +480,7 @@ export const HomePageV3 = () => {
         <div className="mx-4 mt-4">
           <div className="max-w-7xl mx-auto bg-gray-900/70 backdrop-blur-xl rounded-2xl border border-gray-800/50 shadow-2xl px-6 py-3">
             <div className="flex items-center justify-between">
-              <Link to="/v3" className="flex items-center gap-3">
+              <Link to="/" className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
@@ -538,15 +537,15 @@ export const HomePageV3 = () => {
                 </span>
               </h1>
 
-              <p className="text-lg text-gray-400 leading-relaxed mb-8 max-w-xl">{siteConfig.tagline}</p>
+              <p className="text-lg md:text-xl text-white leading-relaxed mb-8 max-w-xl">{siteConfig.tagline}</p>
 
-              <ul className="space-y-3 mb-10">
+              <ul className="space-y-4 mb-10">
                 {siteConfig.bulletPoints.slice(0, 3).map((point, i) => (
                   <li key={i} className="flex items-start gap-3">
-                    <div className="w-5 h-5 bg-purple-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
-                      <Check className="w-3 h-3 text-purple-400" />
+                    <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <Check className="w-4 h-4 text-purple-400" />
                     </div>
-                    <span className="text-gray-300 text-sm">{point}</span>
+                    <span className="text-white md:text-base">{point}</span>
                   </li>
                 ))}
               </ul>
@@ -797,40 +796,67 @@ export const HomePageV3 = () => {
       {/* ============================================ */}
       {/* CTA INLINE #1 */}
       {/* ============================================ */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-900/30 via-purple-800/20 to-purple-900/30" />
+      <section className="py-24 bg-gradient-to-b from-purple-950/30 via-[#0a0a0e] to-[#0a0a0e] relative overflow-hidden">
         <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/4 w-64 h-64 bg-purple-500/20 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px]" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[150px]" />
         </div>
 
-        <AnimatedSection className="max-w-4xl mx-auto px-6 relative z-10">
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-10 md:p-12">
-            <div className="text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 rounded-full text-purple-400 text-sm font-semibold mb-6 border border-purple-500/20">
-                <Clock className="w-4 h-4" />
-                Nur wenige Plätze pro Monat
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <AnimatedSection>
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left: Content */}
+              <div>
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
+                  Der beste Zeitpunkt war gestern.
+                </h2>
+                <h3 className="text-3xl md:text-4xl lg:text-5xl font-bold text-purple-400 mb-8">
+                  Der zweitbeste ist jetzt.
+                </h3>
+                <p className="text-xl text-gray-400 mb-8">In 15-20 Minuten weißt du:</p>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-start gap-4">
+                    <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <Check className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <span className="text-white text-lg">Welche 3 Prozesse du zuerst automatisieren solltest</span>
+                  </li>
+                  <li className="flex items-start gap-4">
+                    <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <Check className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <span className="text-white text-lg">Wie viel Umsatzrendite realistisch drin ist</span>
+                  </li>
+                  <li className="flex items-start gap-4">
+                    <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <Check className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <span className="text-white text-lg">Ob wir die Richtigen für dich sind</span>
+                  </li>
+                </ul>
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{ctaInline.secondary.headline}</h2>
-              <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">{ctaInline.secondary.text}</p>
 
-              <div className="flex flex-wrap justify-center gap-6 mb-10 text-sm">
-                {ctaInline.secondary.bullets.map((bullet, i) => (
-                  <div key={i} className="flex items-center gap-2 text-gray-300">
-                    <Check className="w-4 h-4 text-purple-400" />
-                    {bullet}
+              {/* Right: CTA Card */}
+              <div className="relative">
+                <div className="absolute -inset-4 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-[2rem] blur-xl" />
+                <div className="relative bg-gray-900/80 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8 md:p-10">
+                  <div className="text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 rounded-full text-purple-400 text-sm font-semibold mb-6 border border-purple-500/20">
+                      <Clock className="w-4 h-4" />
+                      Nur wenige Plätze pro Monat
+                    </div>
+                    <h4 className="text-2xl font-bold text-white mb-4">Kostenlose Prozess-Analyse</h4>
+                    <p className="text-gray-400 mb-8">Finde heraus, wie viel Potenzial in deiner Agentur steckt.</p>
+                    <Link to="/kostenlose-beratung" className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-8 py-5 rounded-xl font-semibold text-lg transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/30">
+                      Jetzt Termin wählen
+                      <ArrowRight className="w-5 h-5" />
+                    </Link>
+                    <p className="mt-6 text-gray-500 text-sm">Kostenlos und unverbindlich</p>
                   </div>
-                ))}
+                </div>
               </div>
-
-              <Link to="/kostenlose-beratung" className="inline-flex items-center gap-3 bg-purple-500 hover:bg-purple-600 text-white px-10 py-5 rounded-xl font-semibold text-lg transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/30">
-                {ctaInline.secondary.cta}
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <p className="mt-6 text-gray-500 text-sm">{ctaInline.secondary.subtext}</p>
             </div>
-          </div>
-        </AnimatedSection>
+          </AnimatedSection>
+        </div>
       </section>
 
       {/* ============================================ */}
@@ -1100,21 +1126,21 @@ export const HomePageV3 = () => {
 
               {/* Stats */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-900/50 border border-gray-800/50 rounded-xl p-5">
-                  <div className="text-3xl font-bold text-white">47+</div>
-                  <div className="text-gray-500 text-sm">Agenturen betreut</div>
+                <div className="group bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 rounded-2xl p-6 hover:border-purple-500/40 transition-all">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-300 bg-clip-text text-transparent mb-1">80%</div>
+                  <div className="text-gray-400 text-sm">weniger Routinearbeit möglich</div>
                 </div>
-                <div className="bg-gray-900/50 border border-gray-800/50 rounded-xl p-5">
-                  <div className="text-3xl font-bold text-white">80%</div>
-                  <div className="text-gray-500 text-sm">Weniger Routinearbeit</div>
+                <div className="group bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 rounded-2xl p-6 hover:border-purple-500/40 transition-all">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-300 bg-clip-text text-transparent mb-1">2-4</div>
+                  <div className="text-gray-400 text-sm">Wochen bis dein System live ist</div>
                 </div>
-                <div className="bg-gray-900/50 border border-gray-800/50 rounded-xl p-5">
-                  <div className="text-3xl font-bold text-white">2-4</div>
-                  <div className="text-gray-500 text-sm">Wochen bis Go-Live</div>
+                <div className="group bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 rounded-2xl p-6 hover:border-purple-500/40 transition-all">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-300 bg-clip-text text-transparent mb-1">30-50%</div>
+                  <div className="text-gray-400 text-sm">mehr Umsatzrendite durch Automation</div>
                 </div>
-                <div className="bg-gray-900/50 border border-gray-800/50 rounded-xl p-5">
-                  <div className="text-3xl font-bold text-white">50%+</div>
-                  <div className="text-gray-500 text-sm">Mehr Umsatzrendite</div>
+                <div className="group bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 rounded-2xl p-6 hover:border-purple-500/40 transition-all">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-300 bg-clip-text text-transparent mb-1">0</div>
+                  <div className="text-gray-400 text-sm">zusätzliche Mitarbeiter nötig</div>
                 </div>
               </div>
             </AnimatedSection>

@@ -37,19 +37,40 @@ const FormularPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0e] text-white">
-      {/* Simple Header */}
-      <header className="py-6 border-b border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-6">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold">{siteConfig.name}</span>
-          </Link>
-        </div>
-      </header>
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 z-50">
+        <div className="mx-4 mt-4">
+          <div className="max-w-7xl mx-auto bg-gray-900/70 backdrop-blur-xl rounded-2xl border border-gray-800/50 shadow-2xl px-6 py-3">
+            <div className="flex items-center justify-between">
+              <Link to="/" className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">{siteConfig.name}</span>
+              </Link>
 
-      <main className="py-16 md:py-24">
+              <div className="hidden md:flex items-center gap-1">
+                <Link to="/" className="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-xl transition-all font-medium text-sm">
+                  Startseite
+                </Link>
+                <Link to="/#system" className="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-xl transition-all font-medium text-sm">
+                  System
+                </Link>
+                <Link to="/#leistungen" className="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-xl transition-all font-medium text-sm">
+                  Leistungen
+                </Link>
+              </div>
+
+              <Link to="/kostenlose-beratung" className="group bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-purple-500/25 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                Prozess-Analyse
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <main className="pt-28 pb-16 md:pt-32 md:pb-24">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
             {/* Left: Info */}
