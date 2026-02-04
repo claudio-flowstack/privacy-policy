@@ -433,98 +433,199 @@ const AnimatedWorkflow = () => {
 };
 
 // ============================================
-// AGENCY AUTOMATION FLOW - For Final CTA
+// AGENCY AUTOMATION FLOW - Node-based System Diagram
 // ============================================
 const AgencyAutomationFlow = () => {
   const { ref, isVisible } = useScrollAnimation();
 
-  const steps = [
-    { id: 1, label: 'Anfrage', sublabel: 'Eingang', icon: 'mail', color: 'from-blue-500 to-cyan-500' },
-    { id: 2, label: 'Onboarding', sublabel: 'Automatisch', icon: 'zap', color: 'from-purple-500 to-violet-500' },
-    { id: 3, label: 'KI-Prozess', sublabel: 'Verarbeitung', icon: 'bot', color: 'from-emerald-500 to-teal-500' },
-    { id: 4, label: 'Delivery', sublabel: 'Fertig', icon: 'check', color: 'from-green-500 to-emerald-500' },
-  ];
+  // Tool/Platform Node Component
+  const Node = ({
+    icon,
+    label,
+    className = "",
+    size = "md",
+    delay = 0
+  }: {
+    icon: React.ReactNode;
+    label?: string;
+    className?: string;
+    size?: "sm" | "md" | "lg";
+    delay?: number;
+  }) => {
+    const sizeClasses = {
+      sm: "w-10 h-10",
+      md: "w-12 h-12",
+      lg: "w-16 h-16"
+    };
+
+    return (
+      <div
+        className={`flex flex-col items-center gap-1.5 transition-all duration-700 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75'} ${className}`}
+        style={{ transitionDelay: `${delay}ms` }}
+      >
+        <div className={`${sizeClasses[size]} rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/[0.12] flex items-center justify-center hover:bg-white/[0.12] hover:border-white/20 transition-all cursor-pointer group`}>
+          <div className="text-gray-400 group-hover:text-white transition-colors">
+            {icon}
+          </div>
+        </div>
+        {label && <span className="text-[10px] text-gray-500 font-medium">{label}</span>}
+      </div>
+    );
+  };
+
+  // Central Hub Node
+  const CentralNode = ({ icon, label, sublabel, delay = 0 }: { icon: React.ReactNode; label: string; sublabel?: string; delay?: number }) => (
+    <div
+      className={`flex flex-col items-center transition-all duration-700 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      <div className="relative">
+        <div className="absolute inset-0 bg-purple-500/30 rounded-full blur-2xl scale-150" />
+        <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-2 border-purple-500/40 flex flex-col items-center justify-center backdrop-blur-sm">
+          <div className="text-purple-400 mb-1">{icon}</div>
+          <span className="text-[10px] md:text-xs text-purple-300 font-semibold">{label}</span>
+        </div>
+      </div>
+      {sublabel && <span className="text-[10px] text-gray-500 mt-2">{sublabel}</span>}
+    </div>
+  );
+
+  // SVG Icons for platforms
+  const LinkedInIcon = () => (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+  );
+
+  const SlackIcon = () => (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+      <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z"/>
+    </svg>
+  );
+
+  const HubSpotIcon = () => (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+      <path d="M18.164 7.93V5.084a2.198 2.198 0 001.267-1.984v-.066A2.2 2.2 0 0017.235.838h-.066a2.2 2.2 0 00-2.196 2.196v.066c0 .873.52 1.626 1.267 1.984V7.93a6.154 6.154 0 00-3.024 1.465l-8.02-6.239a2.078 2.078 0 00.069-.509A2.118 2.118 0 103.118 4.77c0 .593.25 1.128.65 1.51L3.14 7.142a6.103 6.103 0 00-1.854 4.38c0 1.685.683 3.21 1.787 4.32l-.64.84a2.105 2.105 0 00-.84-.178A2.118 2.118 0 00.477 18.62a2.118 2.118 0 002.116 2.117c.737 0 1.399-.38 1.78-.96l.74-.01a6.17 6.17 0 003.606 1.168 6.17 6.17 0 006.168-6.168 6.126 6.126 0 00-1.36-3.85l5.06 3.92a2.08 2.08 0 00-.07.532 2.118 2.118 0 102.117-2.117 2.09 2.09 0 00-.69.118l-4.827-3.75a6.126 6.126 0 003.046-1.702z"/>
+    </svg>
+  );
+
+  const NotionIcon = () => (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+      <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.98-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.886l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/>
+    </svg>
+  );
+
+  const CalendarIcon = () => (
+    <div className="relative">
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold mt-1.5">31</span>
+    </div>
+  );
 
   return (
     <div ref={ref} className="relative">
       {/* Container */}
-      <div className="bg-[#0f0f14] rounded-2xl border border-gray-800/50 p-6 md:p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <Workflow className="w-4 h-4 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-white font-medium text-sm">Flowstack Automation</p>
-              <p className="text-gray-500 text-xs">Live-Workflow</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-emerald-400 text-xs font-medium">Aktiv</span>
-          </div>
+      <div className="bg-gradient-to-br from-[#0d0d12] to-[#08080c] rounded-2xl border border-white/[0.06] p-6 md:p-10 overflow-hidden">
+
+        {/* Background Grid */}
+        <div className="absolute inset-0 opacity-[0.03]">
+          <div className="w-full h-full" style={{
+            backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
+            backgroundSize: '32px 32px'
+          }} />
         </div>
 
-        {/* Workflow Steps */}
-        <div className="relative">
-          {/* Connection Lines */}
-          <div className="absolute top-8 left-0 right-0 h-0.5 bg-gray-800 hidden md:block">
-            <div
-              className={`h-full bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-500 transition-all duration-2000 ease-out ${isVisible ? 'w-full' : 'w-0'}`}
-              style={{ transitionDelay: '500ms' }}
+        {/* Soft Glows */}
+        <div className="absolute top-1/3 left-1/4 w-40 h-40 bg-purple-500/10 rounded-full blur-[80px]" />
+        <div className="absolute bottom-1/3 right-1/4 w-40 h-40 bg-blue-500/10 rounded-full blur-[80px]" />
+
+        {/* Main Workflow Diagram */}
+        <div className="relative min-h-[300px] md:min-h-[320px]">
+
+          {/* SVG Connection Lines */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.5" />
+              </linearGradient>
+            </defs>
+
+            {/* Lines from inputs to center - using percentages for responsiveness */}
+            {/* Top row to center */}
+            <line x1="15%" y1="15%" x2="50%" y2="45%" stroke="url(#flowGradient)" strokeWidth="1.5"
+              className={`transition-all duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '300ms'}} />
+            <line x1="35%" y1="15%" x2="50%" y2="45%" stroke="url(#flowGradient)" strokeWidth="1.5"
+              className={`transition-all duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '400ms'}} />
+            <line x1="65%" y1="15%" x2="50%" y2="45%" stroke="url(#flowGradient)" strokeWidth="1.5"
+              className={`transition-all duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '500ms'}} />
+            <line x1="85%" y1="15%" x2="50%" y2="45%" stroke="url(#flowGradient)" strokeWidth="1.5"
+              className={`transition-all duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '600ms'}} />
+
+            {/* Center to bottom row */}
+            <line x1="50%" y1="55%" x2="20%" y2="88%" stroke="url(#flowGradient)" strokeWidth="1.5"
+              className={`transition-all duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '900ms'}} />
+            <line x1="50%" y1="55%" x2="40%" y2="88%" stroke="url(#flowGradient)" strokeWidth="1.5"
+              className={`transition-all duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '1000ms'}} />
+            <line x1="50%" y1="55%" x2="60%" y2="88%" stroke="url(#flowGradient)" strokeWidth="1.5"
+              className={`transition-all duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '1100ms'}} />
+            <line x1="50%" y1="55%" x2="80%" y2="88%" stroke="url(#flowGradient)" strokeWidth="1.5"
+              className={`transition-all duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '1200ms'}} />
+          </svg>
+
+          {/* Input Sources - Top Row */}
+          <div className="absolute top-0 left-0 right-0 flex justify-around px-4 md:px-8">
+            <Node icon={<LinkedInIcon />} label="LinkedIn" delay={0} />
+            <Node icon={<Mail className="w-5 h-5" />} label="E-Mail" delay={100} />
+            <Node icon={<MousePointer className="w-5 h-5" />} label="Website" delay={200} />
+            <Node icon={<Users className="w-5 h-5" />} label="Empfehlung" delay={300} />
+          </div>
+
+          {/* Label: Leads */}
+          <div
+            className={`absolute top-14 left-2 md:left-4 transition-all duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+            style={{ transitionDelay: '500ms' }}
+          >
+            <span className="text-[9px] text-gray-600 bg-gray-800/50 px-2 py-0.5 rounded">Leads</span>
+          </div>
+
+          {/* Center - Flowstack Hub */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            <CentralNode
+              icon={<Zap className="w-6 h-6 md:w-7 md:h-7" />}
+              label="Flowstack"
+              delay={700}
             />
           </div>
 
-          {/* Steps Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {steps.map((step, index) => (
-              <div
-                key={step.id}
-                className={`relative transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-                style={{ transitionDelay: `${index * 200 + 300}ms` }}
-              >
-                {/* Node */}
-                <div className="flex flex-col items-center">
-                  <div className="relative mb-3">
-                    <div className={`absolute inset-0 bg-gradient-to-br ${step.color} rounded-xl blur-lg opacity-40`} />
-                    <div className={`relative w-16 h-16 bg-gradient-to-br ${step.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                      {step.icon === 'mail' && <Mail className="w-7 h-7 text-white" />}
-                      {step.icon === 'zap' && <Zap className="w-7 h-7 text-white" />}
-                      {step.icon === 'bot' && <Bot className="w-7 h-7 text-white" />}
-                      {step.icon === 'check' && <Check className="w-7 h-7 text-white" />}
-                    </div>
-                    {/* Step Number */}
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gray-900 border border-gray-700 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-white">{step.id}</span>
-                    </div>
-                  </div>
-                  <p className="text-white font-semibold text-sm">{step.label}</p>
-                  <p className="text-gray-500 text-xs">{step.sublabel}</p>
-                </div>
-              </div>
-            ))}
+          {/* Output Actions - Bottom Row */}
+          <div className="absolute bottom-0 left-0 right-0 flex justify-around px-4 md:px-8">
+            <Node icon={<HubSpotIcon />} label="CRM" delay={900} />
+            <Node icon={<CalendarIcon />} label="Kalender" delay={1000} />
+            <Node icon={<SlackIcon />} label="Team" delay={1100} />
+            <Node icon={<NotionIcon />} label="Docs" delay={1200} />
+          </div>
+
+          {/* Label: Automatisch */}
+          <div
+            className={`absolute bottom-14 right-2 md:right-4 transition-all duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+            style={{ transitionDelay: '1300ms' }}
+          >
+            <span className="text-[9px] text-gray-600 bg-gray-800/50 px-2 py-0.5 rounded flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+              Auto
+            </span>
           </div>
         </div>
 
-        {/* Stats Bar */}
-        <div className="mt-8 pt-6 border-t border-gray-800/50 grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-purple-400">10 Min</p>
-            <p className="text-gray-500 text-xs">Durchlaufzeit</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-emerald-400">98%</p>
-            <p className="text-gray-500 text-xs">Automatisiert</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-white">24/7</p>
-            <p className="text-gray-500 text-xs">Verfügbar</p>
-          </div>
-        </div>
       </div>
 
-      {/* Glow Effect */}
+      {/* Outer Glow */}
       <div className="absolute -inset-4 bg-purple-600/10 blur-[60px] -z-10 rounded-full" />
     </div>
   );
