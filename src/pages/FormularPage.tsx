@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Check, ArrowRight, Zap, Shield, Clock, Star, Mail, MapPin, Linkedin } from "lucide-react";
+import { Check, ArrowRight, Zap, Shield, Clock, Star } from "lucide-react";
 import { siteConfig } from "@/config/content";
 
 const FormularPage = () => {

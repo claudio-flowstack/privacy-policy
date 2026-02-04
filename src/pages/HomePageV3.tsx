@@ -8,7 +8,6 @@ import {
   siteConfig,
   trustMetrics,
   tools,
-  empathyOpening,
   problemSection,
   solutionPreview,
   flowstackSystem,
@@ -232,7 +231,6 @@ const SolutionPreviewGraphic = ({ index }: { index: number }) => {
   const { ref, isVisible } = useScrollAnimation();
   const vorherCount = useCountUp(20, 1500, isVisible);
   const nachherCount = useCountUp(45, 2000, isVisible);
-  const kundenCount = useCountUp(5, 2000, isVisible);
 
   return (
     <div ref={ref} className="space-y-4">
