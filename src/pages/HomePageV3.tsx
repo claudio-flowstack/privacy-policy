@@ -438,94 +438,210 @@ const AnimatedWorkflow = () => {
 const AgencyAutomationFlow = () => {
   const { ref, isVisible } = useScrollAnimation();
 
-  const steps = [
-    { id: 1, label: 'Anfrage', sublabel: 'Eingang', icon: 'mail', color: 'from-blue-500 to-cyan-500' },
-    { id: 2, label: 'Onboarding', sublabel: 'Automatisch', icon: 'zap', color: 'from-purple-500 to-violet-500' },
-    { id: 3, label: 'KI-Prozess', sublabel: 'Verarbeitung', icon: 'bot', color: 'from-emerald-500 to-teal-500' },
-    { id: 4, label: 'Delivery', sublabel: 'Fertig', icon: 'check', color: 'from-green-500 to-emerald-500' },
-  ];
+  // Platform icons as SVG components
+  const LinkedInIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+  );
+
+  const UpworkIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06 1.492 0 2.703 1.212 2.703 2.703-.001 1.489-1.212 2.702-2.704 2.702zm0-8.14c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.548-1.405-.002-2.543-1.143-2.545-2.548V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z"/>
+    </svg>
+  );
+
+  const HubSpotIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M18.164 7.93V5.084a2.198 2.198 0 001.267-1.984v-.066A2.2 2.2 0 0017.235.838h-.066a2.2 2.2 0 00-2.196 2.196v.066c0 .873.52 1.626 1.267 1.984V7.93a6.154 6.154 0 00-3.024 1.465l-8.02-6.239a2.078 2.078 0 00.069-.509A2.118 2.118 0 103.118 4.77c0 .593.25 1.128.65 1.51L3.14 7.142a6.103 6.103 0 00-1.854 4.38c0 1.685.683 3.21 1.787 4.32l-.64.84a2.105 2.105 0 00-.84-.178A2.118 2.118 0 00.477 18.62a2.118 2.118 0 002.116 2.117c.737 0 1.399-.38 1.78-.96l.74-.01a6.17 6.17 0 003.606 1.168 6.17 6.17 0 006.168-6.168 6.126 6.126 0 00-1.36-3.85l5.06 3.92a2.08 2.08 0 00-.07.532 2.118 2.118 0 102.117-2.117 2.09 2.09 0 00-.69.118l-4.827-3.75a6.126 6.126 0 003.046-1.702zm-9.225 7.383a3.064 3.064 0 01-3.06-3.061 3.064 3.064 0 013.06-3.06 3.064 3.064 0 013.06 3.06 3.064 3.064 0 01-3.06 3.06z"/>
+    </svg>
+  );
+
+  const SlackIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+    </svg>
+  );
 
   return (
     <div ref={ref} className="relative">
-      {/* Container */}
-      <div className="bg-[#0f0f14] rounded-2xl border border-gray-800/50 p-6 md:p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <Workflow className="w-4 h-4 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-white font-medium text-sm">Flowstack Automation</p>
-              <p className="text-gray-500 text-xs">Live-Workflow</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-emerald-400 text-xs font-medium">Aktiv</span>
-          </div>
+      {/* Container with soft gradient background */}
+      <div className="relative bg-gradient-to-br from-[#12121a] via-[#0f0f16] to-[#0a0a10] rounded-2xl border border-white/[0.06] p-6 md:p-10 overflow-hidden">
+
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.02]">
+          <div className="w-full h-full" style={{
+            backgroundImage: 'linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)',
+            backgroundSize: '40px 40px'
+          }} />
         </div>
 
-        {/* Workflow Steps */}
-        <div className="relative">
-          {/* Connection Lines */}
-          <div className="absolute top-8 left-0 right-0 h-0.5 bg-gray-800 hidden md:block">
+        {/* Soft glow spots */}
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl" />
+
+
+        {/* Workflow Diagram - Horizontal Flow */}
+        <div className="relative overflow-x-auto pb-4">
+          <div className="flex items-center justify-center gap-2 md:gap-4 min-w-max px-4">
+
+            {/* Step 1: Anfrage */}
             <div
-              className={`h-full bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-500 transition-all duration-2000 ease-out ${isVisible ? 'w-full' : 'w-0'}`}
+              className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
+              style={{ transitionDelay: '0ms' }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl scale-125 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-400/30 rounded-full flex items-center justify-center">
+                    <Mail className="w-6 h-6 text-blue-400" />
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 font-medium">Anfrage</span>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div
+              className={`transition-all duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transitionDelay: '200ms' }}
+            >
+              <ArrowRight className="w-5 h-5 text-gray-600" />
+            </div>
+
+            {/* Step 2: KI-Analyse */}
+            <div
+              className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
+              style={{ transitionDelay: '300ms' }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl scale-125 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-400/30 rounded-full flex items-center justify-center">
+                    <Bot className="w-6 h-6 text-purple-400" />
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 font-medium">KI-Analyse</span>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div
+              className={`transition-all duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
               style={{ transitionDelay: '500ms' }}
-            />
+            >
+              <ArrowRight className="w-5 h-5 text-gray-600" />
+            </div>
+
+            {/* Step 3: Onboarding */}
+            <div
+              className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
+              style={{ transitionDelay: '600ms' }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-cyan-500/20 rounded-full blur-xl scale-125 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-full flex items-center justify-center">
+                    <Users className="w-6 h-6 text-cyan-400" />
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 font-medium">Onboarding</span>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div
+              className={`transition-all duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transitionDelay: '800ms' }}
+            >
+              <ArrowRight className="w-5 h-5 text-gray-600" />
+            </div>
+
+            {/* Step 4: Projekt */}
+            <div
+              className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
+              style={{ transitionDelay: '900ms' }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl scale-125 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-400/30 rounded-full flex items-center justify-center">
+                    <Layers className="w-6 h-6 text-emerald-400" />
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 font-medium">Projekt</span>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div
+              className={`transition-all duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transitionDelay: '1100ms' }}
+            >
+              <ArrowRight className="w-5 h-5 text-gray-600" />
+            </div>
+
+            {/* Step 5: Reporting */}
+            <div
+              className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
+              style={{ transitionDelay: '1200ms' }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl scale-125 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-400/30 rounded-full flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-orange-400" />
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 font-medium">Reporting</span>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div
+              className={`transition-all duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transitionDelay: '1400ms' }}
+            >
+              <ArrowRight className="w-5 h-5 text-gray-600" />
+            </div>
+
+            {/* Step 6: Rechnung */}
+            <div
+              className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
+              style={{ transitionDelay: '1500ms' }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl scale-125 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-400/30 rounded-full flex items-center justify-center">
+                    <Check className="w-6 h-6 text-green-400" />
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 font-medium">Rechnung</span>
+              </div>
+            </div>
           </div>
 
-          {/* Steps Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {steps.map((step, index) => (
-              <div
-                key={step.id}
-                className={`relative transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-                style={{ transitionDelay: `${index * 200 + 300}ms` }}
-              >
-                {/* Node */}
-                <div className="flex flex-col items-center">
-                  <div className="relative mb-3">
-                    <div className={`absolute inset-0 bg-gradient-to-br ${step.color} rounded-xl blur-lg opacity-40`} />
-                    <div className={`relative w-16 h-16 bg-gradient-to-br ${step.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                      {step.icon === 'mail' && <Mail className="w-7 h-7 text-white" />}
-                      {step.icon === 'zap' && <Zap className="w-7 h-7 text-white" />}
-                      {step.icon === 'bot' && <Bot className="w-7 h-7 text-white" />}
-                      {step.icon === 'check' && <Check className="w-7 h-7 text-white" />}
-                    </div>
-                    {/* Step Number */}
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gray-900 border border-gray-700 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-white">{step.id}</span>
-                    </div>
-                  </div>
-                  <p className="text-white font-semibold text-sm">{step.label}</p>
-                  <p className="text-gray-500 text-xs">{step.sublabel}</p>
-                </div>
+          {/* Tool Icons below - showing connected tools */}
+          <div
+            className={`flex justify-center gap-3 mt-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+            style={{ transitionDelay: '1700ms' }}
+          >
+            {[
+              { icon: <HubSpotIcon className="w-4 h-4" />, color: "text-orange-400" },
+              { icon: <SlackIcon className="w-4 h-4" />, color: "text-pink-400" },
+              { icon: <LinkedInIcon className="w-4 h-4" />, color: "text-blue-400" },
+              { icon: <UpworkIcon className="w-4 h-4" />, color: "text-green-400" },
+            ].map((tool, i) => (
+              <div key={i} className={`w-8 h-8 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center ${tool.color}`}>
+                {tool.icon}
               </div>
             ))}
+            <span className="text-[10px] text-gray-500 self-center ml-2">+12 weitere Tools</span>
           </div>
         </div>
 
-        {/* Stats Bar */}
-        <div className="mt-8 pt-6 border-t border-gray-800/50 grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-purple-400">10 Min</p>
-            <p className="text-gray-500 text-xs">Durchlaufzeit</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-emerald-400">98%</p>
-            <p className="text-gray-500 text-xs">Automatisiert</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-white">24/7</p>
-            <p className="text-gray-500 text-xs">Verfügbar</p>
-          </div>
-        </div>
       </div>
-
-      {/* Glow Effect */}
-      <div className="absolute -inset-4 bg-purple-600/10 blur-[60px] -z-10 rounded-full" />
     </div>
   );
 };
@@ -1243,21 +1359,30 @@ export const HomePageV3 = () => {
               </div>
             </AnimatedSection>
 
-            {/* Right: Team Photo */}
+            {/* Right: Team Photos */}
             <AnimatedSection delay={200}>
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-2xl blur-xl" />
-                <div className="relative bg-gradient-to-br from-purple-900/30 to-gray-900 rounded-2xl border border-gray-800/50 p-8">
-                  <div className="grid grid-cols-2 gap-6">
+                <div className="relative bg-gradient-to-br from-purple-900/30 to-gray-900 rounded-2xl border border-gray-800/50 p-6 md:p-8">
+                  <div className="space-y-6">
                     {teamContent.members.map((member, index) => (
-                      <div key={index} className="text-center">
-                        <img
-                          src={member.image}
-                          alt={member.name}
-                          className="w-24 h-24 md:w-32 md:h-32 rounded-2xl object-cover mx-auto mb-4 ring-2 ring-purple-500/30"
-                        />
-                        <h3 className="font-semibold text-white">{member.name}</h3>
-                        <p className="text-purple-400 text-sm">{member.role}</p>
+                      <div key={index} className="flex gap-4 md:gap-5">
+                        {/* Photo */}
+                        <div className="flex-shrink-0">
+                          <img
+                            src={member.image}
+                            alt={member.name}
+                            className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover object-top ring-2 ring-purple-500/30"
+                          />
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-white text-sm md:text-base">{member.name}</h3>
+                          <p className="text-purple-400 text-xs md:text-sm mb-2">{member.role}</p>
+                          <p className="text-gray-500 text-xs leading-relaxed whitespace-pre-line line-clamp-3 md:line-clamp-4">
+                            {member.description}
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>
