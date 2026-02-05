@@ -248,8 +248,8 @@ const FormularPage = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-6 text-sm text-gray-500">
               <Link to="/" className="hover:text-white transition-colors">Startseite</Link>
-              <Link to="/impressum" className="hover:text-white transition-colors">Impressum</Link>
-              <Link to="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link>
+              <a href="/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Impressum</a>
+              <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Datenschutz</a>
             </div>
             <p className="text-sm text-gray-600">&copy; {new Date().getFullYear()} {siteConfig.name}</p>
           </div>

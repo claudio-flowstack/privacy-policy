@@ -39,7 +39,6 @@ import {
   Linkedin,
   MousePointer,
   Bot,
-  Workflow,
   Search,
   PenTool,
   Rocket,
@@ -57,17 +56,31 @@ import {
   Phone,
   AlertCircle,
   ShieldX,
+  Menu,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 // ============================================
 // SCROLL ANIMATION HOOKS
 // ============================================
-const useScrollAnimation = () => {
+const useScrollAnimation = (disableOnMobile = true) => {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    // Check if mobile
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile && disableOnMobile) {
+        setIsVisible(true); // Show immediately on mobile
+      }
+    };
+    checkMobile();
+
+    if (isMobile && disableOnMobile) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -82,7 +95,7 @@ const useScrollAnimation = () => {
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [isMobile, disableOnMobile]);
 
   return { ref, isVisible };
 };
@@ -163,40 +176,6 @@ const AnimatedProgressBar = ({
 };
 
 // ============================================
-// ANIMATED BAR CHART
-// ============================================
-const AnimatedBarChart = ({ isVisible = true }: { isVisible?: boolean }) => {
-  const [heights, setHeights] = useState<number[]>(Array(12).fill(0));
-  const targetHeights = [30, 45, 25, 60, 40, 75, 55, 85, 70, 90, 80, 95];
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    targetHeights.forEach((height, index) => {
-      setTimeout(() => {
-        setHeights(prev => {
-          const newHeights = [...prev];
-          newHeights[index] = height;
-          return newHeights;
-        });
-      }, index * 100);
-    });
-  }, [isVisible]);
-
-  return (
-    <div className="flex items-end gap-1 h-24">
-      {heights.map((h, i) => (
-        <div
-          key={i}
-          className="flex-1 bg-gradient-to-t from-purple-600 to-purple-400 rounded-t transition-all duration-700 ease-out hover:from-purple-500"
-          style={{ height: `${h}%` }}
-        />
-      ))}
-    </div>
-  );
-};
-
-// ============================================
 // ANIMATED STAT CARD
 // ============================================
 const AnimatedStatCard = ({
@@ -247,7 +226,46 @@ const SolutionPreviewGraphic = ({ index }: { index: number }) => {
         </>
       )}
       {index === 1 && (
-        <AnimatedBarChart isVisible={isVisible} />
+        <div className="relative">
+          {/* Donut Chart - 80% Automated */}
+          <div className="relative w-32 h-32 mx-auto">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+              {/* Background circle */}
+              <circle cx="18" cy="18" r="14" fill="none" stroke="#374151" strokeWidth="4" />
+              {/* Animated progress circle - 80% */}
+              <circle
+                cx="18" cy="18" r="14"
+                fill="none"
+                stroke="url(#donutGradient)"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={isVisible ? "70.4, 100" : "0, 100"}
+                className="transition-all duration-1000 ease-out"
+              />
+              <defs>
+                <linearGradient id="donutGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#a855f7" />
+                  <stop offset="100%" stopColor="#7c3aed" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-bold text-white">80%</span>
+              <span className="text-[10px] text-gray-400">automatisiert</span>
+            </div>
+          </div>
+          {/* Legend */}
+          <div className="flex justify-center gap-6 mt-4">
+            <div className="flex items-center gap-2">
+              <Bot className="w-4 h-4 text-purple-400" />
+              <span className="text-xs text-gray-400">KI übernimmt</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs text-gray-400">Dein Fokus</span>
+            </div>
+          </div>
+        </div>
       )}
       {index === 2 && (
         <div className="grid grid-cols-2 gap-4">
@@ -321,19 +339,54 @@ const StaggeredContainer = ({
 const AnimatedWorkflow = () => {
   const { ref, isVisible } = useScrollAnimation();
 
+  // Tool Icons - Real Brand Logos
+  const N8nIcon = () => (
+    <svg viewBox="0 0 48 48" className="w-6 h-6" fill="#FF6D5A">
+      <circle cx="10" cy="24" r="6"/>
+      <circle cx="38" cy="12" r="6"/>
+      <circle cx="38" cy="36" r="6"/>
+      <path d="M14 22 L32 14" stroke="#FF6D5A" strokeWidth="4" strokeLinecap="round"/>
+      <path d="M14 26 L32 34" stroke="#FF6D5A" strokeWidth="4" strokeLinecap="round"/>
+    </svg>
+  );
+
+  const OpenAIIcon = () => (
+    <svg viewBox="0 0 24 24" className="w-6 h-6">
+      <path fill="#fff" d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/>
+    </svg>
+  );
+
+  const AirtableIcon = () => (
+    <svg viewBox="0 0 200 170" className="w-6 h-6">
+      <path fill="#FCB400" d="M90.039 12.368L24.079 39.66c-3.667 1.519-3.63 6.729.062 8.192l66.235 26.266a24.58 24.58 0 0 0 18.12-.001l66.235-26.265c3.691-1.463 3.729-6.673.062-8.192l-65.96-27.293a24.58 24.58 0 0 0-18.794 0z"/>
+      <path fill="#18BFFF" d="M105.312 88.46v65.617c0 3.12 3.147 5.258 6.048 4.108l73.806-28.648a4.42 4.42 0 0 0 2.79-4.108V59.813c0-3.121-3.147-5.258-6.048-4.108l-73.806 28.648a4.42 4.42 0 0 0-2.79 4.108z"/>
+      <path fill="#F82B60" d="M88.078 91.846l-21.904 10.576-2.224 1.075-46.238 22.155c-2.93 1.414-6.672-.722-6.672-3.978V60.088c0-1.178.604-2.195 1.414-2.96a5.09 5.09 0 0 1 1.469-.915c1.96-.904 4.478-.384 6.107.967l68.048 32.837z"/>
+      <path fill="#BA0F44" fillOpacity=".25" d="M88.078 91.846l-21.904 10.576-53.72-45.295a5.09 5.09 0 0 1 1.469-.915c1.96-.904 4.478-.384 6.107.967l68.048 34.667z"/>
+    </svg>
+  );
+
+  const SlackIconSmall = () => (
+    <svg viewBox="0 0 24 24" className="w-6 h-6">
+      <path fill="#E01E5A" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"/>
+      <path fill="#36C5F0" d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z"/>
+      <path fill="#2EB67D" d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z"/>
+      <path fill="#ECB22E" d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+    </svg>
+  );
+
   const nodes = [
-    { id: 'trigger', label: 'Trigger', x: 60, y: 100, icon: 'trigger', color: 'from-purple-500 to-purple-600' },
-    { id: 'make', label: 'Make', x: 200, y: 50, icon: 'make', color: 'from-pink-500 to-rose-600' },
-    { id: 'ai', label: 'KI', x: 200, y: 150, icon: 'ai', color: 'from-emerald-500 to-teal-600' },
-    { id: 'airtable', label: 'Airtable', x: 340, y: 100, icon: 'airtable', color: 'from-purple-500 to-violet-600' },
-    { id: 'slack', label: 'Slack', x: 480, y: 50, icon: 'slack', color: 'from-amber-500 to-orange-600' },
-    { id: 'output', label: 'Output', x: 480, y: 150, icon: 'output', color: 'from-green-500 to-emerald-600' },
+    { id: 'trigger', label: 'Trigger', x: 60, y: 140, icon: 'trigger', color: 'from-purple-500 to-purple-600' },
+    { id: 'n8n', label: 'n8n', x: 200, y: 50, icon: 'n8n', color: 'from-slate-800 to-slate-900' },
+    { id: 'ai', label: 'KI', x: 200, y: 230, icon: 'ai', color: 'from-emerald-500 to-teal-600' },
+    { id: 'airtable', label: 'Airtable', x: 340, y: 140, icon: 'airtable', color: 'from-purple-500 to-violet-600' },
+    { id: 'slack', label: 'Slack', x: 480, y: 50, icon: 'slack', color: 'from-gray-700 to-gray-800' },
+    { id: 'output', label: 'Output', x: 480, y: 230, icon: 'output', color: 'from-green-500 to-emerald-600' },
   ];
 
   const connections = [
-    { from: 'trigger', to: 'make', delay: 0 },
+    { from: 'trigger', to: 'n8n', delay: 0 },
     { from: 'trigger', to: 'ai', delay: 0.3 },
-    { from: 'make', to: 'airtable', delay: 0.8 },
+    { from: 'n8n', to: 'airtable', delay: 0.8 },
     { from: 'ai', to: 'airtable', delay: 1.1 },
     { from: 'airtable', to: 'slack', delay: 1.8 },
     { from: 'airtable', to: 'output', delay: 2.1 },
@@ -342,13 +395,13 @@ const AnimatedWorkflow = () => {
   const getNodeById = (id: string) => nodes.find(n => n.id === id);
 
   return (
-    <div ref={ref} className="relative w-full h-[350px]">
-      <div className="absolute inset-0 overflow-hidden rounded-3xl">
-        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slower" />
+    <div ref={ref} className="relative w-full" style={{ aspectRatio: '540 / 280' }}>
+      {/* Soft centered glow - no overflow-hidden to avoid sharp edges */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-64 h-64 bg-purple-500/20 rounded-full blur-[80px]" />
       </div>
 
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 540 200" preserveAspectRatio="xMidYMid meet">
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 540 280" preserveAspectRatio="none">
         <defs>
           <linearGradient id="lineGradientDark" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#a855f7" stopOpacity="0.3" />
@@ -404,7 +457,7 @@ const AnimatedWorkflow = () => {
           className={`absolute transition-all duration-700 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
           style={{
             left: `${(node.x / 540) * 100}%`,
-            top: `${(node.y / 200) * 100}%`,
+            top: `${(node.y / 280) * 100}%`,
             transform: 'translate(-50%, -50%)',
             transitionDelay: `${index * 150}ms`,
           }}
@@ -413,10 +466,10 @@ const AnimatedWorkflow = () => {
             <div className={`absolute inset-0 bg-gradient-to-br ${node.color} rounded-xl blur-md opacity-40 group-hover:opacity-60 animate-pulse`} />
             <div className={`relative w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br ${node.color} rounded-xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform cursor-pointer`}>
               {node.icon === 'trigger' && <Zap className="w-6 h-6 text-white" />}
-              {node.icon === 'make' && <Workflow className="w-6 h-6 text-white" />}
-              {node.icon === 'ai' && <Bot className="w-6 h-6 text-white" />}
-              {node.icon === 'airtable' && <Layers className="w-6 h-6 text-white" />}
-              {node.icon === 'slack' && <Mail className="w-6 h-6 text-white" />}
+              {node.icon === 'n8n' && <N8nIcon />}
+              {node.icon === 'ai' && <OpenAIIcon />}
+              {node.icon === 'airtable' && <AirtableIcon />}
+              {node.icon === 'slack' && <SlackIconSmall />}
               {node.icon === 'output' && <Check className="w-6 h-6 text-white" />}
             </div>
             <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
@@ -536,12 +589,56 @@ const AgencyAutomationFlow = () => {
       {/* Container */}
       <div className="relative p-4 md:p-8 overflow-hidden">
 
-        {/* Soft Glows */}
-        <div className="absolute top-1/3 left-1/4 w-48 h-48 bg-purple-500/15 rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 right-1/4 w-48 h-48 bg-blue-500/15 rounded-full blur-[100px]" />
+        {/* Soft Glows - hidden on mobile for performance */}
+        <div className="hidden md:block absolute top-1/3 left-1/4 w-48 h-48 bg-purple-500/15 rounded-full blur-[100px]" />
+        <div className="hidden md:block absolute bottom-1/3 right-1/4 w-48 h-48 bg-blue-500/15 rounded-full blur-[100px]" />
 
-        {/* Main Workflow Diagram */}
-        <div className="relative min-h-[320px] md:min-h-[360px]">
+        {/* ========== MOBILE VERSION ========== */}
+        <div className="md:hidden">
+          {/* Input Sources - 4 columns */}
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            <ToolNode icon={<LinkedInIcon />} label="LinkedIn" brandColor="" delay={0} />
+            <ToolNode icon={<GmailIcon />} label="Gmail" brandColor="" delay={100} />
+            <ToolNode icon={<TypeformIcon />} label="Typeform" brandColor="bg-gray-800" delay={200} />
+            <ToolNode icon={<CalendlyIcon />} label="Calendly" brandColor="" delay={300} />
+          </div>
+
+          {/* Animated Data Flow Down */}
+          <div className={`flex justify-center mb-2 transition-all duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '400ms'}}>
+            <div className="relative flex flex-col items-center">
+              <div className="w-0.5 h-12 bg-gradient-to-b from-purple-500/60 to-purple-500/20 rounded-full" />
+              {/* Animated flowing dots */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-purple-500 rounded-full animate-flow-down" />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-purple-500 rounded-full animate-flow-down" style={{animationDelay: '0.8s'}} />
+            </div>
+          </div>
+
+          {/* Center - Flowstack Hub */}
+          <div className="flex justify-center mb-2">
+            <CentralHub delay={500} />
+          </div>
+
+          {/* Animated Data Flow Down */}
+          <div className={`flex justify-center mb-4 transition-all duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{transitionDelay: '700ms'}}>
+            <div className="relative flex flex-col items-center">
+              <div className="w-0.5 h-12 bg-gradient-to-b from-blue-500/60 to-blue-500/20 rounded-full" />
+              {/* Animated flowing dots */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-500 rounded-full animate-flow-down" style={{animationDelay: '0.3s'}} />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-500 rounded-full animate-flow-down" style={{animationDelay: '1.1s'}} />
+            </div>
+          </div>
+
+          {/* Output Actions - 4 columns */}
+          <div className="grid grid-cols-4 gap-2">
+            <ToolNode icon={<HubSpotIcon />} label="HubSpot" brandColor="" delay={900} />
+            <ToolNode icon={<GoogleCalIcon />} label="Calendar" brandColor="" delay={1000} />
+            <ToolNode icon={<SlackIcon />} label="Slack" brandColor="" delay={1100} />
+            <ToolNode icon={<NotionIcon />} label="Notion" brandColor="bg-gray-800" delay={1200} />
+          </div>
+        </div>
+
+        {/* ========== DESKTOP VERSION ========== */}
+        <div className="hidden md:block relative min-h-[360px]">
 
           {/* SVG Connection Lines with animated data flow */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -614,7 +711,7 @@ const AgencyAutomationFlow = () => {
           </svg>
 
           {/* Input Sources - Top Row */}
-          <div className="absolute top-0 left-0 right-0 flex justify-around px-2 md:px-6">
+          <div className="absolute top-0 left-0 right-0 flex justify-around px-6">
             <ToolNode icon={<LinkedInIcon />} label="LinkedIn" brandColor="" delay={0} />
             <ToolNode icon={<GmailIcon />} label="Gmail" brandColor="" delay={100} />
             <ToolNode icon={<TypeformIcon />} label="Typeform" brandColor="bg-gray-800" delay={200} />
@@ -627,7 +724,7 @@ const AgencyAutomationFlow = () => {
           </div>
 
           {/* Output Actions - Bottom Row */}
-          <div className="absolute bottom-0 left-0 right-0 flex justify-around px-2 md:px-6">
+          <div className="absolute bottom-0 left-0 right-0 flex justify-around px-6">
             <ToolNode icon={<HubSpotIcon />} label="HubSpot" brandColor="" delay={900} />
             <ToolNode icon={<GoogleCalIcon />} label="Calendar" brandColor="" delay={1000} />
             <ToolNode icon={<SlackIcon />} label="Slack" brandColor="" delay={1100} />
@@ -677,6 +774,7 @@ const getIcon = (iconName: string, className: string = "w-6 h-6") => {
 export const HomePageV3 = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [activeServiceTab, setActiveServiceTab] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const allTools = [...tools, ...tools];
 
   return (
@@ -686,13 +784,13 @@ export const HomePageV3 = () => {
       {/* ============================================ */}
       <nav className="fixed top-0 left-0 right-0 z-50">
         <div className="mx-4 mt-4">
-          <div className="max-w-7xl mx-auto bg-gray-900/70 backdrop-blur-xl rounded-2xl border border-gray-800/50 shadow-2xl px-6 py-3">
+          <div className="max-w-7xl mx-auto bg-gray-900/70 backdrop-blur-xl rounded-2xl border border-gray-800/50 shadow-2xl px-4 md:px-6 py-3">
             <div className="flex items-center justify-between">
-              <Link to="/" className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
-                  <Zap className="w-5 h-5 text-white" />
+              <Link to="/" className="flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Zap className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold text-white">{siteConfig.name}</span>
+                <span className="text-lg md:text-xl font-bold text-white">{siteConfig.name}</span>
               </Link>
 
               <div className="hidden md:flex items-center gap-1">
@@ -703,11 +801,47 @@ export const HomePageV3 = () => {
                 ))}
               </div>
 
-              <Link to="/kostenlose-beratung" className="group bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-purple-500/25 transition-all hover:-translate-y-0.5 flex items-center gap-2">
-                Prozess-Analyse
-                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link to="/kostenlose-beratung" className="hidden md:flex group bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-purple-500/25 transition-all hover:-translate-y-0.5 items-center gap-2">
+                  Prozess-Analyse
+                  <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </Link>
+
+                {/* Mobile Menu Button */}
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-xl transition-all"
+                >
+                  {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
+              </div>
             </div>
+
+            {/* Mobile Menu */}
+            {mobileMenuOpen && (
+              <div className="md:hidden mt-4 pt-4 border-t border-gray-800/50">
+                <div className="flex flex-col gap-2">
+                  {['System', 'Leistungen', 'Team', 'FAQ'].map((item) => (
+                    <a
+                      key={item}
+                      href={`#${item.toLowerCase()}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl transition-all font-medium text-base"
+                    >
+                      {item}
+                    </a>
+                  ))}
+                  <Link
+                    to="/kostenlose-beratung"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="mt-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-3 rounded-xl font-semibold text-base text-center flex items-center justify-center gap-2"
+                  >
+                    Prozess-Analyse
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </nav>
@@ -716,7 +850,8 @@ export const HomePageV3 = () => {
       {/* HERO */}
       {/* ============================================ */}
       <section className="relative min-h-screen flex items-center pt-32 pb-20 overflow-hidden">
-        <div className="absolute inset-0">
+        {/* Background blurs - hidden on mobile for performance */}
+        <div className="absolute inset-0 hidden md:block">
           <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-purple-600/20 via-purple-600/10 to-transparent rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-purple-600/15 via-purple-600/5 to-transparent rounded-full blur-3xl" />
         </div>
@@ -773,17 +908,15 @@ export const HomePageV3 = () => {
               </div>
             </div>
 
-            <div className="relative">
-              <div className="relative bg-gray-900/50 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-800/50 overflow-hidden p-6">
-                <AnimatedWorkflow />
-              </div>
+            <div className="relative max-w-[600px]">
+              <AnimatedWorkflow />
             </div>
           </div>
         </div>
 
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-          <MousePointer className="w-5 h-5 text-gray-600 animate-bounce" />
-          <span className="text-xs text-gray-600 uppercase tracking-widest">Scroll</span>
+        <div className="absolute bottom-1 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+          <MousePointer className="w-4 h-4 md:w-5 md:h-5 text-gray-600 animate-bounce" />
+          <span className="text-[10px] md:text-xs text-gray-600 uppercase tracking-widest">Scroll</span>
         </div>
       </section>
 
@@ -996,7 +1129,8 @@ export const HomePageV3 = () => {
       {/* CTA INLINE #1 */}
       {/* ============================================ */}
       <section className="py-24 bg-gradient-to-b from-purple-950/30 via-[#0a0a0e] to-[#0a0a0e] relative overflow-hidden">
-        <div className="absolute inset-0">
+        {/* Blur hidden on mobile for performance */}
+        <div className="absolute inset-0 hidden md:block">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[150px]" />
         </div>
 
@@ -1069,7 +1203,8 @@ export const HomePageV3 = () => {
           </AnimatedSection>
 
           <AnimatedSection>
-            <div className="rounded-2xl border border-gray-800/50 overflow-hidden">
+            {/* Desktop: Side-by-Side Vergleich */}
+            <div className="hidden md:block rounded-2xl border border-gray-800/50 overflow-hidden">
               {/* Header */}
               <div className="grid grid-cols-[1fr_auto_1fr] bg-gray-900/80">
                 <div className="p-5">
@@ -1113,6 +1248,46 @@ export const HomePageV3 = () => {
                       <div>
                         <p className="font-medium text-white">{row.left.title} <span className="text-purple-400">{row.left.highlight}</span></p>
                         <p className="text-sm text-gray-500 mt-1">{row.left.subtitle}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile: Gestapelte Cards */}
+            <div className="md:hidden space-y-4">
+              {outcomes.comparison.map((row, index) => (
+                <div key={index} className="rounded-xl border border-gray-800/50 overflow-hidden">
+                  {/* Vorher */}
+                  <div className="p-4 bg-amber-950/10 border-b border-gray-800/50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertCircle className="w-4 h-4 text-amber-400" />
+                      <span className="text-xs font-medium text-amber-400 uppercase tracking-wide">Vorher</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-amber-900/30 flex-shrink-0">
+                        {getIcon(row.right.icon, "w-4 h-4 text-amber-400")}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-300 text-sm">{row.right.title} <span className="text-amber-400">{row.right.highlight}</span></p>
+                        <p className="text-xs text-gray-500 mt-1">{row.right.subtitle}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Nachher */}
+                  <div className="p-4 bg-purple-500/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 text-purple-400" />
+                      <span className="text-xs font-medium text-purple-400 uppercase tracking-wide">Mit Flowstack</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-purple-500/20 flex-shrink-0">
+                        {getIcon(row.left.icon, "w-4 h-4 text-purple-400")}
+                      </div>
+                      <div>
+                        <p className="font-medium text-white text-sm">{row.left.title} <span className="text-purple-400">{row.left.highlight}</span></p>
+                        <p className="text-xs text-gray-500 mt-1">{row.left.subtitle}</p>
                       </div>
                     </div>
                   </div>
@@ -1399,7 +1574,8 @@ export const HomePageV3 = () => {
       <section className="py-24 relative overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0e] via-purple-950/20 to-[#0a0a0e]" />
-        <div className="absolute inset-0">
+        {/* Blur hidden on mobile for performance */}
+        <div className="absolute inset-0 hidden md:block">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/10 rounded-full blur-[120px]" />
         </div>
 
@@ -1499,8 +1675,8 @@ export const HomePageV3 = () => {
               <h4 className="font-semibold mb-6">Unternehmen</h4>
               <ul className="space-y-4 text-gray-400">
                 <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
-                <li><Link to="/impressum" className="hover:text-white transition-colors">Impressum</Link></li>
-                <li><Link to="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link></li>
+                <li><a href="/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Impressum</a></li>
+                <li><a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Datenschutz</a></li>
                 <li><button onClick={() => window.dispatchEvent(new CustomEvent('openCookieSettings'))} className="hover:text-white transition-colors">Cookie-Einstellungen</button></li>
               </ul>
             </div>
@@ -1552,9 +1728,21 @@ export const HomePageV3 = () => {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
+        @keyframes flow-down {
+          0% { top: 0; opacity: 0.9; }
+          100% { top: 100%; opacity: 0; }
+        }
         .animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
         .animate-pulse-slower { animation: pulse-slower 10s ease-in-out infinite; }
         .animate-marquee { animation: marquee 30s linear infinite; }
+        .animate-flow-down { animation: flow-down 1.5s ease-in-out infinite; }
+
+        /* Disable heavy blur animations on mobile for performance */
+        @media (max-width: 767px) {
+          .animate-pulse-slow,
+          .animate-pulse-slower { animation: none; }
+          .animate-marquee { animation: none; }
+        }
       `}</style>
     </div>
   );
