@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { X, Cookie, Shield, BarChart3, Megaphone, Sparkles } from 'lucide-react';
+import { initFBPixel } from '@/utils/fbPixel';
 
 interface CookieSettings {
   notwendig: boolean;
@@ -20,11 +21,21 @@ const CookieBanner = () => {
     komfort: false
   });
 
-  // Banner beim Laden prüfen
+  // Banner beim Laden prüfen & FB Pixel initialisieren wenn bereits Consent
   useEffect(() => {
     const existingConsent = localStorage.getItem("cookieConsent");
     if (!existingConsent) {
       setVisible(true);
+    } else {
+      // Consent existiert bereits - FB Pixel initialisieren wenn marketing=true
+      try {
+        const parsed = JSON.parse(existingConsent);
+        if (parsed.marketing) {
+          initFBPixel();
+        }
+      } catch {
+        // Invalid consent data
+      }
     }
   }, []);
 
@@ -71,6 +82,12 @@ const CookieBanner = () => {
     });
 
     localStorage.setItem("cookieConsent", JSON.stringify(consentData));
+
+    // FB Pixel initialisieren wenn marketing akzeptiert
+    if (consentData.marketing) {
+      initFBPixel();
+    }
+
     setVisible(false);
     setShowSettings(false);
   };
@@ -88,6 +105,12 @@ const CookieBanner = () => {
     });
 
     localStorage.setItem("cookieConsent", JSON.stringify(cookieSettings));
+
+    // FB Pixel initialisieren wenn marketing akzeptiert
+    if (cookieSettings.marketing) {
+      initFBPixel();
+    }
+
     setVisible(false);
     setShowSettings(false);
   };

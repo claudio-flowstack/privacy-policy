@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Check, ArrowRight, Zap, Shield, Clock, Star } from "lucide-react";
 import { siteConfig } from "@/config/content";
+import { trackAddToCart } from "@/utils/fbPixel";
 
 const FormularPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const FormularPage = () => {
   useEffect(() => {
     document.title = "Erstgespräch anfragen - Flowstack Systems";
     window.scrollTo(0, 0);
+    // FB Pixel: AddToCart Event
+    trackAddToCart();
   }, []);
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwuWXRv4p1s62FUBNIuAE7-O5E2qWZZRsWgqsOZbHxfCkDB9yP8mWY9EUCKlXGk5Df5ow/exec";

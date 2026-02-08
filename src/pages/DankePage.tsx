@@ -2,11 +2,14 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle, ArrowRight, Zap, Clock, FileText, Mail } from "lucide-react";
 import { siteConfig } from "@/config/content";
+import { trackLead } from "@/utils/fbPixel";
 
 const DankePage = () => {
   useEffect(() => {
     document.title = "Vielen Dank - Flowstack Systems";
     window.scrollTo(0, 0);
+    // FB Pixel: Lead Event (Conversion)
+    trackLead();
   }, []);
 
   return (

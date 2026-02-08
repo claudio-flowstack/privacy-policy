@@ -811,6 +811,8 @@ export const HomePageV3 = () => {
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-xl transition-all"
+                  aria-label={mobileMenuOpen ? "Menü schließen" : "Menü öffnen"}
+                  aria-expanded={mobileMenuOpen}
                 >
                   {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
@@ -933,7 +935,7 @@ export const HomePageV3 = () => {
           <div className="flex animate-marquee">
             {allTools.map((tool, index) => (
               <div key={`${tool.name}-${index}`} className="flex-shrink-0 mx-12 flex items-center justify-center">
-                <img src={tool.logo} alt={tool.name} className="h-8 w-auto object-contain opacity-40 hover:opacity-80 transition-all duration-300 brightness-0 invert" />
+                <img src={tool.logo} alt={tool.name} loading="lazy" className="h-8 w-auto object-contain opacity-40 hover:opacity-80 transition-all duration-300 brightness-0 invert" />
               </div>
             ))}
           </div>
@@ -1515,6 +1517,7 @@ export const HomePageV3 = () => {
                           <img
                             src={member.image}
                             alt={member.name}
+                            loading="lazy"
                             className="relative w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover object-top ring-2 ring-purple-500/30"
                           />
                         </div>
