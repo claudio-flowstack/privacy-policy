@@ -6,7 +6,7 @@ import {
   Mail, Target, BarChart3, Database, Search, Image,
   FolderOpen, Send, TrendingUp, Eye, Play, Mic, Type,
   Clipboard, Sun, Moon, Menu, ExternalLink, AlertCircle, Wrench, Trash2, ChevronLeft, ChevronRight,
-  Edit3, ChevronDown, ChevronUp, Check,
+  Edit3, ChevronDown, ChevronUp, Check, Settings, Bell, Shield, RefreshCw, X, Maximize2, Minimize2,
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import WorkflowCanvas from '@/components/automation/WorkflowCanvas';
@@ -77,13 +77,86 @@ const OUTPUT_ICONS: Record<OutputType, { icon: IconComponent; tKey: string }> = 
 
 // ─── (KI-Generator removed – replaced by Workflow Templates) ─────────────────
 
+// ─── Toast Animation CSS ─────────────────────────────────────────────────────
+
+if (typeof document !== 'undefined' && !document.getElementById('toast-anim-style')) {
+  const style = document.createElement('style');
+  style.id = 'toast-anim-style';
+  style.textContent = `@keyframes slideInRight { 0% { opacity:0; transform: translateX(40px); } 100% { opacity:1; transform: translateX(0); } }`;
+  document.head.appendChild(style);
+}
+
+// ─── Toast Notification ──────────────────────────────────────────────────────
+
+interface ToastMessage {
+  id: string;
+  text: string;
+  type: 'success' | 'info' | 'error';
+}
+
+function useToast() {
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const addToast = useCallback((text: string, type: ToastMessage['type'] = 'success') => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
+    setToasts(prev => [...prev, { id, text, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  return { toasts, addToast, dismissToast };
+}
+
+function ToastContainer({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: string) => void }) {
+  if (toasts.length === 0) return null;
+
+  const colorMap: Record<ToastMessage['type'], string> = {
+    success: 'bg-emerald-500 dark:bg-emerald-600',
+    info: 'bg-purple-500 dark:bg-purple-600',
+    error: 'bg-red-500 dark:bg-red-600',
+  };
+
+  const iconMap: Record<ToastMessage['type'], typeof Check> = {
+    success: Check,
+    info: Bell,
+    error: AlertCircle,
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2">
+      {toasts.map(toast => {
+        const Icon = iconMap[toast.type];
+        return (
+          <div
+            key={toast.id}
+            style={{ animation: 'slideInRight 0.3s ease-out' }}
+            className={`${colorMap[toast.type]} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[280px]`}
+          >
+            <Icon size={16} className="shrink-0" />
+            <span className="text-sm font-medium flex-1">{toast.text}</span>
+            <button onClick={() => onDismiss(toast.id)} className="shrink-0 hover:opacity-70 transition-opacity">
+              <X size={14} />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Output Table ─────────────────────────────────────────────────────────────
 
-function OutputTable({ outputs }: { outputs: SystemOutput[] }) {
+function OutputTable({ outputs, onToast }: { outputs: SystemOutput[]; onToast?: (text: string, type?: ToastMessage['type']) => void }) {
   const { t, lang } = useLanguage();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedTexts, setEditedTexts] = useState<Record<string, string>>({});
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const dateLang = lang === 'de' ? 'de-DE' : 'en-US';
 
   const toggleExpand = (id: string) => {
@@ -100,8 +173,13 @@ function OutputTable({ outputs }: { outputs: SystemOutput[] }) {
     if (!editedTexts[id]) setEditedTexts(prev => ({ ...prev, [id]: currentText }));
   };
 
-  const saveEdit = (_id: string) => {
+  const saveEdit = (id: string) => {
     setEditingId(null);
+    setSavedIds(prev => { const next = new Set(prev); next.add(id); return next; });
+    onToast?.(t('toast.outputSaved'), 'success');
+    setTimeout(() => {
+      setSavedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    }, 2000);
   };
 
   if (outputs.length === 0) {
@@ -195,6 +273,11 @@ function OutputTable({ outputs }: { outputs: SystemOutput[] }) {
                     <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap pr-10">
                       {displayText}
                     </p>
+                    {savedIds.has(output.id) && (
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-500 dark:text-emerald-400 mt-2">
+                        <Check size={12} /> {t('toast.outputSaved')}
+                      </div>
+                    )}
                     <button
                       onClick={() => startEdit(output.id, displayText)}
                       className="absolute top-0 right-0 flex items-center gap-1.5 text-xs text-gray-400 dark:text-zinc-500 hover:text-purple-500 dark:hover:text-purple-400 opacity-0 group-hover/preview:opacity-100 transition-all px-2 py-1 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-500/10"
@@ -223,9 +306,27 @@ function OutputTable({ outputs }: { outputs: SystemOutput[] }) {
 
 function DashboardOverview({ systems, onSelect }: { systems: AutomationSystem[]; onSelect: (id: string) => void }) {
   const { t, lang } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft'>('all');
   const active = systems.filter(s => s.status === 'active').length;
   const totalRuns = systems.reduce((sum, s) => sum + s.executionCount, 0);
   const dateLang = lang === 'de' ? 'de-DE' : 'en-US';
+
+  const filteredSystems = useMemo(() => {
+    let result = systems;
+    if (statusFilter !== 'all') {
+      result = result.filter(s => s.status === statusFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q) ||
+        s.category.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [systems, searchQuery, statusFilter]);
 
   const stats = [
     { label: t('dashboard.stats.systems'), value: systems.length, icon: Layers, color: '#8b5cf6' },
@@ -250,9 +351,50 @@ function DashboardOverview({ systems, onSelect }: { systems: AutomationSystem[];
         ))}
       </div>
 
+      {/* Search + Filter Bar */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder={t('dashboard.searchPlaceholder')}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition-colors"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5">
+          {(['all', 'active', 'draft'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setStatusFilter(f)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${statusFilter === f ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-300'}`}
+            >
+              {f === 'all' ? t('dashboard.filterAll') : f === 'active' ? t('dashboard.statusActive') : t('dashboard.statusDraft')}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* System Grid */}
+      {filteredSystems.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800/40 flex items-center justify-center mx-auto mb-4">
+            <Search size={24} className="text-gray-400 dark:text-zinc-600" />
+          </div>
+          <p className="text-sm text-gray-500 dark:text-zinc-500">{t('dashboard.noResults')}</p>
+          <button onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="text-xs text-purple-500 hover:text-purple-400 mt-2">
+            {t('dashboard.clearFilters')}
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {systems.map(system => {
+        {filteredSystems.map(system => {
           const Icon = getIcon(system.icon);
           const isActive = system.status === 'active';
           return (
@@ -285,13 +427,14 @@ function DashboardOverview({ systems, onSelect }: { systems: AutomationSystem[];
           );
         })}
       </div>
+      )}
     </>
   );
 }
 
 // ─── System Detail View (Redesigned) ─────────────────────────────────────────
 
-function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus, isUserSystem, isDemoSystem }: {
+function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus, isUserSystem, isDemoSystem, onToast }: {
   system: AutomationSystem;
   onSave?: (system: AutomationSystem) => void;
   onExecute?: () => void;
@@ -299,6 +442,7 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
   onToggleStatus?: () => void;
   isUserSystem?: boolean;
   isDemoSystem?: boolean;
+  onToast?: (text: string, type?: ToastMessage['type']) => void;
 }) {
   const { t, lang } = useLanguage();
   const SystemIcon = getIcon(system.icon);
@@ -318,6 +462,9 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
     execute(system.id, nodeIds, conns);
     onExecute?.();
   }, [system, execute, onExecute]);
+
+  // Canvas mode: edit (default) or live (fullscreen, read-only)
+  const [canvasMode, setCanvasMode] = useState<'edit' | 'live'>('edit');
 
   // Resizable canvas height
   const [canvasHeight, setCanvasHeight] = useState(560);
@@ -418,15 +565,67 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
         </div>
       </div>
 
+      {/* Live Mode Fullscreen Overlay */}
+      {canvasMode === 'live' && (
+        <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-[#0a0a0e] flex flex-col !mt-0">
+          {/* Live Mode Header */}
+          <div className="flex items-center justify-between px-6 py-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-zinc-800">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
+                <SystemIcon size={16} className="text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{system.name}</h3>
+                <span className="text-xs text-gray-400 dark:text-zinc-600">{t('detail.modeLive')} · {t('detail.stepsAndConnections', { steps: system.nodes.length, connections: system.connections.length })}</span>
+              </div>
+              <span className="ml-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 uppercase tracking-wider">
+                Live
+              </span>
+            </div>
+            <button
+              onClick={() => setCanvasMode('edit')}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+            >
+              <Minimize2 size={14} /> {t('detail.exitLive')}
+            </button>
+          </div>
+          {/* Full Canvas */}
+          <div className="flex-1 overflow-hidden">
+            <CanvasErrorBoundary>
+              <WorkflowCanvas initialSystem={system} readOnly onExecute={handleExecuteWithEvents} nodeStates={nodeStates} style={{ height: '100%' }} />
+            </CanvasErrorBoundary>
+          </div>
+        </div>
+      )}
+
       {/* Workflow Canvas Section */}
       <section className="mb-8">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
-            <Activity size={16} className="text-purple-600 dark:text-purple-400" />
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
+              <Activity size={16} className="text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('detail.workflowTitle')}</h3>
+              <span className="text-xs text-gray-400 dark:text-zinc-600">{t('detail.stepsAndConnections', { steps: system.nodes.length, connections: system.connections.length })}</span>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('detail.workflowTitle')}</h3>
-            <span className="text-xs text-gray-400 dark:text-zinc-600">{t('detail.stepsAndConnections', { steps: system.nodes.length, connections: system.connections.length })}</span>
+          {/* Edit / Live Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5">
+              <button
+                onClick={() => setCanvasMode('edit')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${canvasMode === 'edit' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-300'}`}
+              >
+                <Edit3 size={12} /> {t('detail.modeEdit')}
+              </button>
+              <button
+                onClick={() => setCanvasMode('live')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${canvasMode === 'live' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-300'}`}
+              >
+                <Maximize2 size={12} /> {t('detail.modeLive')}
+              </button>
+            </div>
           </div>
         </div>
         <div className="rounded-2xl border border-gray-200 dark:border-zinc-800/40 overflow-hidden">
@@ -449,28 +648,43 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
         </div>
       </section>
 
-      {/* Outputs Section */}
-      <section>
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
-            <FolderOpen size={16} className="text-emerald-600 dark:text-emerald-400" />
+      {/* Documents & Results — Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Documents / Files */}
+        <section>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+              <FolderOpen size={16} className="text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('detail.documentsTitle') || (lang === 'de' ? 'Dokumente' : 'Documents')}</h3>
+              <span className="text-xs text-gray-400 dark:text-zinc-600">
+                {system.outputs.length} {t('detail.entries')}
+              </span>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('detail.resultsTitle')}</h3>
-            <span className="text-xs text-gray-400 dark:text-zinc-600">
-              {system.outputs.length + artifacts.length} {t('detail.entries')}
-              {artifacts.length > 0 && isComplete && <span className="ml-1 text-emerald-500"> · {artifacts.length} {t('detail.new')}</span>}
-            </span>
+          <div className="bg-white dark:bg-zinc-900/30 border border-gray-200 dark:border-zinc-800/40 rounded-2xl p-5 min-h-[200px]">
+            <OutputTable onToast={onToast} outputs={system.outputs} />
           </div>
-        </div>
-        <div className="bg-white dark:bg-zinc-900/30 border border-gray-200 dark:border-zinc-800/40 rounded-2xl p-5">
-          {/* Artifacts from latest execution shown first */}
-          {artifacts.length > 0 && isComplete && (
-            <div className="mb-4 pb-4 border-b border-gray-100 dark:border-zinc-800/50">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500 dark:text-emerald-400 mb-3 flex items-center gap-1.5">
-                <Zap size={10} /> {t('detail.lastExecution')}
-              </div>
-              <OutputTable outputs={artifacts.map(a => ({
+        </section>
+
+        {/* Processing Results */}
+        <section>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+              <Zap size={16} className="text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('detail.resultsTitle')}</h3>
+              <span className="text-xs text-gray-400 dark:text-zinc-600">
+                {artifacts.length} {t('detail.entries')}
+                {artifacts.length > 0 && isComplete && <span className="ml-1 text-emerald-500"> · {t('detail.new')}</span>}
+              </span>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-zinc-900/30 border border-gray-200 dark:border-zinc-800/40 rounded-2xl p-5 min-h-[200px]">
+            {artifacts.length > 0 && isComplete ? (
+              <OutputTable onToast={onToast} outputs={artifacts.map(a => ({
                 id: a.id,
                 name: a.label,
                 type: (a.type === 'file' ? 'document' : a.type === 'text' ? 'other' : a.type === 'url' ? 'website' : a.type === 'image' ? 'image' : 'other') as OutputType,
@@ -479,11 +693,18 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
                 contentPreview: a.contentPreview,
                 artifactType: a.type,
               }))} />
-            </div>
-          )}
-          <OutputTable outputs={system.outputs} />
-        </div>
-      </section>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800/40 flex items-center justify-center mx-auto mb-4">
+                  <Zap size={24} className="text-gray-400 dark:text-zinc-600" />
+                </div>
+                <p className="text-sm text-gray-500 dark:text-zinc-500">{lang === 'de' ? 'Noch keine Ergebnisse' : 'No results yet'}</p>
+                <p className="text-xs text-gray-400 dark:text-zinc-600 mt-1">{lang === 'de' ? 'Führe den Workflow aus, um Ergebnisse zu sehen' : 'Execute the workflow to see results'}</p>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </>
   );
 }
@@ -493,6 +714,28 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
 function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSystem) => void }) {
   const { t } = useLanguage();
   const [previewTemplate, setPreviewTemplate] = useState<AutomationSystem | null>(null);
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+
+  const templateCategories = useMemo(() => {
+    const cats = new Set(WORKFLOW_TEMPLATES.map(tpl => tpl.category));
+    return ['all', ...Array.from(cats)];
+  }, []);
+
+  const filteredTemplates = useMemo(() => {
+    let result = WORKFLOW_TEMPLATES;
+    if (categoryFilter !== 'all') {
+      result = result.filter(tpl => tpl.category === categoryFilter);
+    }
+    if (templateSearch.trim()) {
+      const q = templateSearch.toLowerCase();
+      result = result.filter(tpl =>
+        tpl.name.toLowerCase().includes(q) ||
+        tpl.description.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [templateSearch, categoryFilter]);
 
   const handleDuplicate = (template: AutomationSystem) => {
     const system: AutomationSystem = {
@@ -589,8 +832,49 @@ function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSyste
         </div>
       </div>
 
+      {/* Search + Category Filter */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" />
+          <input
+            type="text"
+            value={templateSearch}
+            onChange={e => setTemplateSearch(e.target.value)}
+            placeholder={t('templates.searchPlaceholder')}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition-colors"
+          />
+          {templateSearch && (
+            <button onClick={() => setTemplateSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-1 flex-wrap">
+          {templateCategories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${categoryFilter === cat ? 'bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400' : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-300'}`}
+            >
+              {cat === 'all' ? t('dashboard.filterAll') : cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filteredTemplates.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800/40 flex items-center justify-center mx-auto mb-4">
+            <Search size={24} className="text-gray-400 dark:text-zinc-600" />
+          </div>
+          <p className="text-sm text-gray-500 dark:text-zinc-500">{t('templates.noResults')}</p>
+          <button onClick={() => { setTemplateSearch(''); setCategoryFilter('all'); }} className="text-xs text-purple-500 hover:text-purple-400 mt-2">
+            {t('dashboard.clearFilters')}
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {WORKFLOW_TEMPLATES.map(template => {
+        {filteredTemplates.map(template => {
           const Icon = getIcon(template.icon);
           return (
             <button
@@ -619,6 +903,7 @@ function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSyste
           );
         })}
       </div>
+      )}
     </div>
   );
 }
@@ -632,20 +917,41 @@ function AutomationDashboardContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userSystems, setUserSystems] = useState<AutomationSystem[]>([]);
-  const [, forceUpdate] = useState(0); // For re-rendering when demo hidden list changes
+  const [demoVersion, setDemoVersion] = useState(0); // Incremented when demo hidden list changes
+  const { toasts, addToast, dismissToast } = useToast();
+
+  // Settings state
+  const [settingsData, setSettingsData] = useState({
+    autoExecute: false,
+    notifications: true,
+    webhookLogs: true,
+    compactView: false,
+  });
 
   useEffect(() => { setUserSystems(loadUserSystems()); }, []);
 
-  const allSystems = useMemo(() => [...getVisibleDemoSystems(), ...userSystems], [userSystems, forceUpdate]);
+  const allSystems = useMemo(() => [...getVisibleDemoSystems(), ...userSystems], [userSystems, demoVersion]);
   const selectedSystem = allSystems.find(s => s.id === section);
 
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  // Sync body/html background to prevent blue bleed-through on elastic overscroll
+  useEffect(() => {
+    const dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.style.backgroundColor = dark ? '#000' : '#f9fafb';
+    document.body.style.backgroundColor = dark ? '#000' : '#f9fafb';
+    return () => {
+      document.documentElement.style.removeProperty('background-color');
+      document.body.style.removeProperty('background-color');
+    };
+  }, [theme]);
 
   const handleCreated = (system: AutomationSystem) => {
     const updated = [...userSystems, system];
     setUserSystems(updated);
     saveUserSystems(updated);
     setSection(system.id);
+    addToast(t('toast.systemCreated'), 'success');
   };
 
   const handleSaveSystem = (system: AutomationSystem) => {
@@ -664,6 +970,7 @@ function AutomationDashboardContent() {
     }
     setUserSystems(updated);
     saveUserSystems(updated);
+    addToast(t('toast.systemSaved'), 'success');
   };
 
   const handleDeleteSystem = (systemId: string) => {
@@ -675,21 +982,29 @@ function AutomationDashboardContent() {
 
     if (isDemo) {
       hideDemoSystem(systemId);
-      forceUpdate(n => n + 1);
+      setDemoVersion(n => n + 1);
+      addToast(t('toast.demoHidden'), 'info');
     } else {
       const updated = userSystems.filter(s => s.id !== systemId);
       setUserSystems(updated);
       saveUserSystems(updated);
+      addToast(t('toast.systemDeleted'), 'success');
     }
     setSection('dashboard');
   };
 
   const handleToggleStatus = (systemId: string) => {
+    const current = userSystems.find(s => s.id === systemId);
+    const newStatus = current?.status === 'active' ? 'draft' : 'active';
     const updated = userSystems.map(s =>
-      s.id === systemId ? { ...s, status: (s.status === 'active' ? 'draft' : 'active') as 'active' | 'draft' } : s
+      s.id === systemId ? { ...s, status: newStatus as 'active' | 'draft' } : s
     );
     setUserSystems(updated);
     saveUserSystems(updated);
+    addToast(
+      newStatus === 'active' ? t('toast.statusActive') : t('toast.statusDraft'),
+      'info'
+    );
   };
 
   const handleExecuteSystem = (systemId: string) => {
@@ -705,6 +1020,17 @@ function AutomationDashboardContent() {
       setUserSystems(updated);
       saveUserSystems(updated);
     }
+    addToast(t('toast.executionStarted'), 'info');
+  };
+
+  const handleToggleSetting = (key: keyof typeof settingsData) => {
+    setSettingsData(s => ({ ...s, [key]: !s[key] }));
+    addToast(t('toast.settingUpdated'), 'success');
+  };
+
+  const handleResetSettings = () => {
+    setSettingsData({ autoExecute: false, notifications: true, webhookLogs: true, compactView: false });
+    addToast(t('toast.settingsReset'), 'info');
   };
 
   const navigate = (id: string) => {
@@ -715,12 +1041,13 @@ function AutomationDashboardContent() {
   const isUserSystem = selectedSystem ? userSystems.some(s => s.id === selectedSystem.id) : false;
   const isDemoSystem = selectedSystem ? DEMO_SYSTEMS.some(d => d.id === selectedSystem.id) : false;
 
-  const sectionTitle = section === 'dashboard' ? t('page.dashboard') : section === 'create' ? t('page.templates') : section === 'builder' ? t('page.builder') : section === 'visualizer' ? t('page.visualizer') : selectedSystem?.name || '';
+  const sectionTitle = section === 'dashboard' ? t('page.dashboard') : section === 'create' ? t('page.templates') : section === 'builder' ? t('page.builder') : section === 'visualizer' ? t('page.visualizer') : section === 'settings' ? t('page.settings') : selectedSystem?.name || '';
   const sectionSubtitle = section === 'dashboard'
     ? t('page.systemsAndActive', { count: allSystems.length, active: allSystems.filter(s => s.status === 'active').length })
     : section === 'create' ? t('page.templateSubtitle')
     : section === 'builder' ? t('page.builderSubtitle')
     : section === 'visualizer' ? t('page.visualizerSubtitle')
+    : section === 'settings' ? t('page.settingsSubtitle')
     : selectedSystem ? t('page.executionsSubtitle', { category: selectedSystem.category, count: selectedSystem.executionCount }) : '';
 
   return (
@@ -821,6 +1148,16 @@ function AutomationDashboardContent() {
           >
             <Eye className="w-5 h-5" />{t('sidebar.visualizer')}
           </button>
+          <button
+            onClick={() => navigate('settings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm ${
+              section === 'settings'
+                ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium'
+                : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+            }`}
+          >
+            <Settings className="w-5 h-5" />{t('sidebar.settings')}
+          </button>
         </nav>
 
         {/* Footer Card */}
@@ -906,6 +1243,86 @@ function AutomationDashboardContent() {
               <FunnelCanvas />
             </CanvasErrorBoundary>
           )}
+          {section === 'settings' && (
+            <div className="max-w-4xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
+                  <Settings size={20} className="text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('settings.title')}</h2>
+                  <p className="text-sm text-gray-500 dark:text-zinc-500">{t('settings.subtitle')}</p>
+                </div>
+              </div>
+
+              {/* Automation Settings */}
+              <div className="bg-white dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800/60 rounded-2xl p-6 mb-5">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+                  <Zap size={16} className="text-purple-500" /> {t('settings.automationTitle')}
+                </h3>
+                <div className="space-y-5">
+                  {([
+                    { key: 'autoExecute' as const, icon: Play, label: t('settings.autoExecute'), desc: t('settings.autoExecuteDesc') },
+                    { key: 'notifications' as const, icon: Bell, label: t('settings.notifications'), desc: t('settings.notificationsDesc') },
+                    { key: 'webhookLogs' as const, icon: Activity, label: t('settings.webhookLogs'), desc: t('settings.webhookLogsDesc') },
+                    { key: 'compactView' as const, icon: Layers, label: t('settings.compactView'), desc: t('settings.compactViewDesc') },
+                  ]).map(setting => (
+                    <div key={setting.key} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-zinc-800/60 flex items-center justify-center">
+                          <setting.icon size={16} className="text-gray-500 dark:text-zinc-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{setting.label}</p>
+                          <p className="text-xs text-gray-400 dark:text-zinc-500">{setting.desc}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleToggleSetting(setting.key)}
+                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-200 ${settingsData[setting.key] ? "bg-purple-500" : "bg-gray-200 dark:bg-zinc-600"}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-1 ring-black/5 transition-transform duration-200 ease-in-out ${settingsData[setting.key] ? "translate-x-6" : "translate-x-1"}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* System Stats */}
+              <div className="bg-white dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800/60 rounded-2xl p-6 mb-5">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+                  <BarChart3 size={16} className="text-purple-500" /> {t('settings.statsTitle')}
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[
+                    { label: t('dashboard.stats.systems'), value: allSystems.length, color: '#8b5cf6' },
+                    { label: t('dashboard.stats.active'), value: allSystems.filter(s => s.status === 'active').length, color: '#10b981' },
+                    { label: t('settings.draftSystems'), value: allSystems.filter(s => s.status === 'draft').length, color: '#f59e0b' },
+                    { label: t('dashboard.stats.executions'), value: allSystems.reduce((s, sys) => s + sys.executionCount, 0), color: '#3b82f6' },
+                  ].map(stat => (
+                    <div key={stat.label} className="text-center p-4 rounded-xl bg-gray-50 dark:bg-zinc-800/30 border border-gray-100 dark:border-zinc-800/40">
+                      <div className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</div>
+                      <div className="text-[10px] text-gray-400 dark:text-zinc-600 uppercase tracking-wider font-medium mt-1">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="bg-white dark:bg-zinc-900/60 border border-red-200 dark:border-red-500/20 rounded-2xl p-6">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <Shield size={16} className="text-red-500" /> {t('settings.dangerZone')}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-zinc-500 mb-4">{t('settings.dangerDesc')}</p>
+                <button
+                  onClick={handleResetSettings}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                >
+                  <RefreshCw size={14} /> {t('settings.resetAll')}
+                </button>
+              </div>
+            </div>
+          )}
           {selectedSystem && (
             <SystemDetailView
               system={selectedSystem}
@@ -915,10 +1332,14 @@ function AutomationDashboardContent() {
               onExecute={() => handleExecuteSystem(selectedSystem.id)}
               onDelete={() => handleDeleteSystem(selectedSystem.id)}
               onToggleStatus={() => handleToggleStatus(selectedSystem.id)}
+              onToast={addToast}
             />
           )}
         </div>
       </main>
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

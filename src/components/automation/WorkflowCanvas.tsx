@@ -17,7 +17,7 @@ import {
   Maximize2, Minimize2, ZoomIn, ZoomOut, Crosshair, ChevronDown,
   Undo2, Redo2, Magnet, HelpCircle, Copy, Scissors,
   Download, GitBranch, StickyNote as StickyNoteIcon,
-  X,
+  X, Bold, Italic,
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import type { AutomationSystem, SystemNode, NodeConnection, NodeType, CanvasGroup, StickyNote, StickyNoteColor, PortDirection } from '@/types/automation';
@@ -62,10 +62,14 @@ const GROUP_COLORS: Record<string, { bg: string; border: string; text: string; n
 };
 
 const STICKY_COLORS: Record<StickyNoteColor, { bg: string; border: string; text: string; name: string; shadow: string }> = {
-  yellow: { bg: 'rgba(250,204,21,0.35)', border: 'rgba(202,138,4,0.6)',  text: '#854d0e', name: 'Gelb',  shadow: 'rgba(250,204,21,0.25)' },
-  blue:   { bg: 'rgba(59,130,246,0.28)', border: 'rgba(37,99,235,0.55)', text: '#1e40af', name: 'Blau',  shadow: 'rgba(59,130,246,0.2)' },
-  green:  { bg: 'rgba(34,197,94,0.28)',  border: 'rgba(22,163,74,0.55)', text: '#166534', name: 'Grün',  shadow: 'rgba(34,197,94,0.2)' },
-  pink:   { bg: 'rgba(236,72,153,0.28)', border: 'rgba(219,39,119,0.55)', text: '#9d174d', name: 'Rosa', shadow: 'rgba(236,72,153,0.2)' },
+  yellow: { bg: 'rgba(250,204,21,0.35)', border: 'rgba(202,138,4,0.6)',  text: '#854d0e', name: 'Gelb',    shadow: 'rgba(250,204,21,0.25)' },
+  orange: { bg: 'rgba(249,115,22,0.30)', border: 'rgba(234,88,12,0.55)', text: '#9a3412', name: 'Orange',  shadow: 'rgba(249,115,22,0.2)' },
+  pink:   { bg: 'rgba(236,72,153,0.28)', border: 'rgba(219,39,119,0.55)', text: '#9d174d', name: 'Rosa',   shadow: 'rgba(236,72,153,0.2)' },
+  red:    { bg: 'rgba(239,68,68,0.28)',  border: 'rgba(220,38,38,0.55)',  text: '#991b1b', name: 'Rot',    shadow: 'rgba(239,68,68,0.2)' },
+  purple: { bg: 'rgba(139,92,246,0.28)', border: 'rgba(124,58,237,0.55)', text: '#5b21b6', name: 'Lila',   shadow: 'rgba(139,92,246,0.2)' },
+  blue:   { bg: 'rgba(59,130,246,0.28)', border: 'rgba(37,99,235,0.55)',  text: '#1e40af', name: 'Blau',   shadow: 'rgba(59,130,246,0.2)' },
+  green:  { bg: 'rgba(34,197,94,0.28)',  border: 'rgba(22,163,74,0.55)',  text: '#166534', name: 'Grün',   shadow: 'rgba(34,197,94,0.2)' },
+  gray:   { bg: 'rgba(107,114,128,0.20)', border: 'rgba(75,85,99,0.45)', text: '#374151', name: 'Grau',   shadow: 'rgba(107,114,128,0.15)' },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -383,6 +387,11 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   const [resizeStickyState, setResizeStickyState] = useState<{ stickyId: string; startX: number; startY: number; startW: number; startH: number } | null>(null);
   const [editStickyId, setEditStickyId] = useState<string | null>(null);
   const [editStickyText, setEditStickyText] = useState('');
+  const [editStickyColor, setEditStickyColor] = useState<StickyNoteColor>('yellow');
+  const [editStickyBold, setEditStickyBold] = useState(false);
+  const [editStickyItalic, setEditStickyItalic] = useState(false);
+  const [editStickyTextColor, setEditStickyTextColor] = useState('');
+  const [editStickyFontSize, setEditStickyFontSize] = useState(12);
 
   // Drag & drop from palette
   const [isDragOver, setIsDragOver] = useState(false);
@@ -1057,12 +1066,25 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     if (!sticky) return;
     setEditStickyId(stickyId);
     setEditStickyText(sticky.text);
+    setEditStickyColor(sticky.color);
+    setEditStickyBold(sticky.fontWeight === 'bold');
+    setEditStickyItalic(sticky.fontStyle === 'italic');
+    setEditStickyTextColor(sticky.customTextColor || '');
+    setEditStickyFontSize(sticky.fontSize || 12);
   };
 
   const saveStickyEdit = () => {
     if (editStickyId) {
       pushHistory();
-      setStickyNotes(prev => prev.map(s => s.id === editStickyId ? { ...s, text: editStickyText } : s));
+      setStickyNotes(prev => prev.map(s => s.id === editStickyId ? {
+        ...s,
+        text: editStickyText,
+        color: editStickyColor,
+        fontWeight: editStickyBold ? 'bold' : 'normal',
+        fontStyle: editStickyItalic ? 'italic' : 'normal',
+        customTextColor: editStickyTextColor || undefined,
+        fontSize: editStickyFontSize !== 12 ? editStickyFontSize : undefined,
+      } : s));
       setEditStickyId(null);
     }
   };
@@ -1913,7 +1935,12 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                   onContextMenu={e => { if (readOnly) return; e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY }); setSelectedStickyId(sticky.id); }}
                 >
                   <div className="p-3.5 h-full overflow-hidden">
-                    <p className="text-[12px] font-medium leading-relaxed whitespace-pre-wrap break-words" style={{ color: colors.text }}>{sticky.text}</p>
+                    <p className="leading-relaxed whitespace-pre-wrap break-words" style={{
+                      color: sticky.customTextColor || colors.text,
+                      fontSize: sticky.fontSize || 12,
+                      fontWeight: sticky.fontWeight === 'bold' ? 700 : 500,
+                      fontStyle: sticky.fontStyle === 'italic' ? 'italic' : 'normal',
+                    }}>{sticky.text}</p>
                   </div>
                   {isSelected && !readOnly && (
                     <>
@@ -2126,10 +2153,73 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
             {editStickyId && !readOnly && (() => {
               const sticky = stickyNotes.find(s => s.id === editStickyId);
               if (!sticky) return null;
+              const TEXT_COLOR_PRESETS = ['#854d0e','#9a3412','#991b1b','#9d174d','#5b21b6','#1e40af','#166534','#374151','#000000','#ffffff'];
               return (
-                <div className="absolute bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-xl p-4 z-50" style={{ left: sticky.x, top: sticky.y + sticky.height + 10, width: 240 }} onClick={e => e.stopPropagation()} role="dialog" aria-label={t('edit.editNoteAria')}>
+                <div className="absolute bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-xl p-4 z-50" style={{ left: sticky.x, top: sticky.y + sticky.height + 10, width: 280 }} onClick={e => e.stopPropagation()} role="dialog" aria-label={t('edit.editNoteAria')}>
                   <div className="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-2">{t('edit.editNote')}</div>
-                  <textarea value={editStickyText} onChange={e => setEditStickyText(e.target.value.slice(0, 200))} rows={4} className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white mb-3 focus:outline-none focus:border-purple-500 resize-none" placeholder={t('edit.notePlaceholder')} maxLength={200} autoFocus />
+
+                  {/* Color Picker Row */}
+                  <div className="mb-3">
+                    <div className="text-[10px] font-medium text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1.5">{t('edit.noteColor')}</div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {(Object.keys(STICKY_COLORS) as StickyNoteColor[]).map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setEditStickyColor(c)}
+                          className={`w-6 h-6 rounded-md transition-all ${editStickyColor === c ? 'ring-2 ring-purple-500 ring-offset-1 dark:ring-offset-zinc-900 scale-110' : 'hover:scale-105'}`}
+                          style={{ background: STICKY_COLORS[c].bg, border: `1.5px solid ${STICKY_COLORS[c].border}` }}
+                          title={STICKY_COLORS[c].name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Formatting Toolbar */}
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <button
+                      onClick={() => setEditStickyBold(b => !b)}
+                      className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${editStickyBold ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'}`}
+                      title={t('edit.bold')}
+                    >
+                      <Bold size={13} />
+                    </button>
+                    <button
+                      onClick={() => setEditStickyItalic(i => !i)}
+                      className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${editStickyItalic ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'}`}
+                      title={t('edit.italic')}
+                    >
+                      <Italic size={13} />
+                    </button>
+                    <div className="w-px h-5 bg-gray-200 dark:bg-zinc-700 mx-0.5" />
+                    {/* Font Size */}
+                    <select
+                      value={editStickyFontSize}
+                      onChange={e => setEditStickyFontSize(Number(e.target.value))}
+                      className="h-7 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-xs text-gray-700 dark:text-zinc-300 px-1.5 focus:outline-none focus:border-purple-500"
+                      title={t('edit.fontSize')}
+                    >
+                      {[10, 11, 12, 14, 16, 18, 20, 24].map(s => (
+                        <option key={s} value={s}>{s}px</option>
+                      ))}
+                    </select>
+                    <div className="w-px h-5 bg-gray-200 dark:bg-zinc-700 mx-0.5" />
+                    {/* Text Color */}
+                    <div className="flex items-center gap-1">
+                      {TEXT_COLOR_PRESETS.slice(0, 6).map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setEditStickyTextColor(prev => prev === c ? '' : c)}
+                          className={`w-5 h-5 rounded-full transition-all ${editStickyTextColor === c ? 'ring-2 ring-purple-500 ring-offset-1 dark:ring-offset-zinc-900 scale-110' : 'hover:scale-105'}`}
+                          style={{ background: c, border: c === '#ffffff' ? '1px solid #d1d5db' : 'none' }}
+                          title={t('edit.textColor')}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Textarea */}
+                  <textarea value={editStickyText} onChange={e => setEditStickyText(e.target.value.slice(0, 500))} rows={4} className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white mb-3 focus:outline-none focus:border-purple-500 resize-none" style={{ fontWeight: editStickyBold ? 700 : 400, fontStyle: editStickyItalic ? 'italic' : 'normal', fontSize: editStickyFontSize, color: editStickyTextColor || undefined }} placeholder={t('edit.notePlaceholder')} maxLength={500} autoFocus />
+
                   <div className="flex gap-2">
                     <button onClick={() => setEditStickyId(null)} className="flex-1 py-1.5 rounded-lg text-xs border border-gray-200 dark:border-zinc-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-800">{t('edit.cancel')}</button>
                     <button onClick={saveStickyEdit} className="flex-1 py-1.5 rounded-lg text-xs bg-purple-600 text-white hover:bg-purple-500">{t('edit.save')}</button>

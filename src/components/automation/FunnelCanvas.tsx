@@ -203,6 +203,12 @@ const MOCKUP_ITEMS: FunnelPaletteItem[] = [
   { type: 'mockup', label: 'Tablet', icon: 'tablet', mockupKind: 'tablet' },
   { type: 'mockup', label: 'Social Post', icon: 'image', mockupKind: 'social-post' },
   { type: 'mockup', label: 'Ad Preview', icon: 'target', mockupKind: 'ad-mockup' },
+  { type: 'mockup', label: 'Facebook Ad', icon: 'target', mockupKind: 'facebook-ad' },
+  { type: 'mockup', label: 'Instagram Ad', icon: 'target', mockupKind: 'instagram-ad' },
+  { type: 'mockup', label: 'Google Ad', icon: 'target', mockupKind: 'google-ad' },
+  { type: 'mockup', label: 'LinkedIn Ad', icon: 'target', mockupKind: 'linkedin-ad' },
+  { type: 'mockup', label: 'LinkedIn Post', icon: 'image', mockupKind: 'linkedin-post' },
+  { type: 'mockup', label: 'TikTok Ad', icon: 'target', mockupKind: 'tiktok-ad' },
 ];
 
 const TEXT_ITEMS: FunnelPaletteItem[] = [
@@ -426,7 +432,185 @@ const MockupFrame = memo(({ el, isDark }: { el: FunnelElement; isDark: boolean }
     );
   }
 
-  // ad-mockup (Facebook/Instagram style ad)
+  // facebook-ad
+  if (kind === 'facebook-ad') {
+    return (
+      <div className="h-full flex flex-col rounded-xl overflow-hidden" style={{ border: `2px solid ${borderColor}`, background: cardBg }}>
+        <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${borderColor}`, background: isDark ? 'rgba(39,39,42,0.6)' : '#f0f2f5' }}>
+          {el.mockupProfileImage ? <img src={el.mockupProfileImage} alt="" className="w-8 h-8 rounded-full object-cover" /> : <div className="w-8 h-8 rounded-full bg-[#1877F2]" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold truncate" style={{ color: isDark ? '#fff' : '#1f2937' }}>{el.mockupProfileName || 'Brand Name'}</p>
+            <p className={`text-[7px] ${subText}`}>Gesponsert · 🌍</p>
+          </div>
+        </div>
+        {el.mockupBodyText && <div className="px-3 py-1.5"><p className="text-[9px] leading-relaxed" style={{ color: isDark ? '#e4e4e7' : '#374151' }}>{el.mockupBodyText}</p></div>}
+        <div className="flex-1 overflow-hidden">
+          {el.mockupImageUrl ? <img src={el.mockupImageUrl} alt="" className="w-full h-full object-cover" /> : (
+            <div className={`w-full h-full flex items-center justify-center ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}><span className={`text-xs ${subText}`}>{el.mockupText || 'Ad Creative'}</span></div>
+          )}
+        </div>
+        <div className="px-3 py-2 flex items-center gap-2" style={{ borderTop: `1px solid ${borderColor}`, background: isDark ? 'rgba(39,39,42,0.6)' : '#f0f2f5' }}>
+          <div className="flex-1 min-w-0">
+            {el.mockupBrowserUrl && <p className={`text-[7px] uppercase ${subText} truncate`}>{el.mockupBrowserUrl}</p>}
+            <p className="text-[10px] font-semibold truncate" style={{ color: isDark ? '#fff' : '#1f2937' }}>{el.mockupHeadline || 'Ad Headline'}</p>
+          </div>
+          <div className="shrink-0 bg-[#1877F2] text-white text-[8px] font-semibold px-2.5 py-1.5 rounded">{el.mockupCtaText || 'Mehr dazu'}</div>
+        </div>
+        <div className="flex items-center justify-around py-1.5" style={{ borderTop: `1px solid ${borderColor}` }}>
+          {['👍 Gefällt mir', '💬 Kommentar', '↗ Teilen'].map(a => <span key={a} className={`text-[8px] font-medium ${subText}`}>{a}</span>)}
+        </div>
+      </div>
+    );
+  }
+
+  // instagram-ad
+  if (kind === 'instagram-ad') {
+    return (
+      <div className="h-full flex flex-col rounded-xl overflow-hidden" style={{ border: `2px solid ${borderColor}`, background: cardBg }}>
+        <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${borderColor}` }}>
+          <div className="w-7 h-7 rounded-full p-[1.5px]" style={{ background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}>
+            {el.mockupProfileImage ? <img src={el.mockupProfileImage} alt="" className="w-full h-full rounded-full object-cover border-2 border-white" /> : <div className="w-full h-full rounded-full bg-white dark:bg-zinc-900" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold truncate" style={{ color: isDark ? '#fff' : '#1f2937' }}>{el.mockupProfileName || 'brand_name'}</p>
+            <p className={`text-[7px] ${subText}`}>Gesponsert</p>
+          </div>
+          <div className={`text-[10px] ${subText}`}>•••</div>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          {el.mockupImageUrl ? <img src={el.mockupImageUrl} alt="" className="w-full h-full object-cover" /> : (
+            <div className={`w-full h-full flex items-center justify-center ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}><span className={`text-xs ${subText}`}>{el.mockupText || 'Ad Creative'}</span></div>
+          )}
+        </div>
+        <div className="flex items-center justify-between px-3 py-2" style={{ borderTop: `1px solid ${borderColor}` }}>
+          <div className="flex items-center gap-3">
+            <span className="text-sm">♡</span><span className="text-sm">💬</span><span className="text-sm">✈</span>
+          </div>
+          <span className="text-sm">🔖</span>
+        </div>
+        {el.mockupHeadline && <div className="px-3 pb-1"><p className="text-[9px] font-semibold" style={{ color: isDark ? '#fff' : '#1f2937' }}>{el.mockupHeadline}</p></div>}
+        {el.mockupBodyText && <div className="px-3 pb-2"><p className="text-[8px]" style={{ color: isDark ? '#e4e4e7' : '#374151' }}>{el.mockupBodyText}</p></div>}
+        {el.mockupCtaText && <div className="px-3 pb-2"><button className="w-full text-[9px] font-semibold text-white py-1.5 rounded" style={{ background: '#0095f6' }}>{el.mockupCtaText}</button></div>}
+      </div>
+    );
+  }
+
+  // google-ad (Text-only search ad)
+  if (kind === 'google-ad') {
+    return (
+      <div className="h-full flex flex-col rounded-lg overflow-hidden p-4" style={{ border: `2px solid ${borderColor}`, background: cardBg }}>
+        <div className="flex items-center gap-1 mb-1">
+          <span className="text-[8px] font-bold text-white bg-[#202124] dark:bg-zinc-600 px-1.5 py-0.5 rounded">Ad</span>
+          <span className="text-[9px]" style={{ color: '#202124' }}>{el.mockupBrowserUrl || 'www.example.com'}</span>
+        </div>
+        <p className="text-[13px] font-medium mb-1" style={{ color: '#1a0dab' }}>{el.mockupHeadline || 'Ad Headline – Click Here'}</p>
+        {el.mockupDescription && <p className="text-[10px] mb-1" style={{ color: '#1a0dab' }}>{el.mockupDescription}</p>}
+        <p className="text-[9px] leading-relaxed" style={{ color: isDark ? '#bdc1c6' : '#4d5156' }}>{el.mockupBodyText || 'Beschreibung der Werbeanzeige. Klicke hier um mehr zu erfahren über unser Angebot.'}</p>
+        <div className="mt-auto pt-3 flex gap-2">
+          {(el.mockupCtaText || 'Jetzt entdecken').split(',').map((link, i) => (
+            <span key={i} className="text-[8px] font-medium" style={{ color: '#1a0dab' }}>{'>'} {link.trim()}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // linkedin-ad
+  if (kind === 'linkedin-ad') {
+    return (
+      <div className="h-full flex flex-col rounded-xl overflow-hidden" style={{ border: `2px solid ${borderColor}`, background: cardBg }}>
+        <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${borderColor}` }}>
+          {el.mockupProfileImage ? <img src={el.mockupProfileImage} alt="" className="w-8 h-8 rounded object-cover" /> : <div className="w-8 h-8 rounded bg-[#0A66C2]" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold truncate" style={{ color: isDark ? '#fff' : '#1f2937' }}>{el.mockupProfileName || 'Company Name'}</p>
+            <p className={`text-[7px] ${subText}`}>Gesponsert · Beworben</p>
+          </div>
+          <div className={`text-[10px] ${subText}`}>•••</div>
+        </div>
+        {el.mockupBodyText && <div className="px-3 py-1.5"><p className="text-[9px] leading-relaxed" style={{ color: isDark ? '#e4e4e7' : '#374151' }}>{el.mockupBodyText}</p></div>}
+        <div className="flex-1 overflow-hidden">
+          {el.mockupImageUrl ? <img src={el.mockupImageUrl} alt="" className="w-full h-full object-cover" /> : (
+            <div className={`w-full h-full flex items-center justify-center ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}><span className={`text-xs ${subText}`}>{el.mockupText || 'Ad Creative'}</span></div>
+          )}
+        </div>
+        <div className="px-3 py-2 flex items-center gap-2" style={{ borderTop: `1px solid ${borderColor}`, background: isDark ? 'rgba(39,39,42,0.6)' : '#f3f6f8' }}>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold truncate" style={{ color: isDark ? '#fff' : '#1f2937' }}>{el.mockupHeadline || 'Sponsored Content'}</p>
+            {el.mockupBrowserUrl && <p className={`text-[7px] ${subText} truncate`}>{el.mockupBrowserUrl}</p>}
+          </div>
+          <div className="shrink-0 bg-[#0A66C2] text-white text-[8px] font-semibold px-2.5 py-1.5 rounded-full">{el.mockupCtaText || 'Mehr erfahren'}</div>
+        </div>
+        <div className="flex items-center justify-around py-1.5" style={{ borderTop: `1px solid ${borderColor}` }}>
+          {['👍 Gefällt mir', '💬 Kommentar', '↗ Teilen', '✉ Senden'].map(a => <span key={a} className={`text-[7px] font-medium ${subText}`}>{a}</span>)}
+        </div>
+      </div>
+    );
+  }
+
+  // linkedin-post (organic)
+  if (kind === 'linkedin-post') {
+    return (
+      <div className="h-full flex flex-col rounded-xl overflow-hidden" style={{ border: `2px solid ${borderColor}`, background: cardBg }}>
+        <div className="flex items-center gap-2 px-3 py-2.5" style={{ borderBottom: `1px solid ${borderColor}` }}>
+          {el.mockupProfileImage ? <img src={el.mockupProfileImage} alt="" className="w-9 h-9 rounded-full object-cover" /> : <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0A66C2] to-[#004182]" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold truncate" style={{ color: isDark ? '#fff' : '#1f2937' }}>{el.mockupProfileName || 'Max Mustermann'}</p>
+            <p className={`text-[7px] ${subText} truncate`}>{el.mockupDescription || 'CEO @ Unternehmen'}</p>
+            <p className={`text-[7px] ${subText}`}>Jetzt · 🌍</p>
+          </div>
+          <div className={`text-[10px] ${subText}`}>•••</div>
+        </div>
+        {el.mockupBodyText && <div className="px-3 py-2"><p className="text-[9px] leading-relaxed" style={{ color: isDark ? '#e4e4e7' : '#374151' }}>{el.mockupBodyText}</p></div>}
+        <div className="flex-1 overflow-hidden">
+          {el.mockupImageUrl ? <img src={el.mockupImageUrl} alt="" className="w-full h-full object-cover" /> : (
+            <div className={`w-full h-full flex items-center justify-center ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}><span className={`text-xs ${subText}`}>{el.mockupText || 'Bild/Video'}</span></div>
+          )}
+        </div>
+        <div className="flex items-center justify-between px-3 py-1.5" style={{ borderTop: `1px solid ${borderColor}` }}>
+          <div className="flex items-center gap-1"><span className="text-[8px]">👍❤️</span><span className={`text-[8px] ${subText}`}>42</span></div>
+          <div className="flex items-center gap-3">
+            <span className={`text-[8px] ${subText}`}>8 Kommentare</span>
+            <span className={`text-[8px] ${subText}`}>3 Reposts</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-around py-1.5" style={{ borderTop: `1px solid ${borderColor}` }}>
+          {['👍 Gefällt mir', '💬 Kommentar', '↻ Repost', '✉ Senden'].map(a => <span key={a} className={`text-[7px] font-medium ${subText}`}>{a}</span>)}
+        </div>
+      </div>
+    );
+  }
+
+  // tiktok-ad
+  if (kind === 'tiktok-ad') {
+    return (
+      <div className="h-full flex flex-col rounded-2xl overflow-hidden relative" style={{ border: `2px solid ${borderColor}`, background: '#000' }}>
+        <div className="flex-1 overflow-hidden relative">
+          {el.mockupImageUrl ? <img src={el.mockupImageUrl} alt="" className="w-full h-full object-cover" /> : (
+            <div className="w-full h-full flex items-center justify-center bg-zinc-900"><span className="text-xs text-zinc-500">{el.mockupText || 'Video'}</span></div>
+          )}
+          {/* Right sidebar icons */}
+          <div className="absolute right-2 bottom-16 flex flex-col items-center gap-3">
+            {['♡', '💬', '🔖', '↗'].map(icon => (
+              <div key={icon} className="flex flex-col items-center"><span className="text-white text-sm">{icon}</span><span className="text-white text-[7px]">1.2K</span></div>
+            ))}
+          </div>
+        </div>
+        {/* Bottom overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-3" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}>
+          <div className="flex items-center gap-2 mb-1">
+            {el.mockupProfileImage ? <img src={el.mockupProfileImage} alt="" className="w-6 h-6 rounded-full object-cover" /> : <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-violet-500" />}
+            <span className="text-white text-[9px] font-semibold">@{el.mockupProfileName || 'brand'}</span>
+            {el.mockupCtaText && <span className="text-[7px] text-white bg-red-500 px-1.5 py-0.5 rounded font-medium">Gesponsert</span>}
+          </div>
+          {el.mockupBodyText && <p className="text-white text-[8px] leading-relaxed mb-1">{el.mockupBodyText}</p>}
+          {el.mockupHeadline && <p className="text-white text-[8px]">♫ {el.mockupHeadline}</p>}
+          {el.mockupCtaText && <button className="mt-1.5 w-full text-[9px] font-bold text-white py-1.5 rounded-sm" style={{ background: '#fe2c55' }}>{el.mockupCtaText}</button>}
+        </div>
+      </div>
+    );
+  }
+
+  // ad-mockup (generic fallback)
   return (
     <div className="h-full flex flex-col rounded-xl overflow-hidden" style={{ border: `2px solid ${borderColor}`, background: cardBg }}>
       {/* Sponsor header */}
@@ -1295,7 +1479,7 @@ export default function FunnelCanvas() {
       return el;
     }));
     setEditElementId(null);
-  }, [editElementId, editLabel, editDesc, editTextContent, editMediaUrl, editNotes, pushHistory]);
+  }, [editElementId, editLabel, editDesc, editTextContent, editMediaUrl, editNotes, editProfileImage, editProfileName, editBodyText, editHeadline, editMockupDesc, editCtaText, editBrowserUrl, pushHistory]);
 
   const handleConnDoubleClick = useCallback((id: string) => {
     const conn = connections.find(c => c.id === id);

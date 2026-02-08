@@ -44,7 +44,7 @@ export interface CanvasGroup {
   color: string;
 }
 
-export type StickyNoteColor = 'yellow' | 'blue' | 'green' | 'pink';
+export type StickyNoteColor = 'yellow' | 'blue' | 'green' | 'pink' | 'orange' | 'purple' | 'red' | 'gray';
 
 export interface StickyNote {
   id: string;
@@ -54,6 +54,10 @@ export interface StickyNote {
   width: number;
   height: number;
   color: StickyNoteColor;
+  fontWeight?: 'normal' | 'bold';
+  fontStyle?: 'normal' | 'italic';
+  customTextColor?: string;
+  fontSize?: number;
 }
 
 export interface AutomationSystem {

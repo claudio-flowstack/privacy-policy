@@ -3,7 +3,7 @@
  * FULLY INTERACTIVE - Every element works as intended
  */
 
-import { useState, useEffect, useMemo, ReactNode } from "react";
+import React, { useState, useEffect, useMemo, ReactNode } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -109,7 +109,7 @@ interface ApiConnection {
 }
 
 type ActiveSection = "dashboard" | "campaigns" | "leads" | "funnel" | "goals" | "budget" | "compare" | "revenue" | "reports" | "monitor" | "settings";
-type DateRange = "today" | "7d" | "30d" | "90d";
+type DateRange = "today" | "7d" | "30d" | "90d" | "6m" | "12m" | "custom";
 type Platform = "all" | "meta" | "google" | "tiktok" | "linkedin";
 type SortField = "name" | "spend" | "revenue" | "roas" | "leads" | "cpl" | "ctr" | "cvr";
 type SortDirection = "asc" | "desc";
@@ -137,9 +137,19 @@ interface BudgetData {
 // ============================================
 // MOCK DATA
 // ============================================
-const generateMetrics = (dateRange: DateRange, platform: Platform) => {
-  const mult: Record<DateRange, number> = { today: 0.15, "7d": 1, "30d": 4.2, "90d": 12 };
-  const m = mult[dateRange];
+const generateMetrics = (dateRange: DateRange, platform: Platform, customDays?: number) => {
+  if (dateRange === "custom" && customDays) {
+    const m = (customDays / 7);
+    const platformData: Record<Platform, { share: number; roas: number }> = {
+      all: { share: 1, roas: 3.6 }, meta: { share: 0.65, roas: 3.5 }, google: { share: 0.25, roas: 4.2 }, tiktok: { share: 0.07, roas: 2.1 }, linkedin: { share: 0.03, roas: 2.8 },
+    };
+    const p = platformData[platform];
+    const baseSpend = 24850 * m * p.share;
+    const baseLeads = 342 * m * p.share;
+    return { totalSpend: Math.round(baseSpend), totalRevenue: Math.round(baseSpend * p.roas), totalLeads: Math.round(baseLeads), totalRoas: p.roas, avgCpl: baseLeads > 0 ? Math.round((baseSpend / baseLeads) * 100) / 100 : 0, avgCpa: baseLeads > 0 ? Math.round((baseSpend / (baseLeads * 0.5)) * 100) / 100 : 0, totalImpressions: Math.round(1245000 * m * p.share), totalClicks: Math.round(18675 * m * p.share), avgCtr: 1.5 + Math.random() * 0.3, avgCvr: 1.83 + Math.random() * 0.2, totalConversions: Math.round(171 * m * p.share), avgCpm: 19.96 };
+  }
+  const mult: Record<string, number> = { today: 0.15, "7d": 1, "30d": 4.2, "90d": 12, "6m": 26, "12m": 52 };
+  const m = mult[dateRange] ?? 1;
   const platformData = {
     all: { share: 1, roas: 3.6 },
     meta: { share: 0.65, roas: 3.5 },
@@ -166,12 +176,13 @@ const generateMetrics = (dateRange: DateRange, platform: Platform) => {
   };
 };
 
-const generateChartData = (dateRange: DateRange) => {
-  const points: Record<DateRange, number> = { today: 24, "7d": 7, "30d": 30, "90d": 12 };
-  return Array.from({ length: points[dateRange] }, (_, i) => {
+const generateChartData = (dateRange: DateRange, customDays?: number) => {
+  const points: Record<string, number> = { today: 24, "7d": 7, "30d": 30, "90d": 12, "6m": 26, "12m": 12, custom: customDays ? Math.min(customDays, 60) : 14 };
+  const numPoints = points[dateRange] ?? 14;
+  return Array.from({ length: numPoints }, (_, i) => {
     const spend = 2000 + Math.random() * 3000;
     return {
-      date: dateRange === "today" ? `${i}:00` : dateRange === "90d" ? `KW ${i + 1}` : `${String(i + 1).padStart(2, "0")}.01`,
+      date: dateRange === "today" ? `${i}:00` : dateRange === "90d" || dateRange === "12m" ? `KW ${i + 1}` : dateRange === "6m" ? `KW ${i + 1}` : `${String(i + 1).padStart(2, "0")}.01`,
       value: Math.round(spend),
       value2: Math.round(spend * (2.5 + Math.random() * 2)),
     };
@@ -960,6 +971,8 @@ const DashboardContent = () => {
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
   const statusLabels = getStatusLabels(lang);
   const [dateRange, setDateRange] = useState<DateRange>("7d");
+  const [customDateFrom, setCustomDateFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 14); return d.toISOString().split("T")[0]; });
+  const [customDateTo, setCustomDateTo] = useState(() => new Date().toISOString().split("T")[0]);
   const [platform, setPlatform] = useState<Platform>("all");
   const [section, setSection] = useState<ActiveSection>("dashboard");
   const [search, setSearch] = useState("");
@@ -971,6 +984,9 @@ const DashboardContent = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [leadStatusFilter, setLeadStatusFilter] = useState<string>("all");
   const [compareRange, setCompareRange] = useState<"7d" | "30d" | "90d">("7d");
+  const [expandedRevenueSource, setExpandedRevenueSource] = useState<string | null>(null);
+  const [highlightedMonitorItem, setHighlightedMonitorItem] = useState<number | null>(null);
+  const [reportToast, setReportToast] = useState<string | null>(null);
 
   // Modals
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
@@ -1091,6 +1107,15 @@ const DashboardContent = () => {
     }
   }, [darkMode]);
 
+  useEffect(() => {
+    document.documentElement.style.backgroundColor = darkMode ? '#000' : '#f9fafb';
+    document.body.style.backgroundColor = darkMode ? '#000' : '#f9fafb';
+    return () => {
+      document.documentElement.style.removeProperty('background-color');
+      document.body.style.removeProperty('background-color');
+    };
+  }, [darkMode]);
+
   const [connections, setConnections] = useState<ApiConnection[]>([
     { id: "meta", name: "Meta Ads", platform: "meta", connected: true, lastSync: "Vor 5 Min", accountName: "Flowstack GmbH", icon: <svg className="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>, color: "bg-blue-500" },
     { id: "google", name: "Google Ads", platform: "google", connected: true, lastSync: "Vor 12 Min", accountName: "Flowstack", icon: <svg className="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>, color: "bg-emerald-500" },
@@ -1099,8 +1124,13 @@ const DashboardContent = () => {
   ]);
 
   // Computed
-  const metrics = useMemo(() => generateMetrics(dateRange, platform), [dateRange, platform]);
-  const chartData = useMemo(() => generateChartData(dateRange), [dateRange]);
+  const customDays = useMemo(() => {
+    const from = new Date(customDateFrom);
+    const to = new Date(customDateTo);
+    return Math.max(1, Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)));
+  }, [customDateFrom, customDateTo]);
+  const metrics = useMemo(() => generateMetrics(dateRange, platform, dateRange === "custom" ? customDays : undefined), [dateRange, platform, customDays]);
+  const chartData = useMemo(() => generateChartData(dateRange, dateRange === "custom" ? customDays : undefined), [dateRange, customDays]);
 
   const filteredCampaigns = useMemo(() => {
     let f = campaigns.filter(c => platform === "all" || c.platform === platform);
@@ -1159,6 +1189,34 @@ const DashboardContent = () => {
     setEditingGoal(null);
   };
 
+  // Create new campaign handler
+  const handleCreateCampaign = () => {
+    const newCampaign: CampaignData = {
+      id: Date.now().toString(),
+      name: tx("Neue Kampagne", "New Campaign"),
+      status: "paused",
+      platform: platform === "all" ? "meta" : platform as CampaignData["platform"],
+      spend: 0,
+      revenue: 0,
+      roas: 0,
+      leads: 0,
+      cpl: 0,
+      impressions: 0,
+      clicks: 0,
+      ctr: 0,
+      conversions: 0,
+      cvr: 0,
+    };
+    setCampaigns(c => [newCampaign, ...c]);
+    setActionCampaign(newCampaign);
+  };
+
+  // Report generation handler
+  const handleGenerateReport = (reportName: string) => {
+    setReportToast(reportName);
+    setTimeout(() => setReportToast(null), 3000);
+  };
+
   // Lead contact handlers
   const handleEmailLead = (lead: LeadData) => {
     window.location.href = `mailto:${lead.email}?subject=Anfrage zu ${lead.campaign}`;
@@ -1173,7 +1231,10 @@ const DashboardContent = () => {
     </th>
   );
 
-  const dateLabels: Record<DateRange, string> = lang === 'de' ? { today: "Heute", "7d": "Letzte 7 Tage", "30d": "Letzte 30 Tage", "90d": "Letzte 90 Tage" } : { today: "Today", "7d": "Last 7 days", "30d": "Last 30 days", "90d": "Last 90 days" };
+  const customLabel = dateRange === "custom" ? `${customDateFrom} – ${customDateTo}` : "";
+  const dateLabels: Record<DateRange, string> = lang === 'de'
+    ? { today: "Heute", "7d": "Letzte 7 Tage", "30d": "Letzte 30 Tage", "90d": "Letzte 90 Tage", "6m": "Letzte 6 Monate", "12m": "Letzte 12 Monate", custom: customLabel || "Benutzerdefiniert" }
+    : { today: "Today", "7d": "Last 7 days", "30d": "Last 30 days", "90d": "Last 90 days", "6m": "Last 6 months", "12m": "Last 12 months", custom: customLabel || "Custom" };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black">
@@ -1258,9 +1319,19 @@ const DashboardContent = () => {
                   { value: "7d", label: tx("Letzte 7 Tage", "Last 7 days") },
                   { value: "30d", label: tx("Letzte 30 Tage", "Last 30 days") },
                   { value: "90d", label: tx("Letzte 90 Tage", "Last 90 days") },
+                  { value: "6m", label: tx("Letzte 6 Monate", "Last 6 months") },
+                  { value: "12m", label: tx("Letzte 12 Monate", "Last 12 months") },
+                  { value: "custom", label: tx("Benutzerdefiniert", "Custom") },
                 ]}
                 icon={<Calendar className="w-4 h-4 text-gray-500" />}
               />
+              {dateRange === "custom" && (
+                <div className="flex items-center gap-2">
+                  <input type="date" value={customDateFrom} onChange={e => setCustomDateFrom(e.target.value)} className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none" />
+                  <span className="text-gray-400 text-sm">–</span>
+                  <input type="date" value={customDateTo} onChange={e => setCustomDateTo(e.target.value)} className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none" />
+                </div>
+              )}
               <CustomDropdown
                 value={platform}
                 onChange={setPlatform}
@@ -1310,28 +1381,59 @@ const DashboardContent = () => {
               </div>
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                  <div><h3 className="font-semibold">{tx("Kampagnen", "Campaigns")}</h3><p className="text-sm text-gray-500">{filteredCampaigns.length} {tx("Kampagnen", "campaigns")}</p></div>
-                  <div className="flex items-center gap-2">{(["campaigns", "adsets", "ads"] as const).map(m => (<button key={m} onClick={() => setViewMode(m)} className={`px-4 py-2 text-sm font-medium rounded-lg ${viewMode === m ? "bg-purple-100 text-purple-600" : "text-gray-500 hover:bg-gray-100"}`}>{m === "campaigns" ? tx("Kampagnen", "Campaigns") : m === "adsets" ? "Ad Sets" : "Ads"}</button>))}</div>
+                  <div><h3 className="font-semibold">{{ campaigns: tx("Kampagnen", "Campaigns"), adsets: "Ad Sets", ads: "Ads" }[viewMode]}</h3><p className="text-sm text-gray-500">{viewMode === "campaigns" ? `${filteredCampaigns.length} ${tx("Kampagnen", "campaigns")}` : viewMode === "adsets" ? `${filteredCampaigns.length * 2} Ad Sets` : `${filteredCampaigns.length * 4} Ads`}</p></div>
+                  <div className="flex items-center gap-2">{(["campaigns", "adsets", "ads"] as const).map(m => (<button key={m} onClick={() => setViewMode(m)} className={`px-4 py-2 text-sm font-medium rounded-lg ${viewMode === m ? "bg-purple-100 dark:bg-purple-500/20 text-purple-600" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"}`}>{m === "campaigns" ? tx("Kampagnen", "Campaigns") : m === "adsets" ? "Ad Sets" : "Ads"}</button>))}</div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead><tr className="border-b border-gray-100 dark:border-gray-800 text-left text-sm text-gray-500"><th className="py-4 px-4 font-medium cursor-pointer" onClick={() => handleSort("name")}>{tx("Kampagne", "Campaign")} {sortField === "name" && (sortDir === "asc" ? "↑" : "↓")}</th><SortHeader field="spend" label={tx("Ausgaben", "Spend")} /><SortHeader field="revenue" label={tx("Umsatz", "Revenue")} /><SortHeader field="roas" label="ROAS" /><SortHeader field="leads" label="Leads" /><SortHeader field="cpl" label="CPL" /><th className="py-4 px-4 font-medium text-right">Impr.</th><SortHeader field="ctr" label="CTR" /><SortHeader field="cvr" label="CVR" /><th className="py-4 px-4"></th></tr></thead>
-                    <tbody>{paginatedCampaigns.map(c => {
+                    <thead><tr className="border-b border-gray-100 dark:border-gray-800 text-left text-sm text-gray-500"><th className="py-4 px-4 font-medium cursor-pointer" onClick={() => handleSort("name")}>{viewMode === "campaigns" ? tx("Kampagne", "Campaign") : viewMode === "adsets" ? "Ad Set" : "Ad"} {sortField === "name" && (sortDir === "asc" ? "\u2191" : "\u2193")}</th><SortHeader field="spend" label={tx("Ausgaben", "Spend")} /><SortHeader field="revenue" label={tx("Umsatz", "Revenue")} /><SortHeader field="roas" label="ROAS" /><SortHeader field="leads" label="Leads" /><SortHeader field="cpl" label="CPL" /><th className="py-4 px-4 font-medium text-right">Impr.</th><SortHeader field="ctr" label="CTR" /><SortHeader field="cvr" label="CVR" /><th className="py-4 px-4"></th></tr></thead>
+                    <tbody>{paginatedCampaigns.flatMap(c => {
                       const col = platformColors[c.platform];
-                      return (
-                        <tr key={c.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer" onClick={() => setSelectedCampaign(c)}>
-                          <td className="py-4 px-4"><div className="flex items-center gap-3"><div className={`w-2 h-2 rounded-full ${c.status === "active" ? "bg-emerald-500" : "bg-yellow-500"}`} /><div><p className="font-medium">{c.name}</p><span className={`text-xs px-2 py-0.5 rounded-full ${col.bg} ${col.text}`}>{c.platform.charAt(0).toUpperCase() + c.platform.slice(1)}</span></div></div></td>
-                          <td className="py-4 px-4 text-right font-medium">€{formatCurrency(c.spend)}</td>
-                          <td className="py-4 px-4 text-right font-medium text-emerald-500">€{formatCurrency(c.revenue)}</td>
-                          <td className="py-4 px-4 text-right font-medium" style={{ color: c.roas >= 3 ? "#10b981" : c.roas >= 2 ? "#eab308" : "#ef4444" }}>{c.roas.toFixed(2)}x</td>
-                          <td className="py-4 px-4 text-right">{c.leads}</td>
-                          <td className="py-4 px-4 text-right">€{c.cpl.toFixed(2)}</td>
-                          <td className="py-4 px-4 text-right">{formatNumber(c.impressions)}</td>
-                          <td className="py-4 px-4 text-right">{formatPercent(c.ctr)}</td>
-                          <td className="py-4 px-4 text-right">{formatPercent(c.cvr)}</td>
-                          <td className="py-4 px-4 text-right"><button onClick={e => { e.stopPropagation(); setActionCampaign(c); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><MoreHorizontal className="w-4 h-4 text-gray-400" /></button></td>
-                        </tr>
-                      );
+                      if (viewMode === "campaigns") {
+                        return [(
+                          <tr key={c.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer" onClick={() => setSelectedCampaign(c)}>
+                            <td className="py-4 px-4"><div className="flex items-center gap-3"><div className={`w-2 h-2 rounded-full ${c.status === "active" ? "bg-emerald-500" : "bg-yellow-500"}`} /><div><p className="font-medium">{c.name}</p><span className={`text-xs px-2 py-0.5 rounded-full ${col.bg} ${col.text}`}>{c.platform.charAt(0).toUpperCase() + c.platform.slice(1)}</span></div></div></td>
+                            <td className="py-4 px-4 text-right font-medium">{"\u20AC"}{formatCurrency(c.spend)}</td>
+                            <td className="py-4 px-4 text-right font-medium text-emerald-500">{"\u20AC"}{formatCurrency(c.revenue)}</td>
+                            <td className="py-4 px-4 text-right font-medium" style={{ color: c.roas >= 3 ? "#10b981" : c.roas >= 2 ? "#eab308" : "#ef4444" }}>{c.roas.toFixed(2)}x</td>
+                            <td className="py-4 px-4 text-right">{c.leads}</td>
+                            <td className="py-4 px-4 text-right">{"\u20AC"}{c.cpl.toFixed(2)}</td>
+                            <td className="py-4 px-4 text-right">{formatNumber(c.impressions)}</td>
+                            <td className="py-4 px-4 text-right">{formatPercent(c.ctr)}</td>
+                            <td className="py-4 px-4 text-right">{formatPercent(c.cvr)}</td>
+                            <td className="py-4 px-4 text-right"><button onClick={e => { e.stopPropagation(); setActionCampaign(c); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><MoreHorizontal className="w-4 h-4 text-gray-400" /></button></td>
+                          </tr>
+                        )];
+                      }
+                      const subItems = viewMode === "adsets"
+                        ? [{ suffix: " - Broad", factor: 0.6 }, { suffix: " - Retargeting", factor: 0.4 }]
+                        : [{ suffix: " - Image Ad", factor: 0.3 }, { suffix: " - Video Ad", factor: 0.35 }, { suffix: " - Carousel", factor: 0.2 }, { suffix: " - Story", factor: 0.15 }];
+                      return subItems.map((sub, si) => {
+                        const spend = Math.round(c.spend * sub.factor);
+                        const revenue = Math.round(c.revenue * sub.factor);
+                        const roas = spend > 0 ? Math.round((revenue / spend) * 100) / 100 : 0;
+                        const leads = Math.round(c.leads * sub.factor);
+                        const cpl = leads > 0 ? Math.round((spend / leads) * 100) / 100 : 0;
+                        const impressions = Math.round(c.impressions * sub.factor);
+                        const clicks = Math.round(c.clicks * sub.factor);
+                        const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
+                        const conversions = Math.round(c.conversions * sub.factor);
+                        const cvr = impressions > 0 ? Math.round((conversions / impressions) * 10000) / 100 : 0;
+                        return (
+                          <tr key={`${c.id}-${si}`} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer" onClick={() => setSelectedCampaign(c)}>
+                            <td className="py-4 px-4"><div className="flex items-center gap-3"><div className={`w-2 h-2 rounded-full ${c.status === "active" ? "bg-emerald-500" : "bg-yellow-500"}`} /><div><p className="font-medium text-sm">{c.name}{sub.suffix}</p><span className={`text-xs px-2 py-0.5 rounded-full ${col.bg} ${col.text}`}>{c.platform.charAt(0).toUpperCase() + c.platform.slice(1)}</span></div></div></td>
+                            <td className="py-4 px-4 text-right font-medium">{"\u20AC"}{formatCurrency(spend)}</td>
+                            <td className="py-4 px-4 text-right font-medium text-emerald-500">{"\u20AC"}{formatCurrency(revenue)}</td>
+                            <td className="py-4 px-4 text-right font-medium" style={{ color: roas >= 3 ? "#10b981" : roas >= 2 ? "#eab308" : "#ef4444" }}>{roas.toFixed(2)}x</td>
+                            <td className="py-4 px-4 text-right">{leads}</td>
+                            <td className="py-4 px-4 text-right">{"\u20AC"}{cpl.toFixed(2)}</td>
+                            <td className="py-4 px-4 text-right">{formatNumber(impressions)}</td>
+                            <td className="py-4 px-4 text-right">{formatPercent(ctr)}</td>
+                            <td className="py-4 px-4 text-right">{formatPercent(cvr)}</td>
+                            <td className="py-4 px-4 text-right"><button onClick={e => { e.stopPropagation(); setActionCampaign(c); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><MoreHorizontal className="w-4 h-4 text-gray-400" /></button></td>
+                          </tr>
+                        );
+                      });
                     })}</tbody>
                   </table>
                 </div>
@@ -1364,7 +1466,8 @@ const DashboardContent = () => {
                   icon={<Filter className="w-4 h-4 text-gray-500" />}
                 />
                 <div className="flex-1" />
-                <button onClick={handleExport} className="px-4 py-2 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 flex items-center gap-2"><Download className="w-4 h-4" />Export</button>
+                <button onClick={handleCreateCampaign} className="px-4 py-2 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 flex items-center gap-2"><Zap className="w-4 h-4" />{tx("Neue Kampagne", "New Campaign")}</button>
+                <button onClick={handleExport} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-2"><Download className="w-4 h-4" />Export</button>
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredCampaigns.map(c => {
@@ -1756,24 +1859,48 @@ const DashboardContent = () => {
                 {/* Revenue by Source + Time to Close */}
                 <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
                   <h3 className="font-semibold mb-6">{tx("Umsatz nach Quelle", "Revenue by Source")}</h3>
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {revenueBySource.map((src, i) => (
-                      <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center">
-                          <span className="text-xs font-bold text-purple-600">{src.pct.toFixed(0)}%</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-sm">{src.source}</span>
-                            <span className="font-semibold">€{formatCurrency(src.revenue)}</span>
+                      <div key={i}>
+                        <div onClick={() => setExpandedRevenueSource(expandedRevenueSource === src.source ? null : src.source)} className={`flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${expandedRevenueSource === src.source ? "bg-gray-50 dark:bg-gray-800" : ""}`}>
+                          <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center">
+                            <span className="text-xs font-bold text-purple-600">{src.pct.toFixed(0)}%</span>
                           </div>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-xs text-gray-400">{src.deals} {tx("Deals", "deals")}</span>
-                            <span className="text-xs text-gray-400">·</span>
-                            <span className="text-xs text-gray-400 flex items-center gap-1"><Timer className="w-3 h-3" /> Ø {src.avgDays} {tx("Tage", "days")}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-sm">{src.source}</span>
+                              <span className="font-semibold">{"\u20AC"}{formatCurrency(src.revenue)}</span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-xs text-gray-400">{src.deals} {tx("Deals", "deals")}</span>
+                              <span className="text-xs text-gray-400">{"\u00B7"}</span>
+                              <span className="text-xs text-gray-400 flex items-center gap-1"><Timer className="w-3 h-3" /> {"\u00D8"} {src.avgDays} {tx("Tage", "days")}</span>
+                            </div>
                           </div>
+                          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expandedRevenueSource === src.source ? "rotate-180" : ""}`} />
                         </div>
-                        <ChevronRight className="w-4 h-4 text-gray-300" />
+                        {expandedRevenueSource === src.source && (
+                          <div className="ml-14 mr-3 mt-1 mb-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl space-y-3">
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <p className="text-xs text-gray-400 mb-1">{tx("Umsatz", "Revenue")}</p>
+                                <p className="text-sm font-bold text-emerald-500">{"\u20AC"}{formatCurrency(src.revenue)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-400 mb-1">{tx("Abschlüsse", "Deals")}</p>
+                                <p className="text-sm font-bold">{src.deals}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-400 mb-1">{"\u00D8"} {tx("Deal-Wert", "Deal Value")}</p>
+                                <p className="text-sm font-bold">{"\u20AC"}{formatCurrency(Math.round(src.revenue / src.deals))}</p>
+                              </div>
+                            </div>
+                            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: `${src.pct}%` }} />
+                            </div>
+                            <p className="text-xs text-gray-400">{src.pct.toFixed(1)}% {tx("des Gesamtumsatzes", "of total revenue")}</p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1826,23 +1953,56 @@ const DashboardContent = () => {
                     </thead>
                     <tbody>
                       {revenueDeals.map(deal => (
-                        <tr key={deal.id} onClick={() => setRevenueDealDetail(revenueDealDetail === deal.id ? null : deal.id)} className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors">
+                        <React.Fragment key={deal.id}>
+                        <tr onClick={() => setRevenueDealDetail(revenueDealDetail === deal.id ? null : deal.id)} className={`border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors ${revenueDealDetail === deal.id ? "bg-purple-50/50 dark:bg-purple-500/5" : ""}`}>
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold">{deal.customer.charAt(0)}</div>
                               <span className="font-medium text-sm">{deal.customer}</span>
+                              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${revenueDealDetail === deal.id ? "rotate-180" : ""}`} />
                             </div>
                           </td>
-                          <td className="py-4 px-6 font-semibold text-emerald-600">€{formatCurrency(deal.revenue)}</td>
-                          <td className="py-4 px-6"><span className={`text-xs px-2 py-1 rounded-full ${deal.source === "Meta Ads" ? "bg-blue-100 text-blue-600" : deal.source === "Google Ads" ? "bg-emerald-100 text-emerald-600" : "bg-sky-100 text-sky-600"}`}>{deal.source}</span></td>
+                          <td className="py-4 px-6 font-semibold text-emerald-600">{"\u20AC"}{formatCurrency(deal.revenue)}</td>
+                          <td className="py-4 px-6"><span className={`text-xs px-2 py-1 rounded-full ${deal.source === "Meta Ads" ? "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" : deal.source === "Google Ads" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" : "bg-sky-100 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400"}`}>{deal.source}</span></td>
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-2">
                               <span className={`text-sm font-medium ${deal.daysToClose <= 14 ? "text-emerald-600" : deal.daysToClose <= 28 ? "text-orange-500" : "text-red-500"}`}>{deal.daysToClose} {tx("Tage", "days")}</span>
-                              {deal.daysToClose <= 14 && <span className="text-xs text-emerald-500">⚡</span>}
+                              {deal.daysToClose <= 14 && <Zap className="w-3 h-3 text-emerald-500" />}
                             </div>
                           </td>
                           <td className="py-4 px-6 text-sm text-gray-500">{deal.date}</td>
                         </tr>
+                        {revenueDealDetail === deal.id && (
+                          <tr className="bg-gray-50/50 dark:bg-gray-800/30">
+                            <td colSpan={5} className="px-6 py-4">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="p-3 bg-white dark:bg-gray-900 rounded-xl">
+                                  <p className="text-xs text-gray-500 mb-1">{tx("Deal-Nr.", "Deal No.")}</p>
+                                  <p className="font-semibold text-purple-600">{deal.id}</p>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-gray-900 rounded-xl">
+                                  <p className="text-xs text-gray-500 mb-1">{tx("Umsatz", "Revenue")}</p>
+                                  <p className="font-semibold text-emerald-600">{"\u20AC"}{formatCurrency(deal.revenue)}</p>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-gray-900 rounded-xl">
+                                  <p className="text-xs text-gray-500 mb-1">{tx("Abschlussdatum", "Closing Date")}</p>
+                                  <p className="font-semibold">{deal.date}</p>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-gray-900 rounded-xl">
+                                  <p className="text-xs text-gray-500 mb-1">{tx("Geschätzter LTV", "Est. LTV")}</p>
+                                  <p className="font-semibold text-purple-500">{"\u20AC"}{formatCurrency(deal.revenue * 3)}</p>
+                                </div>
+                              </div>
+                              <div className="mt-3 flex items-center gap-3">
+                                <span className="text-xs text-gray-400">{tx("Kampagnen-Attribution", "Campaign Attribution")}:</span>
+                                <span className="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">{deal.source}</span>
+                                <span className="text-xs text-gray-400">|</span>
+                                <span className="text-xs text-gray-500">{tx("Touchpoints", "Touchpoints")}: {Math.max(2, Math.floor(deal.daysToClose / 5))}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>
@@ -1853,13 +2013,25 @@ const DashboardContent = () => {
 
           {/* REPORTS */}
           {section === "reports" && (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[{ t: tx("Wöchentlicher Überblick", "Weekly Overview"), k: "active", s: tx("Aktiv", "Active"), d: tx("Jeden Montag automatisch", "Every Monday automatically") }, { t: tx("Monatlicher ROI Report", "Monthly ROI Report"), k: "active", s: tx("Aktiv", "Active"), d: tx("01. jeden Monats", "1st of each month") }, { t: tx("Kampagnen-Vergleich", "Campaign Comparison"), k: "ready", s: tx("Bereit", "Ready"), d: tx("Manuell generieren", "Generate manually") }, { t: tx("Lead-Qualität Analyse", "Lead Quality Analysis"), k: "active", s: tx("Aktiv", "Active"), d: tx("Täglich automatisch", "Daily automatically") }, { t: tx("Channel Attribution", "Channel Attribution"), k: "ready", s: tx("Bereit", "Ready"), d: tx("Manuell generieren", "Generate manually") }, { t: tx("Custom Report", "Custom Report"), k: "new", s: tx("Neu", "New"), d: tx("Jetzt erstellen", "Create now") }].map((r, i) => (
-                <div key={i} onClick={() => { if (r.k === "ready" || r.k === "new") handleExport(); }} className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800 hover:border-purple-200 cursor-pointer group">
-                  <div className="flex items-start justify-between mb-4"><div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center"><FileText className="w-5 h-5 text-purple-600" /></div><span className={`text-xs px-2 py-1 rounded-full ${r.k === "active" ? "bg-emerald-100 text-emerald-600" : r.k === "ready" ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"}`}>{r.s}</span></div>
-                  <h3 className="font-semibold mb-1 group-hover:text-purple-600">{r.t}</h3><p className="text-sm text-gray-500">{r.d}</p>
+            <div className="space-y-6">
+              {reportToast && (
+                <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl animate-pulse">
+                  <Check className="w-5 h-5 text-emerald-500" />
+                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">{tx(`Report "${reportToast}" wird generiert...`, `Report "${reportToast}" is being generated...`)}</span>
                 </div>
-              ))}
+              )}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[{ t: tx("Wöchentlicher Überblick", "Weekly Overview"), k: "active", s: tx("Aktiv", "Active"), d: tx("Jeden Montag automatisch", "Every Monday automatically") }, { t: tx("Monatlicher ROI Report", "Monthly ROI Report"), k: "active", s: tx("Aktiv", "Active"), d: tx("01. jeden Monats", "1st of each month") }, { t: tx("Kampagnen-Vergleich", "Campaign Comparison"), k: "ready", s: tx("Bereit", "Ready"), d: tx("Manuell generieren", "Generate manually") }, { t: tx("Lead-Qualität Analyse", "Lead Quality Analysis"), k: "active", s: tx("Aktiv", "Active"), d: tx("Täglich automatisch", "Daily automatically") }, { t: tx("Channel Attribution", "Channel Attribution"), k: "ready", s: tx("Bereit", "Ready"), d: tx("Manuell generieren", "Generate manually") }, { t: tx("Custom Report", "Custom Report"), k: "new", s: tx("Neu", "New"), d: tx("Jetzt erstellen", "Create now") }].map((r, i) => (
+                  <div key={i} onClick={() => { if (r.k === "active") { handleGenerateReport(r.t); } else if (r.k === "ready") { handleGenerateReport(r.t); handleExport(); } else { handleGenerateReport(r.t); } }} className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800 hover:border-purple-200 dark:hover:border-purple-500/30 cursor-pointer group transition-colors">
+                    <div className="flex items-start justify-between mb-4"><div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center"><FileText className="w-5 h-5 text-purple-600" /></div><span className={`text-xs px-2 py-1 rounded-full ${r.k === "active" ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : r.k === "ready" ? "bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>{r.s}</span></div>
+                    <h3 className="font-semibold mb-1 group-hover:text-purple-600">{r.t}</h3>
+                    <p className="text-sm text-gray-500 mb-3">{r.d}</p>
+                    <div className="flex items-center gap-2 text-xs text-purple-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      {r.k === "active" ? <><RefreshCw className="w-3 h-3" />{tx("Jetzt generieren", "Generate now")}</> : r.k === "ready" ? <><Download className="w-3 h-3" />{tx("Herunterladen", "Download")}</> : <><Zap className="w-3 h-3" />{tx("Erstellen", "Create")}</>}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -1868,13 +2040,13 @@ const DashboardContent = () => {
             <div className="space-y-6">
               <div className="flex items-center gap-3"><div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" /><span className="text-sm text-gray-500">{tx("Live – Updates alle 30s", "Live – Updates every 30s")}</span></div>
               <div className="grid md:grid-cols-4 gap-4">{[{ l: tx("Aktive Nutzer", "Active users"), v: "247", t: "+12" }, { l: tx("Klicks/Std", "Clicks/hr"), v: "1,842", t: "+89" }, { l: tx("Conv. heute", "Conv. today"), v: "23", t: "+5" }, { l: tx("Ausgaben heute", "Spend today"), v: `€${formatCurrency(Math.round(metrics.totalSpend * 0.15))}`, t: "" }].map((s, i) => (<div key={i} className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-500 mb-1">{s.l}</p><div className="flex items-end gap-2"><p className="text-3xl font-bold">{s.v}</p>{s.t && <span className="text-sm text-emerald-500 mb-1">{s.t}</span>}</div></div>))}</div>
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800"><h3 className="font-semibold mb-6">{tx("Live Activity", "Live Activity")}</h3><div className="space-y-4">{[{ t: tx("Gerade", "Just now"), e: tx("Neuer Lead", "New lead"), d: "Google Search", c: "bg-emerald-500" }, { t: tx("Vor 2 Min", "2 min ago"), e: tx("Conversion", "Conversion"), d: "Meta Retargeting – €2.500", c: "bg-purple-500" }, { t: tx("Vor 5 Min", "5 min ago"), e: tx("Neuer Lead", "New lead"), d: "Meta Awareness", c: "bg-emerald-500" }, { t: tx("Vor 8 Min", "8 min ago"), e: tx("Klick-Spike", "Click spike"), d: "+45% in 10 Min", c: "bg-blue-500" }, { t: tx("Vor 12 Min", "12 min ago"), e: tx("Neuer Lead", "New lead"), d: "LinkedIn B2B", c: "bg-emerald-500" }].map((a, i) => (<div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800"><div className={`w-2 h-2 rounded-full ${a.c}`} /><span className="text-sm text-gray-400 w-24">{a.t}</span><span className="font-medium">{a.e}</span><span className="text-sm text-gray-500">{a.d}</span></div>))}</div></div>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800"><h3 className="font-semibold mb-6">{tx("Live Activity", "Live Activity")}</h3><div className="space-y-2">{[{ t: tx("Gerade", "Just now"), e: tx("Neuer Lead", "New lead"), d: "Google Search", c: "bg-emerald-500", nav: "leads" as ActiveSection }, { t: tx("Vor 2 Min", "2 min ago"), e: tx("Conversion", "Conversion"), d: tx("Meta Retargeting – €2.500", "Meta Retargeting – €2,500"), c: "bg-purple-500", nav: "revenue" as ActiveSection }, { t: tx("Vor 5 Min", "5 min ago"), e: tx("Neuer Lead", "New lead"), d: "Meta Awareness", c: "bg-emerald-500", nav: "leads" as ActiveSection }, { t: tx("Vor 8 Min", "8 min ago"), e: tx("Klick-Spike", "Click spike"), d: "+45% in 10 Min", c: "bg-blue-500", nav: "campaigns" as ActiveSection }, { t: tx("Vor 12 Min", "12 min ago"), e: tx("Neuer Lead", "New lead"), d: "LinkedIn B2B", c: "bg-emerald-500", nav: "leads" as ActiveSection }].map((a, i) => (<div key={i} onClick={() => { setHighlightedMonitorItem(i); setTimeout(() => { setSection(a.nav); setHighlightedMonitorItem(null); }, 600); }} className={`flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${highlightedMonitorItem === i ? "bg-purple-50 dark:bg-purple-500/10 ring-1 ring-purple-300 dark:ring-purple-500/30 scale-[1.01]" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}><div className={`w-2 h-2 rounded-full ${a.c} ${i === 0 ? "animate-pulse" : ""}`} /><span className="text-sm text-gray-400 w-24">{a.t}</span><span className="font-medium">{a.e}</span><span className="text-sm text-gray-500 flex-1">{a.d}</span><ChevronRight className="w-4 h-4 text-gray-300" /></div>))}</div></div>
             </div>
           )}
 
           {/* SETTINGS */}
           {section === "settings" && (
-            <div className="space-y-8">
+            <div className="space-y-8 max-w-4xl">
               <div>
                 <h2 className="text-xl font-semibold mb-4">{tx("API-Verbindungen", "API Connections")}</h2>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -1899,7 +2071,7 @@ const DashboardContent = () => {
                   {([{ k: "emailLeads", l: tx("E-Mail bei neuen Leads", "Email on new leads") }, { k: "dailyReport", l: tx("Täglicher Performance Report", "Daily performance report") }, { k: "budgetAlerts", l: tx("Budget-Warnungen (>80%)", "Budget warnings (>80%)") }, { k: "roasAlerts", l: tx("ROAS unter Zielwert", "ROAS below target") }] as const).map(s => (
                     <div key={s.k} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-800">
                       <span>{s.l}</span>
-                      <button onClick={() => handleToggleSetting(s.k)} className={`w-12 h-6 rounded-full relative transition-colors ${settings[s.k] ? "bg-purple-500" : "bg-gray-300"}`}><div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${settings[s.k] ? "left-6" : "left-0.5"}`} /></button>
+                      <button onClick={() => handleToggleSetting(s.k)} className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-200 ${settings[s.k] ? "bg-purple-500" : "bg-gray-200 dark:bg-gray-600"}`}><span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-1 ring-black/5 transition-transform duration-200 ease-in-out ${settings[s.k] ? "translate-x-6" : "translate-x-1"}`} /></button>
                     </div>
                   ))}
                 </div>

@@ -34,6 +34,10 @@ const de: TranslationMap = {
   'dashboard.statusDraft': 'Entwurf',
   'dashboard.openSystem': 'Öffnen',
   'dashboard.runs': 'Runs',
+  'dashboard.searchPlaceholder': 'Systeme durchsuchen...',
+  'dashboard.filterAll': 'Alle',
+  'dashboard.noResults': 'Keine Systeme gefunden.',
+  'dashboard.clearFilters': 'Filter zurücksetzen',
 
   // ─── System Detail ───────────────────────────────────────
   'detail.stats.executions': 'Ausführungen',
@@ -46,6 +50,9 @@ const de: TranslationMap = {
   'detail.workflowTitle': 'System-Ablauf',
   'detail.stepsAndConnections': '{steps} Schritte · {connections} Verbindungen',
   'detail.resizeHeight': 'Höhe anpassen',
+  'detail.modeEdit': 'Bearbeiten',
+  'detail.modeLive': 'Live',
+  'detail.exitLive': 'Live-Modus beenden',
   'detail.resultsTitle': 'Ergebnisse',
   'detail.entries': 'Einträge',
   'detail.new': 'neu',
@@ -61,6 +68,8 @@ const de: TranslationMap = {
   'templates.phases': 'Phasen',
   'templates.workflowSteps': 'Workflow-Schritte',
   'templates.view': 'Ansehen',
+  'templates.searchPlaceholder': 'Vorlagen durchsuchen...',
+  'templates.noResults': 'Keine Vorlagen gefunden.',
 
   // ─── Main Page ───────────────────────────────────────────
   'page.dashboard': 'Dashboard',
@@ -72,6 +81,8 @@ const de: TranslationMap = {
   'page.visualizer': 'Funnel Visualizer',
   'page.visualizerSubtitle': 'Visueller Funnel-Editor',
   'page.executionsSubtitle': '{category} · {count} Ausführungen',
+  'page.settings': 'Einstellungen',
+  'page.settingsSubtitle': 'Konfiguration & Systemverwaltung',
   'system.copy': '(Kopie)',
 
   // ─── Sidebar ─────────────────────────────────────────────
@@ -81,6 +92,7 @@ const de: TranslationMap = {
   'sidebar.templates': 'Vorlagen',
   'sidebar.builder': 'Workflow Builder',
   'sidebar.visualizer': 'Funnel-Visualizer',
+  'sidebar.settings': 'Einstellungen',
   'sidebar.collapse': 'Sidebar einklappen',
   'sidebar.expand': 'Sidebar einblenden',
   'sidebar.chooseTemplate': 'Vorlage wählen',
@@ -107,9 +119,13 @@ const de: TranslationMap = {
 
   // ─── Sticky Note Colors ──────────────────────────────────
   'sticky.yellow': 'Gelb',
+  'sticky.orange': 'Orange',
+  'sticky.pink': 'Rosa',
+  'sticky.red': 'Rot',
+  'sticky.purple': 'Lila',
   'sticky.blue': 'Blau',
   'sticky.green': 'Grün',
-  'sticky.pink': 'Rosa',
+  'sticky.gray': 'Grau',
 
   // ─── Palette Items ───────────────────────────────────────
   'palette.trigger': 'Trigger',
@@ -185,6 +201,11 @@ const de: TranslationMap = {
   'edit.editNote': 'Notiz bearbeiten',
   'edit.notePlaceholder': 'Notiz-Text…',
   'edit.editNoteAria': 'Notiz bearbeiten',
+  'edit.noteColor': 'Farbe',
+  'edit.bold': 'Fett',
+  'edit.italic': 'Kursiv',
+  'edit.fontSize': 'Schriftgröße',
+  'edit.textColor': 'Textfarbe',
 
   // ─── Canvas Search ───────────────────────────────────────
   'search.placeholder': 'Node suchen…',
@@ -225,6 +246,36 @@ const de: TranslationMap = {
   'shortcuts.rightClickDesc': 'Kontextmenü',
   'shortcuts.questionMark': '?',
   'shortcuts.questionMarkDesc': 'Diese Hilfe',
+
+  // ─── Settings ─────────────────────────────────────────────
+  'settings.title': 'Einstellungen',
+  'settings.subtitle': 'Konfiguration & Systemverwaltung',
+  'settings.automationTitle': 'Automatisierung',
+  'settings.autoExecute': 'Auto-Ausführung',
+  'settings.autoExecuteDesc': 'Systeme automatisch nach Erstellung ausführen',
+  'settings.notifications': 'Benachrichtigungen',
+  'settings.notificationsDesc': 'Toast-Meldungen bei Aktionen anzeigen',
+  'settings.webhookLogs': 'Webhook-Logs',
+  'settings.webhookLogsDesc': 'Eingehende Webhook-Aufrufe protokollieren',
+  'settings.compactView': 'Kompakte Ansicht',
+  'settings.compactViewDesc': 'System-Karten kompakter darstellen',
+  'settings.statsTitle': 'System-Statistiken',
+  'settings.draftSystems': 'Entwürfe',
+  'settings.dangerZone': 'Gefahrenbereich',
+  'settings.dangerDesc': 'Alle Demo-Einstellungen auf den Ausgangszustand zurücksetzen.',
+  'settings.resetAll': 'Einstellungen zurücksetzen',
+
+  // ─── Toast Notifications ──────────────────────────────────
+  'toast.systemCreated': 'System erstellt',
+  'toast.systemSaved': 'System gespeichert',
+  'toast.systemDeleted': 'System gelöscht',
+  'toast.demoHidden': 'Demo-System ausgeblendet',
+  'toast.statusActive': 'Status: Aktiv',
+  'toast.statusDraft': 'Status: Entwurf',
+  'toast.executionStarted': 'Ausführung gestartet',
+  'toast.settingUpdated': 'Einstellung aktualisiert',
+  'toast.settingsReset': 'Einstellungen zurückgesetzt',
+  'toast.outputSaved': 'Änderungen gespeichert',
 };
 
 const en: TranslationMap = {
@@ -259,6 +310,10 @@ const en: TranslationMap = {
   'dashboard.statusDraft': 'Draft',
   'dashboard.openSystem': 'Open',
   'dashboard.runs': 'Runs',
+  'dashboard.searchPlaceholder': 'Search systems...',
+  'dashboard.filterAll': 'All',
+  'dashboard.noResults': 'No systems found.',
+  'dashboard.clearFilters': 'Clear filters',
 
   // ─── System Detail ───────────────────────────────────────
   'detail.stats.executions': 'Executions',
@@ -271,6 +326,9 @@ const en: TranslationMap = {
   'detail.workflowTitle': 'System Workflow',
   'detail.stepsAndConnections': '{steps} Steps · {connections} Connections',
   'detail.resizeHeight': 'Adjust height',
+  'detail.modeEdit': 'Edit',
+  'detail.modeLive': 'Live',
+  'detail.exitLive': 'Exit live mode',
   'detail.resultsTitle': 'Results',
   'detail.entries': 'Entries',
   'detail.new': 'new',
@@ -286,6 +344,8 @@ const en: TranslationMap = {
   'templates.phases': 'Phases',
   'templates.workflowSteps': 'Workflow Steps',
   'templates.view': 'View',
+  'templates.searchPlaceholder': 'Search templates...',
+  'templates.noResults': 'No templates found.',
 
   // ─── Main Page ───────────────────────────────────────────
   'page.dashboard': 'Dashboard',
@@ -297,6 +357,8 @@ const en: TranslationMap = {
   'page.visualizer': 'Funnel Visualizer',
   'page.visualizerSubtitle': 'Visual Funnel Editor',
   'page.executionsSubtitle': '{category} · {count} Executions',
+  'page.settings': 'Settings',
+  'page.settingsSubtitle': 'Configuration & System Management',
   'system.copy': '(Copy)',
 
   // ─── Sidebar ─────────────────────────────────────────────
@@ -306,6 +368,7 @@ const en: TranslationMap = {
   'sidebar.templates': 'Templates',
   'sidebar.builder': 'Workflow Builder',
   'sidebar.visualizer': 'Funnel-Visualizer',
+  'sidebar.settings': 'Settings',
   'sidebar.collapse': 'Collapse sidebar',
   'sidebar.expand': 'Expand sidebar',
   'sidebar.chooseTemplate': 'Choose template',
@@ -332,9 +395,13 @@ const en: TranslationMap = {
 
   // ─── Sticky Note Colors ──────────────────────────────────
   'sticky.yellow': 'Yellow',
+  'sticky.orange': 'Orange',
+  'sticky.pink': 'Pink',
+  'sticky.red': 'Red',
+  'sticky.purple': 'Purple',
   'sticky.blue': 'Blue',
   'sticky.green': 'Green',
-  'sticky.pink': 'Pink',
+  'sticky.gray': 'Gray',
 
   // ─── Palette Items ───────────────────────────────────────
   'palette.trigger': 'Trigger',
@@ -410,6 +477,11 @@ const en: TranslationMap = {
   'edit.editNote': 'Edit note',
   'edit.notePlaceholder': 'Note text…',
   'edit.editNoteAria': 'Edit note',
+  'edit.noteColor': 'Color',
+  'edit.bold': 'Bold',
+  'edit.italic': 'Italic',
+  'edit.fontSize': 'Font size',
+  'edit.textColor': 'Text color',
 
   // ─── Canvas Search ───────────────────────────────────────
   'search.placeholder': 'Search node…',
@@ -450,6 +522,36 @@ const en: TranslationMap = {
   'shortcuts.rightClickDesc': 'Context menu',
   'shortcuts.questionMark': '?',
   'shortcuts.questionMarkDesc': 'This help',
+
+  // ─── Settings ─────────────────────────────────────────────
+  'settings.title': 'Settings',
+  'settings.subtitle': 'Configuration & System Management',
+  'settings.automationTitle': 'Automation',
+  'settings.autoExecute': 'Auto-Execute',
+  'settings.autoExecuteDesc': 'Automatically execute systems after creation',
+  'settings.notifications': 'Notifications',
+  'settings.notificationsDesc': 'Show toast notifications for actions',
+  'settings.webhookLogs': 'Webhook Logs',
+  'settings.webhookLogsDesc': 'Log incoming webhook calls',
+  'settings.compactView': 'Compact View',
+  'settings.compactViewDesc': 'Display system cards more compactly',
+  'settings.statsTitle': 'System Statistics',
+  'settings.draftSystems': 'Drafts',
+  'settings.dangerZone': 'Danger Zone',
+  'settings.dangerDesc': 'Reset all demo settings to their default state.',
+  'settings.resetAll': 'Reset settings',
+
+  // ─── Toast Notifications ──────────────────────────────────
+  'toast.systemCreated': 'System created',
+  'toast.systemSaved': 'System saved',
+  'toast.systemDeleted': 'System deleted',
+  'toast.demoHidden': 'Demo system hidden',
+  'toast.statusActive': 'Status: Active',
+  'toast.statusDraft': 'Status: Draft',
+  'toast.executionStarted': 'Execution started',
+  'toast.settingUpdated': 'Setting updated',
+  'toast.settingsReset': 'Settings reset',
+  'toast.outputSaved': 'Changes saved',
 };
 
 export const translations: Record<Language, TranslationMap> = { de, en };

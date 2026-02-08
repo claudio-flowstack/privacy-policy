@@ -10,7 +10,8 @@ export type PlatformKind =
   | 'kalender' | 'crm' | 'email' | 'whatsapp-sms'
   | 'webinar' | 'checkout' | 'youtube' | 'seo';
 
-export type MockupKind = 'mobile' | 'desktop' | 'tablet' | 'social-post' | 'ad-mockup';
+export type MockupKind = 'mobile' | 'desktop' | 'tablet' | 'social-post' | 'ad-mockup'
+  | 'facebook-ad' | 'instagram-ad' | 'google-ad' | 'linkedin-ad' | 'linkedin-post' | 'tiktok-ad';
 
 export type TextKind = 'headline' | 'subheadline' | 'body' | 'note';
 
@@ -118,11 +119,17 @@ export const ELEMENT_DEFAULTS: Record<FunnelElementType, { width: number; height
 };
 
 export const MOCKUP_SIZES: Record<MockupKind, { width: number; height: number }> = {
-  'mobile':      { width: 220, height: 420 },
-  'desktop':     { width: 480, height: 320 },
-  'tablet':      { width: 360, height: 280 },
-  'social-post': { width: 280, height: 320 },
-  'ad-mockup':   { width: 280, height: 360 },
+  'mobile':        { width: 220, height: 420 },
+  'desktop':       { width: 480, height: 320 },
+  'tablet':        { width: 360, height: 280 },
+  'social-post':   { width: 280, height: 320 },
+  'ad-mockup':     { width: 280, height: 360 },
+  'facebook-ad':   { width: 280, height: 380 },
+  'instagram-ad':  { width: 260, height: 400 },
+  'google-ad':     { width: 340, height: 160 },
+  'linkedin-ad':   { width: 300, height: 360 },
+  'linkedin-post': { width: 300, height: 340 },
+  'tiktok-ad':     { width: 220, height: 400 },
 };
 
 // ─── Platform Registry ──────────────────────────────────────────────────────
