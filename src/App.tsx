@@ -17,6 +17,10 @@ import ImpressumPage from "./pages/ImpressumPage";
 import DatenschutzPage from "./pages/DatenschutzPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import AutomationDashboardPage from "./pages/AutomationDashboardPage";
+import ContentDashboardPage from "./pages/ContentDashboardPage";
+import ColdMailDashboardPage from "./pages/ColdMailDashboardPage";
+import HubDashboardPage from "./pages/HubDashboardPage";
+import OnboardingPage from "./pages/OnboardingPage";
 import CookieBanner from "./components/CookieBanner";
 import "./App.css";
 
@@ -32,6 +36,10 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/linkedin" element={<LinkedInDashboardPage />} />
         <Route path="/systems" element={<AutomationDashboardPage />} />
+        <Route path="/content" element={<ContentDashboardPage />} />
+        <Route path="/coldmail" element={<ColdMailDashboardPage />} />
+        <Route path="/hub" element={<HubDashboardPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/kostenlose-beratung" element={<FormularPage />} />
         <Route path="/danke" element={<DankePage />} />
         <Route path="/impressum" element={<ImpressumPage />} />

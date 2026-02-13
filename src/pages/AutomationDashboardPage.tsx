@@ -11,12 +11,14 @@ import {
 import { useTheme } from '@/components/theme-provider';
 import WorkflowCanvas from '@/components/automation/WorkflowCanvas';
 import FunnelCanvas from '@/components/automation/FunnelCanvas';
-import type { AutomationSystem, SystemOutput, OutputType } from '@/types/automation';
+import type { AutomationSystem, SystemOutput, OutputType, SystemResource, ResourceType } from '@/types/automation';
 import { DEMO_SYSTEMS, loadUserSystems, saveUserSystems, getVisibleDemoSystems, hideDemoSystem } from '@/data/automationSystems';
-import { WORKFLOW_TEMPLATES } from '@/data/automationTemplates';
+import { getResourcesForSystem, addResource, deleteResource } from '@/data/resourceStorage';
+import { WORKFLOW_TEMPLATES, loadUserTemplates, saveUserTemplates, deleteUserTemplate, getLocalizedTemplate } from '@/data/automationTemplates';
 import { createMockEventSource } from '@/services/mockEventSource';
 import { useWorkflowExecution } from '@/hooks/useWorkflowExecution';
 import { LanguageProvider, useLanguage } from '@/i18n/LanguageContext';
+import ConfirmDialog, { useModalEsc } from '../components/ui/ConfirmDialog';
 
 // ─── Error Boundary (#26) ────────────────────────────────────────────────────
 
@@ -139,7 +141,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismi
           >
             <Icon size={16} className="shrink-0" />
             <span className="text-sm font-medium flex-1">{toast.text}</span>
-            <button onClick={() => onDismiss(toast.id)} className="shrink-0 hover:opacity-70 transition-opacity">
+            <button onClick={() => onDismiss(toast.id)} className="shrink-0 hover:opacity-70 transition-opacity" title="Dismiss">
               <X size={14} />
             </button>
           </div>
@@ -363,7 +365,7 @@ function DashboardOverview({ systems, onSelect }: { systems: AutomationSystem[];
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition-colors"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300">
+            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300" title={t('dashboard.clearSearch')}>
               <X size={14} />
             </button>
           )}
@@ -379,6 +381,9 @@ function DashboardOverview({ systems, onSelect }: { systems: AutomationSystem[];
             </button>
           ))}
         </div>
+        {(searchQuery || statusFilter !== 'all') && filteredSystems.length !== systems.length && (
+          <span className="text-xs text-gray-400 dark:text-zinc-500">{filteredSystems.length} / {systems.length}</span>
+        )}
       </div>
 
       {/* System Grid */}
@@ -432,6 +437,233 @@ function DashboardOverview({ systems, onSelect }: { systems: AutomationSystem[];
   );
 }
 
+// ─── Resources Panel ──────────────────────────────────────────────────────────
+
+const RESOURCE_TYPE_CONFIG: Record<ResourceType, { icon: typeof FileText; color: string }> = {
+  transcript: { icon: Mic, color: 'purple' },
+  document: { icon: FileText, color: 'blue' },
+  note: { icon: Clipboard, color: 'amber' },
+  dataset: { icon: Database, color: 'emerald' },
+};
+
+const ALL_RESOURCE_TYPES: ResourceType[] = ['transcript', 'document', 'note', 'dataset'];
+
+function ResourcesPanel({ systemId, onToast }: { systemId: string; onToast?: (text: string, type?: ToastMessage['type']) => void }) {
+  const { t } = useLanguage();
+  const [resources, setResources] = useState<SystemResource[]>([]);
+  const [filterType, setFilterType] = useState<ResourceType | 'all'>('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Add-form state
+  const [newTitle, setNewTitle] = useState('');
+  const [newType, setNewType] = useState<ResourceType>('document');
+  const [newContent, setNewContent] = useState('');
+  const [newFileRef, setNewFileRef] = useState('');
+
+  useEffect(() => {
+    setResources(getResourcesForSystem(systemId));
+  }, [systemId]);
+
+  const filtered = filterType === 'all' ? resources : resources.filter(r => r.type === filterType);
+
+  const handleAdd = () => {
+    if (!newTitle.trim() || !newContent.trim()) return;
+    const res: SystemResource = {
+      id: `res-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+      systemId,
+      title: newTitle.trim(),
+      type: newType,
+      content: newContent.trim(),
+      fileReference: newFileRef.trim() || undefined,
+      createdAt: new Date().toISOString(),
+      source: 'manual',
+    };
+    addResource(res);
+    setResources(prev => [...prev, res]);
+    setNewTitle(''); setNewType('document'); setNewContent(''); setNewFileRef('');
+    setShowAddModal(false);
+    onToast?.(t('resource.saved'), 'success');
+  };
+
+  const handleDelete = (id: string) => {
+    deleteResource(id);
+    setResources(prev => prev.filter(r => r.id !== id));
+    onToast?.(t('resource.deleted'), 'success');
+  };
+
+  useModalEsc(showAddModal, () => setShowAddModal(false));
+
+  const inputCls = 'w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition-colors';
+
+  return (
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
+            <FolderOpen size={16} className="text-purple-600 dark:text-purple-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('detail.resourcesTitle')}</h3>
+            <span className="text-xs text-gray-400 dark:text-zinc-600">{resources.length} {t('detail.entries')}</span>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors"
+        >
+          <Plus size={14} /> {t('resource.add')}
+        </button>
+      </div>
+
+      {/* Filter */}
+      {resources.length > 0 && (
+        <div className="flex items-center gap-1.5 mb-5">
+          <button
+            onClick={() => setFilterType('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterType === 'all' ? 'bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300' : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'}`}
+          >
+            {t('resource.type.all')}
+          </button>
+          {ALL_RESOURCE_TYPES.map(rt => {
+            const cfg = RESOURCE_TYPE_CONFIG[rt];
+            return (
+              <button
+                key={rt}
+                onClick={() => setFilterType(rt)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterType === rt ? 'bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300' : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'}`}
+              >
+                <cfg.icon size={12} /> {t(`resource.type.${rt}` as keyof typeof t)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* List */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-zinc-800/40 flex items-center justify-center mx-auto mb-4">
+            <FolderOpen size={28} className="text-gray-400 dark:text-zinc-600" />
+          </div>
+          <p className="text-sm text-gray-500 dark:text-zinc-500 font-medium">{t('resource.empty')}</p>
+          <p className="text-xs text-gray-400 dark:text-zinc-600 mt-1">{t('resource.emptyHint')}</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(res => {
+            const cfg = RESOURCE_TYPE_CONFIG[res.type];
+            const TypeIcon = cfg.icon;
+            const isExpanded = expandedId === res.id;
+            return (
+              <div key={res.id} className="bg-white dark:bg-zinc-900/30 border border-gray-200 dark:border-zinc-800/40 rounded-2xl p-4 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-${cfg.color}-50 dark:bg-${cfg.color}-500/10`}>
+                    <TypeIcon size={16} className={`text-${cfg.color}-600 dark:text-${cfg.color}-400`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{res.title}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium bg-${cfg.color}-50 dark:bg-${cfg.color}-500/10 text-${cfg.color}-600 dark:text-${cfg.color}-400`}>
+                        {t(`resource.type.${res.type}` as keyof typeof t)}
+                      </span>
+                      {res.source === 'onboarding-form' && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                          {t('resource.source.onboarding')}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-gray-400 dark:text-zinc-600">
+                      {new Date(res.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : res.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                      title={isExpanded ? t('resource.collapseContent') : t('resource.expandContent')}
+                    >
+                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(res.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                      title={t('resource.delete')}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800/40">
+                    <pre className="text-xs text-gray-600 dark:text-zinc-400 whitespace-pre-wrap font-sans leading-relaxed max-h-64 overflow-y-auto">{res.content}</pre>
+                    {res.fileReference && (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400">
+                        <ExternalLink size={11} /> {res.fileReference}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add Resource Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 w-full max-w-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-5">{t('resource.addTitle')}</h3>
+
+            {/* Title */}
+            <label className="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1.5">{t('resource.titleLabel')}</label>
+            <input value={newTitle} onChange={e => setNewTitle(e.target.value)} className={inputCls + ' mb-4'} placeholder={t('resource.titleLabel')} />
+
+            {/* Type */}
+            <label className="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1.5">{t('resource.typeLabel')}</label>
+            <div className="flex items-center gap-1.5 mb-4">
+              {ALL_RESOURCE_TYPES.map(rt => (
+                <button
+                  key={rt}
+                  onClick={() => setNewType(rt)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${newType === rt ? 'bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300' : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 border border-gray-200 dark:border-zinc-700'}`}
+                >
+                  {t(`resource.type.${rt}` as keyof typeof t)}
+                </button>
+              ))}
+            </div>
+
+            {/* Content */}
+            <label className="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1.5">{t('resource.contentLabel')}</label>
+            <textarea value={newContent} onChange={e => setNewContent(e.target.value)} rows={6} className={inputCls + ' mb-4 resize-none'} placeholder={t('resource.contentLabel')} />
+
+            {/* File Reference */}
+            <label className="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1.5">{t('resource.fileRefLabel')}</label>
+            <input value={newFileRef} onChange={e => setNewFileRef(e.target.value)} className={inputCls + ' mb-6'} placeholder="https://..." />
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
+                {t('resource.cancel')}
+              </button>
+              <button
+                onClick={handleAdd}
+                disabled={!newTitle.trim() || !newContent.trim()}
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
+              >
+                {t('resource.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── System Detail View (Redesigned) ─────────────────────────────────────────
 
 function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus, isUserSystem, isDemoSystem, onToast }: {
@@ -463,8 +695,15 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
     onExecute?.();
   }, [system, execute, onExecute]);
 
+  // Detail tabs: workflow (default) or resources
+  const [detailTab, setDetailTab] = useState<'workflow' | 'resources'>('workflow');
+
   // Canvas mode: edit (default) or live (fullscreen, read-only)
   const [canvasMode, setCanvasMode] = useState<'edit' | 'live'>('edit');
+
+  // ESC to exit live mode fullscreen overlay
+  const exitLiveMode = useCallback(() => setCanvasMode('edit'), []);
+  useModalEsc(canvasMode === 'live', exitLiveMode);
 
   // Resizable canvas height
   const [canvasHeight, setCanvasHeight] = useState(560);
@@ -565,7 +804,27 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
         </div>
       </div>
 
-      {/* Live Mode Fullscreen Overlay */}
+      {/* Detail Tabs */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5">
+          <button
+            onClick={() => setDetailTab('workflow')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${detailTab === 'workflow' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-300'}`}
+          >
+            <Activity size={14} /> {t('detail.workflowTitle')}
+          </button>
+          <button
+            onClick={() => setDetailTab('resources')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${detailTab === 'resources' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-300'}`}
+          >
+            <FolderOpen size={14} /> {t('detail.resourcesTitle')}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Workflow Tab ── */}
+      {detailTab === 'workflow' && (<>
+        {/* Live Mode Fullscreen Overlay */}
       {canvasMode === 'live' && (
         <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-[#0a0a0e] flex flex-col !mt-0">
           {/* Live Mode Header */}
@@ -657,7 +916,7 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
               <FolderOpen size={16} className="text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('detail.documentsTitle') || (lang === 'de' ? 'Dokumente' : 'Documents')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('detail.documentsTitle')}</h3>
               <span className="text-xs text-gray-400 dark:text-zinc-600">
                 {system.outputs.length} {t('detail.entries')}
               </span>
@@ -705,25 +964,74 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
           </div>
         </section>
       </div>
+      </>)}
+
+      {/* ── Resources Tab ── */}
+      {detailTab === 'resources' && (
+        <ResourcesPanel systemId={system.id} onToast={onToast} />
+      )}
     </>
   );
 }
 
 // ─── Template Picker View ────────────────────────────────────────────────────
 
+// ─── Icon options for template creation ──────────────────────────────────────
+
+const TEMPLATE_ICON_OPTIONS: { key: string; component: IconComponent }[] = [
+  { key: 'mail', component: Mail },
+  { key: 'send', component: Send },
+  { key: 'users', component: Users },
+  { key: 'target', component: Target },
+  { key: 'bar-chart', component: BarChart3 },
+  { key: 'database', component: Database },
+  { key: 'globe', component: Globe },
+  { key: 'clipboard', component: Clipboard },
+  { key: 'zap', component: Zap },
+  { key: 'sparkles', component: Sparkles },
+  { key: 'type', component: Type },
+  { key: 'file-text', component: FileText },
+  { key: 'shield', component: Shield },
+  { key: 'bell', component: Bell },
+  { key: 'play', component: Play },
+  { key: 'trending-up', component: TrendingUp },
+];
+
+const TEMPLATE_CATEGORIES = ['Marketing', 'Sales', 'HR', 'Operations', 'Support'];
+
 function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSystem) => void }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [previewTemplate, setPreviewTemplate] = useState<AutomationSystem | null>(null);
   const [templateSearch, setTemplateSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [userTemplates, setUserTemplates] = useState<AutomationSystem[]>(() => loadUserTemplates());
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Confirm dialog state for template deletion
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // Creation form state
+  const [newName, setNewName] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newCategory, setNewCategory] = useState('Marketing');
+  const [newIcon, setNewIcon] = useState('zap');
+
+  // ESC to close create modal
+  const closeCreateModal = useCallback(() => setShowCreateModal(false), []);
+  useModalEsc(showCreateModal, closeCreateModal);
+
+  const allTemplates = useMemo(() => [
+    ...userTemplates,
+    ...WORKFLOW_TEMPLATES.map(tpl => getLocalizedTemplate(tpl, lang)),
+  ], [userTemplates, lang]);
 
   const templateCategories = useMemo(() => {
-    const cats = new Set(WORKFLOW_TEMPLATES.map(tpl => tpl.category));
+    const cats = new Set(allTemplates.map(tpl => tpl.category));
     return ['all', ...Array.from(cats)];
-  }, []);
+  }, [allTemplates]);
 
   const filteredTemplates = useMemo(() => {
-    let result = WORKFLOW_TEMPLATES;
+    let result = allTemplates;
     if (categoryFilter !== 'all') {
       result = result.filter(tpl => tpl.category === categoryFilter);
     }
@@ -735,7 +1043,9 @@ function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSyste
       );
     }
     return result;
-  }, [templateSearch, categoryFilter]);
+  }, [templateSearch, categoryFilter, allTemplates]);
+
+  const isUserTemplate = (id: string) => userTemplates.some(t => t.id === id);
 
   const handleDuplicate = (template: AutomationSystem) => {
     const system: AutomationSystem = {
@@ -749,26 +1059,184 @@ function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSyste
     onCreated(system);
   };
 
+  const handleCreateTemplate = () => {
+    if (!newName.trim()) return;
+    const template: AutomationSystem = {
+      id: `utpl-${Date.now()}`,
+      name: newName.trim(),
+      description: newDesc.trim() || '',
+      category: newCategory,
+      icon: newIcon,
+      status: 'draft',
+      webhookUrl: '',
+      nodes: [
+        { id: 'n1', label: 'Start', description: 'Trigger', icon: 'zap', type: 'trigger', x: 40, y: 58 },
+      ],
+      connections: [],
+      groups: [],
+      outputs: [],
+      executionCount: 0,
+    };
+    const updated = [...userTemplates, template];
+    setUserTemplates(updated);
+    saveUserTemplates(updated);
+    setShowCreateModal(false);
+    setNewName('');
+    setNewDesc('');
+    setNewCategory('Marketing');
+    setNewIcon('zap');
+    // Create a system from the template so user can immediately edit
+    handleDuplicate(template);
+  };
+
+  const handleDeleteTemplate = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDeleteTemplate = () => {
+    if (!confirmDeleteId) return;
+    const updated = deleteUserTemplate(confirmDeleteId);
+    setUserTemplates(updated);
+    // If we're previewing the deleted template, go back to the grid
+    if (previewTemplate?.id === confirmDeleteId) {
+      setPreviewTemplate(null);
+    }
+    setConfirmDeleteId(null);
+  };
+
+  // ── Create Template Modal ──
+  const createModal = showCreateModal ? (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateModal(false)}>
+      <div
+        className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800 w-full max-w-md shadow-xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-5">{t('templates.createTitle')}</h3>
+
+          {/* Name */}
+          <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5">{t('templates.nameLabel')}</label>
+          <input
+            type="text"
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            placeholder={t('templates.namePlaceholder')}
+            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition-colors mb-4"
+            autoFocus
+          />
+
+          {/* Description */}
+          <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5">{t('templates.descLabel')}</label>
+          <textarea
+            value={newDesc}
+            onChange={e => setNewDesc(e.target.value)}
+            placeholder={t('templates.descPlaceholder')}
+            rows={2}
+            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition-colors resize-none mb-4"
+          />
+
+          {/* Category */}
+          <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5">{t('templates.categoryLabel')}</label>
+          <div className="flex items-center gap-1.5 flex-wrap mb-4">
+            {TEMPLATE_CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setNewCategory(cat)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${newCategory === cat ? 'bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 ring-1 ring-purple-300 dark:ring-purple-500/30' : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-300'}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Icon Picker */}
+          <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5">{t('templates.iconLabel')}</label>
+          <div className="grid grid-cols-8 gap-1.5 mb-6">
+            {TEMPLATE_ICON_OPTIONS.map(({ key, component: IC }) => (
+              <button
+                key={key}
+                onClick={() => setNewIcon(key)}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${newIcon === key ? 'bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 ring-1 ring-purple-300 dark:ring-purple-500/30' : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800'}`}
+              >
+                <IC size={16} />
+              </button>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3">
+            <button
+              onClick={() => setShowCreateModal(false)}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              {t('templates.cancel')}
+            </button>
+            <button
+              onClick={handleCreateTemplate}
+              disabled={!newName.trim()}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-purple-600 hover:bg-purple-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Plus size={16} /> {t('templates.create')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  // ── Delete Template Confirm Dialog ──
+  const deleteConfirmDialog = (
+    <ConfirmDialog
+      open={!!confirmDeleteId}
+      title={t('templates.confirmDeleteTitle')}
+      message={t('templates.confirmDelete')}
+      confirmLabel={t('detail.delete')}
+      cancelLabel={t('templates.cancel')}
+      variant="danger"
+      onConfirm={confirmDeleteTemplate}
+      onCancel={() => setConfirmDeleteId(null)}
+    />
+  );
+
   // ── Template Preview ──
   if (previewTemplate) {
-    const Icon = getIcon(previewTemplate.icon);
+    const isUser = isUserTemplate(previewTemplate.id);
     return (
       <div>
+        {createModal}
+        {deleteConfirmDialog}
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => setPreviewTemplate(null)}
             className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800/50 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-zinc-700/50 transition-colors"
+            title={t('templates.back')}
           >
             <ChevronLeft size={20} className="text-gray-600 dark:text-zinc-400" />
           </button>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{previewTemplate.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{previewTemplate.name}</h2>
+              {isUser && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400">
+                  {t('templates.userBadge')}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-500 dark:text-zinc-500">{previewTemplate.description}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-zinc-700/30 text-gray-500 dark:text-zinc-500 border border-gray-200 dark:border-zinc-700/30">
               {previewTemplate.category}
             </span>
+            {isUser && (
+              <button
+                onClick={() => handleDeleteTemplate(previewTemplate.id)}
+                className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+                title={t('templates.deleteTemplate')}
+              >
+                <Trash2 size={15} className="text-red-500 dark:text-red-400" />
+              </button>
+            )}
             <button
               onClick={() => handleDuplicate(previewTemplate)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
@@ -796,25 +1264,6 @@ function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSyste
           </CanvasErrorBoundary>
         </div>
 
-        {/* Nodes list */}
-        <div className="mt-5 bg-white dark:bg-zinc-900/30 border border-gray-200 dark:border-zinc-800/40 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Icon size={16} className="text-purple-500" /> {t('templates.workflowSteps')}
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {previewTemplate.nodes.map(node => (
-              <div key={node.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-zinc-800/30 border border-gray-100 dark:border-zinc-700/30">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center shrink-0">
-                  <Zap size={14} className="text-purple-500" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{node.label}</div>
-                  {node.description && <div className="text-[11px] text-gray-400 dark:text-zinc-500 truncate">{node.description}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     );
   }
@@ -822,14 +1271,22 @@ function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSyste
   // ── Template Grid ──
   return (
     <div>
+      {createModal}
+      {deleteConfirmDialog}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
           <Layers size={20} className="text-purple-600 dark:text-purple-400" />
         </div>
-        <div>
+        <div className="flex-1">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('templates.title')}</h2>
           <p className="text-sm text-gray-500 dark:text-zinc-500">{t('templates.subtitle')}</p>
         </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white transition-all"
+        >
+          <Plus size={16} /> {t('templates.createNew')}
+        </button>
       </div>
 
       {/* Search + Category Filter */}
@@ -844,7 +1301,7 @@ function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSyste
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition-colors"
           />
           {templateSearch && (
-            <button onClick={() => setTemplateSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300">
+            <button onClick={() => setTemplateSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300" title={t('dashboard.clearSearch')}>
               <X size={14} />
             </button>
           )}
@@ -873,36 +1330,95 @@ function TemplatePickerView({ onCreated }: { onCreated: (system: AutomationSyste
           </button>
         </div>
       ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {filteredTemplates.map(template => {
-          const Icon = getIcon(template.icon);
-          return (
-            <button
-              key={template.id}
-              onClick={() => setPreviewTemplate(template)}
-              className="group text-left w-full bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800/50 rounded-2xl p-6 hover:border-purple-400/40 dark:hover:border-purple-500/30 hover:shadow-md dark:hover:shadow-none transition-all duration-300"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-500/10">
-                  <Icon size={22} className="text-purple-600 dark:text-purple-400" />
+      <>
+      {/* User Templates Section */}
+      {userTemplates.length > 0 && filteredTemplates.some(t => isUserTemplate(t.id)) && (
+        <>
+          <p className="text-xs text-gray-400 dark:text-zinc-500 uppercase font-medium mb-3">{t('templates.myTemplates')}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+            {filteredTemplates.filter(tpl => isUserTemplate(tpl.id)).map(template => {
+              const Icon = getIcon(template.icon);
+              return (
+                <div
+                  key={template.id}
+                  className="group relative text-left w-full bg-white dark:bg-zinc-900/50 border border-purple-200 dark:border-purple-500/20 rounded-2xl p-6 hover:border-purple-400/40 dark:hover:border-purple-500/30 hover:shadow-md dark:hover:shadow-none transition-all duration-300"
+                >
+                  <button
+                    onClick={() => setPreviewTemplate(template)}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-500/10">
+                        <Icon size={22} className="text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400">
+                        {t('templates.userBadge')}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{template.name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 leading-relaxed mb-4 line-clamp-2">{template.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-zinc-500">
+                        <span className="flex items-center gap-1.5"><Activity size={13} />{template.nodes.length} {t('templates.steps')}</span>
+                        <span className="flex items-center gap-1.5"><ArrowRight size={13} />{template.connections.length} {t('templates.connectionsShort')}</span>
+                      </div>
+                      <span className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity">{t('templates.view')} <Eye size={14} /></span>
+                    </div>
+                  </button>
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(template.id); }}
+                    className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all"
+                    title={t('templates.deleteTemplate')}
+                  >
+                    <Trash2 size={13} className="text-red-500 dark:text-red-400" />
+                  </button>
                 </div>
-                <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-zinc-700/30 text-gray-500 dark:text-zinc-500 border border-gray-200 dark:border-zinc-700/30">
-                  {template.category}
-                </span>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{template.name}</h3>
-              <p className="text-sm text-gray-500 dark:text-zinc-400 leading-relaxed mb-4 line-clamp-2">{template.description}</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-zinc-500">
-                  <span className="flex items-center gap-1.5"><Activity size={13} />{template.nodes.length} {t('templates.steps')}</span>
-                  <span className="flex items-center gap-1.5"><ArrowRight size={13} />{template.connections.length} {t('templates.connectionsShort')}</span>
-                </div>
-                <span className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity">{t('templates.view')} <Eye size={14} /></span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Built-in Templates Section */}
+      {filteredTemplates.some(t => !isUserTemplate(t.id)) && (
+        <>
+          {userTemplates.length > 0 && filteredTemplates.some(t => isUserTemplate(t.id)) && (
+            <p className="text-xs text-gray-400 dark:text-zinc-500 uppercase font-medium mb-3">{t('templates.builtIn')}</p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {filteredTemplates.filter(tpl => !isUserTemplate(tpl.id)).map(template => {
+              const Icon = getIcon(template.icon);
+              return (
+                <button
+                  key={template.id}
+                  onClick={() => setPreviewTemplate(template)}
+                  className="group text-left w-full bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800/50 rounded-2xl p-6 hover:border-purple-400/40 dark:hover:border-purple-500/30 hover:shadow-md dark:hover:shadow-none transition-all duration-300"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-500/10">
+                      <Icon size={22} className="text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-zinc-700/30 text-gray-500 dark:text-zinc-500 border border-gray-200 dark:border-zinc-700/30">
+                      {template.category}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{template.name}</h3>
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 leading-relaxed mb-4 line-clamp-2">{template.description}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-zinc-500">
+                      <span className="flex items-center gap-1.5"><Activity size={13} />{template.nodes.length} {t('templates.steps')}</span>
+                      <span className="flex items-center gap-1.5"><ArrowRight size={13} />{template.connections.length} {t('templates.connectionsShort')}</span>
+                    </div>
+                    <span className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity">{t('templates.view')} <Eye size={14} /></span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+      </>
       )}
     </div>
   );
@@ -919,6 +1435,9 @@ function AutomationDashboardContent() {
   const [userSystems, setUserSystems] = useState<AutomationSystem[]>([]);
   const [demoVersion, setDemoVersion] = useState(0); // Incremented when demo hidden list changes
   const { toasts, addToast, dismissToast } = useToast();
+
+  // Confirm dialog state for system deletion
+  const [confirmDeleteSystemId, setConfirmDeleteSystemId] = useState<string | null>(null);
 
   // Settings state
   const [settingsData, setSettingsData] = useState({
@@ -974,24 +1493,29 @@ function AutomationDashboardContent() {
   };
 
   const handleDeleteSystem = (systemId: string) => {
-    const isDemo = DEMO_SYSTEMS.some(d => d.id === systemId);
-    const confirmMsg = isDemo
-      ? t('confirm.hideDemo')
-      : t('confirm.deleteSystem');
-    if (!window.confirm(confirmMsg)) return;
+    setConfirmDeleteSystemId(systemId);
+  };
+
+  const confirmDeleteSystem = () => {
+    if (!confirmDeleteSystemId) return;
+    const isDemo = DEMO_SYSTEMS.some(d => d.id === confirmDeleteSystemId);
 
     if (isDemo) {
-      hideDemoSystem(systemId);
+      hideDemoSystem(confirmDeleteSystemId);
       setDemoVersion(n => n + 1);
       addToast(t('toast.demoHidden'), 'info');
     } else {
-      const updated = userSystems.filter(s => s.id !== systemId);
+      const updated = userSystems.filter(s => s.id !== confirmDeleteSystemId);
       setUserSystems(updated);
       saveUserSystems(updated);
       addToast(t('toast.systemDeleted'), 'success');
     }
+    setConfirmDeleteSystemId(null);
     setSection('dashboard');
   };
+
+  // Determine if the system pending deletion is a demo system (for confirm dialog message)
+  const pendingDeleteIsDemo = confirmDeleteSystemId ? DEMO_SYSTEMS.some(d => d.id === confirmDeleteSystemId) : false;
 
   const handleToggleStatus = (systemId: string) => {
     const current = userSystems.find(s => s.id === systemId);
@@ -1033,6 +1557,26 @@ function AutomationDashboardContent() {
     addToast(t('toast.settingsReset'), 'info');
   };
 
+  // Ctrl+S / Cmd+S keyboard shortcut – trigger canvas save via custom event
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        // Dispatch a custom event that WorkflowCanvas can listen to
+        window.dispatchEvent(new CustomEvent('flowstack-save'));
+        if (selectedSystem) {
+          addToast(t('toast.systemSaved'), 'success');
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [selectedSystem, addToast, t]);
+
+  // ESC to close mobile sidebar
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  useModalEsc(sidebarOpen, closeSidebar);
+
   const navigate = (id: string) => {
     setSection(id);
     setSidebarOpen(false);
@@ -1069,6 +1613,7 @@ function AutomationDashboardContent() {
             <button
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
               className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+              title={t('sidebar.toggleTheme')}
             >
               {isDark ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-gray-400" />}
             </button>
@@ -1180,7 +1725,7 @@ function AutomationDashboardContent() {
         <header className="sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-zinc-800 z-30">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
-              <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl transition-colors">
+              <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl transition-colors" title={t('sidebar.openMenu')}>
                 <Menu className="w-5 h-5 text-gray-500" />
               </button>
               {sidebarCollapsed && (
@@ -1337,6 +1882,18 @@ function AutomationDashboardContent() {
           )}
         </div>
       </main>
+
+      {/* System Delete Confirm Dialog */}
+      <ConfirmDialog
+        open={!!confirmDeleteSystemId}
+        title={pendingDeleteIsDemo ? t('confirm.hideDemoTitle') : t('confirm.deleteSystemTitle')}
+        message={pendingDeleteIsDemo ? t('confirm.hideDemo') : t('confirm.deleteSystem')}
+        confirmLabel={pendingDeleteIsDemo ? t('confirm.hide') : t('detail.delete')}
+        cancelLabel={t('templates.cancel')}
+        variant={pendingDeleteIsDemo ? 'warning' : 'danger'}
+        onConfirm={confirmDeleteSystem}
+        onCancel={() => setConfirmDeleteSystemId(null)}
+      />
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

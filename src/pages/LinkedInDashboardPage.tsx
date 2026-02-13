@@ -5,6 +5,13 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback, ReactNode } from "react";
 import {
+  loadLinkedinCampaigns, saveLinkedinCampaigns,
+  loadLinkedinPosts, saveLinkedinPosts,
+  loadLinkedinLeads, saveLinkedinLeads,
+  loadLinkedinTemplates, saveLinkedinTemplates,
+  loadLinkedinSequences, saveLinkedinSequences,
+} from '../data/linkedinStorage';
+import {
   TrendingUp,
   Users,
   Target,
@@ -49,6 +56,7 @@ import {
   Clock,
   Shield,
   Zap,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   ArrowDownCircle,
@@ -56,6 +64,7 @@ import {
   Layers,
 } from "lucide-react";
 import { LanguageProvider, useLanguage } from '../i18n/LanguageContext';
+import ConfirmDialog, { useModalEsc } from '../components/ui/ConfirmDialog';
 
 // ============================================
 // TYPES
@@ -468,6 +477,22 @@ const initialEventTriggers: EventTrigger[] = [
 
 const formatNumber = (v: number) => v >= 1000000 ? (v / 1000000).toFixed(1) + "M" : v >= 1000 ? (v / 1000).toFixed(1) + "K" : v.toString();
 
+/** Consistent date formatting helper — pass lang from component context */
+const formatDate = (dateStr: string, lang: string) => {
+  // Skip relative dates like "Vor 5 Min", "Heute, 09:00", "Gestern", "Morgen, 09:00", "-"
+  if (!dateStr || dateStr === '-' || /^(Vor |Heute|Gestern|Morgen|Gerade|Just now)/i.test(dateStr) || /^\d+ (min|hr|hrs|std|tag|days?|woche)/i.test(dateStr)) return dateStr;
+  // Try parsing "DD.MM.YYYY" format
+  const dotMatch = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (dotMatch) {
+    const d = new Date(Number(dotMatch[3]), Number(dotMatch[2]) - 1, Number(dotMatch[1]));
+    if (!isNaN(d.getTime())) return d.toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  // Try parsing ISO or other standard formats
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return d.toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return dateStr;
+};
+
 const exportCSV = (data: object[], filename: string) => {
   const headers = Object.keys(data[0] || {});
   const csv = [headers.join(","), ...data.map(row => headers.map(h => (row as Record<string, unknown>)[h]).join(","))].join("\n");
@@ -556,13 +581,15 @@ const CampaignModal = ({ campaign, templates, onClose, onAction }: { campaign: O
   const { lang } = useLanguage();
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
   const [editLimit, setEditLimit] = useState(campaign?.dailyLimit || 25);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  useModalEsc(!!campaign, onClose);
   if (!campaign) return null;
   const template = templates.find(t => t.id === campaign.messageTemplateId);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className={`w-4 h-4 rounded-full ${campaign.status === "active" ? "bg-emerald-500" : campaign.status === "paused" ? "bg-yellow-500" : "bg-gray-400"}`} />
           <h2 className="text-2xl font-bold">{campaign.name}</h2>
@@ -571,7 +598,7 @@ const CampaignModal = ({ campaign, templates, onClose, onAction }: { campaign: O
           <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4"><p className="text-xs text-gray-500 mb-1">{tx("Anfragen", "Requests")}</p><p className="text-2xl font-bold">{campaign.connectionsSent}</p></div>
           <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4"><p className="text-xs text-gray-500 mb-1">{tx("Verbunden", "Connected")}</p><p className="text-2xl font-bold text-sky-500">{campaign.connectionsAccepted}</p><p className="text-xs text-emerald-500">{campaign.acceptRate}%</p></div>
           <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4"><p className="text-xs text-gray-500 mb-1">{tx("Antworten", "Replies")}</p><p className="text-2xl font-bold text-purple-500">{campaign.messagesReplied}</p><p className="text-xs text-emerald-500">{campaign.replyRate}%</p></div>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4"><p className="text-xs text-gray-500 mb-1">Leads</p><p className="text-2xl font-bold text-orange-500">{campaign.leadsGenerated}</p></div>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4"><p className="text-xs text-gray-500 mb-1">{tx("Leads", "Leads")}</p><p className="text-2xl font-bold text-orange-500">{campaign.leadsGenerated}</p></div>
         </div>
         {template && (
           <div className="mb-6">
@@ -600,8 +627,18 @@ const CampaignModal = ({ campaign, templates, onClose, onAction }: { campaign: O
             <button onClick={() => { onAction("resume", campaign.id); onClose(); }} className="flex-1 py-3 bg-emerald-100 text-emerald-700 font-medium rounded-xl hover:bg-emerald-200 flex items-center justify-center gap-2"><Play className="w-4 h-4" />{tx("Fortsetzen", "Resume")}</button>
           ) : null}
           <button onClick={() => { onAction("duplicate", campaign.id); onClose(); }} className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2"><Copy className="w-4 h-4" />{tx("Duplizieren", "Duplicate")}</button>
-          <button onClick={() => { onAction("delete", campaign.id); onClose(); }} className="py-3 px-6 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={() => setShowDeleteConfirm(true)} className="py-3 px-6 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 flex items-center justify-center gap-2" title={tx("Kampagne löschen", "Delete campaign")}><Trash2 className="w-4 h-4" /></button>
         </div>
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title={tx("Kampagne löschen?", "Delete campaign?")}
+          message={tx("Diese Kampagne und alle zugehörigen Daten werden unwiderruflich gelöscht.", "This campaign and all associated data will be permanently deleted.")}
+          confirmLabel={tx("Löschen", "Delete")}
+          cancelLabel={tx("Abbrechen", "Cancel")}
+          variant="danger"
+          onConfirm={() => { setShowDeleteConfirm(false); onAction("delete", campaign.id); onClose(); }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </div>
     </div>
   );
@@ -614,11 +651,28 @@ const LeadModal = ({ lead, onClose, onStatusChange, onSaveNotes, onSendMessage, 
   const statusLabels = getStatusLabels(lang);
   const [notes, setNotes] = useState(lead?.notes || "");
   const [notesSaved, setNotesSaved] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  useModalEsc(!!lead, onClose);
 
   useEffect(() => {
     setNotes(lead?.notes || "");
     setNotesSaved(false);
   }, [lead]);
+
+  // Ctrl+S / Cmd+S to save notes
+  useEffect(() => {
+    if (!lead) return;
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        onSaveNotes(lead.id, notes);
+        setNotesSaved(true);
+        setTimeout(() => setNotesSaved(false), 2000);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lead, notes, onSaveNotes]);
 
   if (!lead) return null;
 
@@ -632,7 +686,7 @@ const LeadModal = ({ lead, onClose, onStatusChange, onSaveNotes, onSendMessage, 
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl font-bold">{lead.name.charAt(0)}</div>
           <div>
@@ -678,8 +732,18 @@ const LeadModal = ({ lead, onClose, onStatusChange, onSaveNotes, onSendMessage, 
         <div className="flex gap-3">
           <a href={lead.profileUrl} target="_blank" rel="noopener noreferrer" className="flex-1 py-3 bg-sky-500 text-white font-medium rounded-xl hover:bg-sky-600 flex items-center justify-center gap-2"><ExternalLink className="w-4 h-4" />{tx("Profil öffnen", "Open profile")}</a>
           <button onClick={() => onSendMessage(lead)} className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2"><Mail className="w-4 h-4" />{tx("Nachricht", "Message")}</button>
-          <button onClick={() => { onDelete(lead.id); onClose(); }} className="py-3 px-4 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={() => setShowDeleteConfirm(true)} className="py-3 px-4 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100" title={tx("Lead löschen", "Delete lead")}><Trash2 className="w-4 h-4" /></button>
         </div>
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title={tx("Lead löschen?", "Delete lead?")}
+          message={tx("Dieser Lead wird unwiderruflich gelöscht.", "This lead will be permanently deleted.")}
+          confirmLabel={tx("Löschen", "Delete")}
+          cancelLabel={tx("Abbrechen", "Cancel")}
+          variant="danger"
+          onConfirm={() => { setShowDeleteConfirm(false); onDelete(lead.id); onClose(); }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </div>
     </div>
   );
@@ -692,11 +756,27 @@ const TemplateModal = ({ template, onClose, onSave, onDelete }: { template: Mess
   const [editTemplate, setEditTemplate] = useState<MessageTemplate | null>(template);
   const [selectedVersion, setSelectedVersion] = useState<string>(template?.activeVersionId || "");
   const templateTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  useModalEsc(!!template, onClose);
 
   useEffect(() => {
     setEditTemplate(template);
     setSelectedVersion(template?.activeVersionId || "");
   }, [template]);
+
+  // Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    if (!editTemplate) return;
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        onSave(editTemplate);
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [editTemplate, onSave, onClose]);
 
   if (!editTemplate) return null;
 
@@ -734,7 +814,7 @@ const TemplateModal = ({ template, onClose, onSave, onDelete }: { template: Mess
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-3 mb-6">
           <GitBranch className="w-6 h-6 text-sky-500" />
           <h2 className="text-2xl font-bold">{editTemplate.name}</h2>
@@ -746,7 +826,7 @@ const TemplateModal = ({ template, onClose, onSave, onDelete }: { template: Mess
           <div className="space-y-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium text-gray-500">{tx("Versionen", "Versions")}</p>
-              <button onClick={handleAddVersion} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><Plus className="w-4 h-4 text-gray-500" /></button>
+              <button onClick={handleAddVersion} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title={tx("Version hinzufügen", "Add version")}><Plus className="w-4 h-4 text-gray-500" /></button>
             </div>
             {editTemplate.versions.map(v => (
               <button
@@ -760,7 +840,7 @@ const TemplateModal = ({ template, onClose, onSave, onDelete }: { template: Mess
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <span>{v.sent} {tx("gesendet", "sent")}</span>
-                  <span className="text-emerald-500">{v.replyRate}% Reply</span>
+                  <span className="text-emerald-500">{v.replyRate}% {tx("Antwort", "Reply")}</span>
                 </div>
               </button>
             ))}
@@ -844,8 +924,18 @@ const TemplateModal = ({ template, onClose, onSave, onDelete }: { template: Mess
         <div className="flex gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
           <button onClick={() => { onSave(editTemplate); onClose(); }} className="flex-1 py-3 bg-sky-500 text-white font-medium rounded-xl hover:bg-sky-600">{tx("Speichern", "Save")}</button>
           <button onClick={onClose} className="px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium rounded-xl hover:bg-gray-200">{tx("Abbrechen", "Cancel")}</button>
-          <button onClick={() => { onDelete(editTemplate.id); onClose(); }} className="py-3 px-4 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={() => setShowDeleteConfirm(true)} className="py-3 px-4 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100" title={tx("Template löschen", "Delete template")}><Trash2 className="w-4 h-4" /></button>
         </div>
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title={tx("Template löschen?", "Delete template?")}
+          message={tx("Dieses Template wird unwiderruflich gelöscht.", "This template will be permanently deleted.")}
+          confirmLabel={tx("Löschen", "Delete")}
+          cancelLabel={tx("Abbrechen", "Cancel")}
+          variant="danger"
+          onConfirm={() => { setShowDeleteConfirm(false); onDelete(editTemplate.id); onClose(); }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </div>
     </div>
   );
@@ -855,35 +945,47 @@ const TemplateModal = ({ template, onClose, onSave, onDelete }: { template: Mess
 const PostModal = ({ post, onClose, onAction }: { post: LinkedInPost | null; onClose: () => void; onAction: (action: string, id: string) => void }) => {
   const { lang } = useLanguage();
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  useModalEsc(!!post, onClose);
   if (!post) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">{postTypeIcons[post.type]}</div>
           <div>
             <span className={`text-xs px-2 py-1 rounded-full ${post.status === "published" ? "bg-emerald-100 text-emerald-600" : post.status === "scheduled" ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"}`}>
               {post.status === "published" ? tx("Veröffentlicht", "Published") : post.status === "scheduled" ? tx("Geplant", "Scheduled") : tx("Entwurf", "Draft")}
             </span>
-            <p className="text-sm text-gray-500 mt-1">{post.publishedAt}</p>
+            <p className="text-sm text-gray-500 mt-1">{formatDate(post.publishedAt, lang)}</p>
           </div>
         </div>
         <p className="text-lg mb-6">{post.content}</p>
         {post.status === "published" && (
           <div className="grid grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center"><p className="text-2xl font-bold">{formatNumber(post.impressions)}</p><p className="text-xs text-gray-500">{tx("Impressionen", "Impressions")}</p></div>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center"><p className="text-2xl font-bold">{formatNumber(post.likes)}</p><p className="text-xs text-gray-500">Likes</p></div>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center"><p className="text-2xl font-bold">{formatNumber(post.likes)}</p><p className="text-xs text-gray-500">{tx("Likes", "Likes")}</p></div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center"><p className="text-2xl font-bold">{post.comments}</p><p className="text-xs text-gray-500">{tx("Kommentare", "Comments")}</p></div>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center"><p className="text-2xl font-bold text-sky-500">{post.engagementRate}%</p><p className="text-xs text-gray-500">Engagement</p></div>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center"><p className="text-2xl font-bold text-sky-500">{post.engagementRate}%</p><p className="text-xs text-gray-500">{tx("Engagement", "Engagement")}</p></div>
           </div>
         )}
         <div className="flex gap-3">
           <button onClick={() => { onAction("edit", post.id); onClose(); }} className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2"><Edit3 className="w-4 h-4" />{tx("Bearbeiten", "Edit")}</button>
           <button onClick={() => { onAction("duplicate", post.id); onClose(); }} className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2"><Copy className="w-4 h-4" />{tx("Duplizieren", "Duplicate")}</button>
-          <button onClick={() => { onAction("delete", post.id); onClose(); }} className="py-3 px-6 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={() => setShowDeleteConfirm(true)} className="py-3 px-6 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100" title={tx("Post löschen", "Delete post")}><Trash2 className="w-4 h-4" /></button>
         </div>
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title={tx("Post löschen?", "Delete post?")}
+          message={tx("Dieser Post wird unwiderruflich gelöscht.", "This post will be permanently deleted.")}
+          confirmLabel={tx("Löschen", "Delete")}
+          cancelLabel={tx("Abbrechen", "Cancel")}
+          variant="danger"
+          onConfirm={() => { setShowDeleteConfirm(false); onAction("delete", post.id); onClose(); }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </div>
     </div>
   );
@@ -896,6 +998,7 @@ const NewCampaignModal = ({ isOpen, templates, onClose, onCreate }: { isOpen: bo
   const [name, setName] = useState("");
   const [templateId, setTemplateId] = useState(templates[0]?.id || "");
   const [dailyLimit, setDailyLimit] = useState(25);
+  useModalEsc(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -911,7 +1014,7 @@ const NewCampaignModal = ({ isOpen, templates, onClose, onCreate }: { isOpen: bo
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <h2 className="text-2xl font-bold mb-6">{tx("Neue Kampagne erstellen", "Create new campaign")}</h2>
         <div className="space-y-4">
           <div>
@@ -944,6 +1047,7 @@ const NewTemplateModal = ({ isOpen, onClose, onCreate }: { isOpen: boolean; onCl
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
   const [name, setName] = useState("");
   const [type, setType] = useState<MessageTemplate["type"]>("connection");
+  useModalEsc(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -959,7 +1063,7 @@ const NewTemplateModal = ({ isOpen, onClose, onCreate }: { isOpen: boolean; onCl
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <h2 className="text-2xl font-bold mb-6">{tx("Neues Template erstellen", "Create new template")}</h2>
         <div className="space-y-4">
           <div>
@@ -988,6 +1092,7 @@ const NewTemplateModal = ({ isOpen, onClose, onCreate }: { isOpen: boolean; onCl
 const PostEditorModal = ({ post, isOpen, onClose, onSave }: { post: LinkedInPost | null; isOpen: boolean; onClose: () => void; onSave: (post: LinkedInPost) => void }) => {
   const { lang } = useLanguage();
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
+  useModalEsc(isOpen, onClose);
   const [content, setContent] = useState(post?.content || "");
   const [type, setType] = useState<LinkedInPost["type"]>(post?.type || "text");
   const [status, setStatus] = useState<LinkedInPost["status"]>(post?.status || "draft");
@@ -1102,7 +1207,7 @@ const PostEditorModal = ({ post, isOpen, onClose, onSave }: { post: LinkedInPost
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <h2 className="text-2xl font-bold mb-6">{post ? tx("Post bearbeiten", "Edit post") : tx("Neuer Post", "New post")}</h2>
         <div className="space-y-4">
           <div>
@@ -1175,6 +1280,7 @@ const PostEditorModal = ({ post, isOpen, onClose, onSave }: { post: LinkedInPost
                       <button
                         onClick={() => removeMedia(index)}
                         className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        title={tx("Entfernen", "Remove")}
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -1226,6 +1332,7 @@ const MessageModal = ({ data, onClose, onSend }: { data: { lead: OutreachLead; m
   const { lang } = useLanguage();
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
   const [message, setMessage] = useState("");
+  useModalEsc(!!data, onClose);
 
   useEffect(() => {
     setMessage(data?.message || "");
@@ -1237,7 +1344,7 @@ const MessageModal = ({ data, onClose, onSend }: { data: { lead: OutreachLead; m
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center text-white text-xl font-bold">{data.lead.name.charAt(0)}</div>
           <div>
@@ -1272,13 +1379,14 @@ const LinkedInDashboardContent = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [postFilter, setPostFilter] = useState<PostFilter>("all");
   const [leadStatusFilter, setLeadStatusFilter] = useState<string>("all");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Data State
   const [notifications, setNotifications] = useState(initialNotifications);
-  const [campaigns, setCampaigns] = useState(initialCampaigns);
-  const [templates, setTemplates] = useState(initialTemplates);
-  const [posts, setPosts] = useState(initialPosts);
-  const [leads, setLeads] = useState(initialLeads);
+  const [campaigns, setCampaigns] = useState(() => { const s = loadLinkedinCampaigns<OutreachCampaign>(); return s.length ? s : initialCampaigns; });
+  const [templates, setTemplates] = useState(() => { const s = loadLinkedinTemplates<MessageTemplate>(); return s.length ? s : initialTemplates; });
+  const [posts, setPosts] = useState(() => { const s = loadLinkedinPosts<LinkedInPost>(); return s.length ? s : initialPosts; });
+  const [leads, setLeads] = useState(() => { const s = loadLinkedinLeads<OutreachLead>(); return s.length ? s : initialLeads; });
   const [settingsData, setSettingsData] = useState({
     dailyConnections: 25,
     dailyMessages: 50,
@@ -1303,7 +1411,7 @@ const LinkedInDashboardContent = () => {
   const [showMessageModal, setShowMessageModal] = useState<{ lead: OutreachLead; message: string } | null>(null);
 
   // Sequences
-  const [sequences, setSequences] = useState(initialSequences);
+  const [sequences, setSequences] = useState(() => { const s = loadLinkedinSequences<AutomationSequence>(); return s.length ? s : initialSequences; });
   const [selectedSequence, setSelectedSequence] = useState<AutomationSequence | null>(null);
   const [showNewSequenceModal, setShowNewSequenceModal] = useState(false);
 
@@ -1347,6 +1455,21 @@ const LinkedInDashboardContent = () => {
   });
   const [settingsTab, setSettingsTab] = useState<'account' | 'safety' | 'integrations' | 'triggers'>('account');
 
+  // ESC key support for inline modals
+  useModalEsc(showNewSequenceModal, () => setShowNewSequenceModal(false));
+  useModalEsc(showBlacklistModal, () => setShowBlacklistModal(false));
+
+  // Toast notifications
+  const [toasts, setToasts] = useState<{id:string;msg:string;type:string}[]>([]);
+  const addToast = (msg:string, type='success') => { const id=Date.now().toString(); setToasts(t=>[...t,{id,msg,type}]); setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3000); };
+
+  // Persist data to localStorage
+  useEffect(() => { saveLinkedinCampaigns(campaigns); }, [campaigns]);
+  useEffect(() => { saveLinkedinTemplates(templates); }, [templates]);
+  useEffect(() => { saveLinkedinPosts(posts); }, [posts]);
+  useEffect(() => { saveLinkedinLeads(leads); }, [leads]);
+  useEffect(() => { saveLinkedinSequences(sequences); }, [sequences]);
+
   // Date range multiplier
   const dateMultiplier = useMemo(() => {
     if (dateRange === "custom") {
@@ -1388,27 +1511,27 @@ const LinkedInDashboardContent = () => {
   const handleClearNotifications = () => setNotifications([]);
 
   const handleCampaignAction = (action: string, id: string, data?: unknown) => {
-    if (action === "pause") setCampaigns(c => c.map(x => x.id === id ? { ...x, status: "paused" } : x));
-    else if (action === "resume") setCampaigns(c => c.map(x => x.id === id ? { ...x, status: "active" } : x));
-    else if (action === "delete") setCampaigns(c => c.filter(x => x.id !== id));
+    if (action === "pause") { setCampaigns(c => c.map(x => x.id === id ? { ...x, status: "paused" } : x)); addToast(tx("Kampagne pausiert", "Campaign paused")); }
+    else if (action === "resume") { setCampaigns(c => c.map(x => x.id === id ? { ...x, status: "active" } : x)); addToast(tx("Kampagne fortgesetzt", "Campaign resumed")); }
+    else if (action === "delete") { setCampaigns(c => c.filter(x => x.id !== id)); addToast(tx("Kampagne gelöscht", "Campaign deleted")); }
     else if (action === "duplicate") {
       const orig = campaigns.find(c => c.id === id);
-      if (orig) setCampaigns(c => [...c, { ...orig, id: Date.now().toString(), name: orig.name + (lang === 'de' ? " (Kopie)" : " (Copy)"), connectionsSent: 0, connectionsAccepted: 0, messagesSent: 0, messagesReplied: 0, leadsGenerated: 0 }]);
+      if (orig) { setCampaigns(c => [...c, { ...orig, id: Date.now().toString(), name: orig.name + (lang === 'de' ? " (Kopie)" : " (Copy)"), connectionsSent: 0, connectionsAccepted: 0, messagesSent: 0, messagesReplied: 0, leadsGenerated: 0 }]); addToast(tx("Kampagne dupliziert", "Campaign duplicated")); }
     }
-    else if (action === "updateLimit" && typeof data === "number") setCampaigns(c => c.map(x => x.id === id ? { ...x, dailyLimit: data } : x));
+    else if (action === "updateLimit" && typeof data === "number") { setCampaigns(c => c.map(x => x.id === id ? { ...x, dailyLimit: data } : x)); addToast(tx("Limit gespeichert", "Limit saved")); }
   };
 
   const handleLeadStatusChange = (id: string, status: string) => setLeads(l => l.map(x => x.id === id ? { ...x, status: status as OutreachLead["status"] } : x));
 
-  const handleTemplateUpdate = (template: MessageTemplate) => setTemplates(t => t.map(x => x.id === template.id ? template : x));
-  const handleDeleteTemplate = (id: string) => setTemplates(t => t.filter(x => x.id !== id));
-  const handleDeleteLead = (id: string) => setLeads(l => l.filter(x => x.id !== id));
+  const handleTemplateUpdate = (template: MessageTemplate) => { setTemplates(t => t.map(x => x.id === template.id ? template : x)); addToast(tx("Template gespeichert", "Template saved")); };
+  const handleDeleteTemplate = (id: string) => { setTemplates(t => t.filter(x => x.id !== id)); addToast(tx("Template gelöscht", "Template deleted")); };
+  const handleDeleteLead = (id: string) => { setLeads(l => l.filter(x => x.id !== id)); addToast(tx("Lead gelöscht", "Lead deleted")); };
 
   const handlePostAction = (action: string, id: string) => {
-    if (action === "delete") setPosts(p => p.filter(x => x.id !== id));
+    if (action === "delete") { setPosts(p => p.filter(x => x.id !== id)); addToast(tx("Post gelöscht", "Post deleted")); }
     else if (action === "duplicate") {
       const orig = posts.find(p => p.id === id);
-      if (orig) setPosts(p => [...p, { ...orig, id: Date.now().toString(), status: "draft", publishedAt: "-", impressions: 0, engagements: 0, likes: 0, comments: 0, shares: 0, saves: 0, clicks: 0, engagementRate: 0 }]);
+      if (orig) { setPosts(p => [...p, { ...orig, id: Date.now().toString(), status: "draft", publishedAt: "-", impressions: 0, engagements: 0, likes: 0, comments: 0, shares: 0, saves: 0, clicks: 0, engagementRate: 0 }]); addToast(tx("Post dupliziert", "Post duplicated")); }
     } else if (action === "edit") {
       const post = posts.find(p => p.id === id);
       if (post) setEditingPost(post);
@@ -1434,6 +1557,7 @@ const LinkedInDashboardContent = () => {
     };
     setCampaigns(c => [...c, newCampaign]);
     setShowNewCampaignModal(false);
+    addToast(tx("Kampagne erstellt", "Campaign created"));
   };
 
   // Create new template
@@ -1456,14 +1580,18 @@ const LinkedInDashboardContent = () => {
     setTemplates(t => [...t, newTemplate]);
     setShowNewTemplateModal(false);
     setSelectedTemplate(newTemplate);
+    addToast(tx("Template erstellt", "Template created"));
   };
 
   // Create/Update post
   const handleSavePost = (post: LinkedInPost) => {
-    if (posts.find(p => p.id === post.id)) {
-      setPosts(p => p.map(x => x.id === post.id ? post : x));
-    } else {
+    const isNew = !posts.find(p => p.id === post.id);
+    if (isNew) {
       setPosts(p => [...p, post]);
+      addToast(tx("Post erstellt", "Post created"));
+    } else {
+      setPosts(p => p.map(x => x.id === post.id ? post : x));
+      addToast(tx("Post gespeichert", "Post saved"));
     }
     setEditingPost(null);
     setShowNewPostModal(false);
@@ -1483,6 +1611,7 @@ const LinkedInDashboardContent = () => {
       messageHistory: [...x.messageHistory, { date: new Date().toLocaleDateString("de-DE"), type: "message", content: message }]
     } : x));
     setShowMessageModal(null);
+    addToast(tx("Nachricht gesendet", "Message sent"));
   };
 
   const handleToggleSetting = (key: keyof typeof settingsData) => {
@@ -1564,6 +1693,17 @@ const LinkedInDashboardContent = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black">
+      {/* Toast Notifications */}
+      {toasts.length > 0 && (
+        <div className="fixed top-4 right-4 z-[110] flex flex-col gap-2">
+          {toasts.map(t => (
+            <div key={t.id} className={`px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-in slide-in-from-right fade-in duration-200 ${t.type === 'success' ? 'bg-emerald-500 text-white' : t.type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'}`}>
+              {t.msg}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Modals */}
       <CampaignModal campaign={selectedCampaign} templates={templates} onClose={() => setSelectedCampaign(null)} onAction={handleCampaignAction} />
       <LeadModal lead={selectedLead} onClose={() => setSelectedLead(null)} onStatusChange={handleLeadStatusChange} onSaveNotes={handleUpdateLeadNotes} onSendMessage={(lead) => { setSelectedLead(null); setShowMessageModal({ lead, message: "" }); }} onDelete={handleDeleteLead} />
@@ -1575,7 +1715,7 @@ const LinkedInDashboardContent = () => {
       <MessageModal data={showMessageModal} onClose={() => setShowMessageModal(null)} onSend={handleSendMessage} />
 
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 z-40 hidden lg:flex flex-col">
+      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 z-40 hidden ${sidebarCollapsed ? '' : 'lg:flex'} flex-col transition-transform duration-300`}>
         <div className="p-6 flex items-center justify-between">
           <h1 className="text-xl font-bold flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
@@ -1583,9 +1723,14 @@ const LinkedInDashboardContent = () => {
             </div>
             LinkedIn
           </h1>
-          <button onClick={() => setDarkMode(!darkMode)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
-            {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-gray-500" />}
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setDarkMode(!darkMode)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={darkMode ? tx("Heller Modus", "Light mode") : tx("Dunkler Modus", "Dark mode")}>
+              {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-gray-500" />}
+            </button>
+            <button onClick={() => setSidebarCollapsed(true)} className="hidden lg:flex p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx("Sidebar einklappen", "Collapse sidebar")}>
+              <ChevronLeft className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
         </div>
         <nav className="px-4 space-y-1 flex-1 overflow-y-auto">
           <p className="text-xs text-gray-400 uppercase font-medium px-4 mb-2">{tx("Übersicht", "Overview")}</p>
@@ -1597,7 +1742,7 @@ const LinkedInDashboardContent = () => {
           ] as const).map(i => (
             <button key={i.key} onClick={() => setSection(i.key)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${section === i.key ? "bg-sky-50 dark:bg-sky-500/10 text-sky-600 font-medium" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"}`}>{i.icon}{i.label}</button>
           ))}
-          <p className="text-xs text-gray-400 uppercase font-medium px-4 mt-6 mb-2">Automation</p>
+          <p className="text-xs text-gray-400 uppercase font-medium px-4 mt-6 mb-2">{tx("Automation", "Automation")}</p>
           {([
             { icon: <GitBranch className="w-5 h-5" />, label: tx("Sequenzen", "Sequences"), key: "sequences" },
             { icon: <Upload className="w-5 h-5" />, label: "Import", key: "import" },
@@ -1628,10 +1773,11 @@ const LinkedInDashboardContent = () => {
       </aside>
 
       {/* Main */}
-      <main className="lg:ml-64">
+      <main className={`transition-all duration-300 ${sidebarCollapsed ? '' : 'lg:ml-64'}`}>
         {/* Header */}
         <header className="sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-30">
           <div className="flex items-center justify-between px-6 py-4">
+            {sidebarCollapsed && <button onClick={() => setSidebarCollapsed(false)} className="hidden lg:flex p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx("Sidebar ausklappen", "Expand sidebar")}><ChevronRight className="w-5 h-5 text-gray-500" /></button>}
             <div>
               <h1 className="text-2xl font-bold">{{ dashboard: "Dashboard", outreach: tx("Kampagnen", "Campaigns"), messages: tx("Nachrichten-Templates", "Message Templates"), posts: "Posts", leads: "Leads", analytics: "Analytics", scheduler: "Scheduler", settings: tx("Einstellungen", "Settings"), sequences: tx("Sequenzen", "Sequences"), inbox: "Smart Inbox", import: tx("Lead Import", "Lead Import") }[section]}</h1>
               <p className="text-sm text-gray-500">{dateLabels[dateRange]}</p>
@@ -1708,7 +1854,7 @@ const LinkedInDashboardContent = () => {
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-sky-500">{c.leadsGenerated}</p>
-                          <p className="text-xs text-gray-400">Leads</p>
+                          <p className="text-xs text-gray-400">{tx("Leads", "Leads")}</p>
                         </div>
                       </div>
                     ))}
@@ -1775,6 +1921,9 @@ const LinkedInDashboardContent = () => {
                 </div>
                 <button onClick={() => setShowNewCampaignModal(true)} className="px-4 py-2 bg-sky-500 text-white rounded-xl font-medium hover:bg-sky-600 flex items-center gap-2"><Plus className="w-4 h-4" />{tx("Neue Kampagne", "New Campaign")}</button>
               </div>
+              {search && (
+                <span className="text-xs text-gray-400">{filteredCampaigns.length} / {campaigns.length}</span>
+              )}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredCampaigns.map(campaign => (
                   <div key={campaign.id} onClick={() => setSelectedCampaign(campaign)} className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800 hover:border-sky-200 cursor-pointer transition-colors">
@@ -1816,7 +1965,7 @@ const LinkedInDashboardContent = () => {
                         <h3 className="font-semibold">{template.name}</h3>
                         <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full">{template.type}</span>
                       </div>
-                      <button onClick={() => setSelectedTemplate(template)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><Edit3 className="w-4 h-4 text-gray-500" /></button>
+                      <button onClick={() => setSelectedTemplate(template)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title={tx("Template bearbeiten", "Edit template")}><Edit3 className="w-4 h-4 text-gray-500" /></button>
                     </div>
                     <div className="space-y-3">
                       {template.versions.map(v => (
@@ -1846,6 +1995,9 @@ const LinkedInDashboardContent = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500">{filteredPosts.length} Posts</span>
+                  {(search || postFilter !== "all") && (
+                    <span className="text-xs text-gray-400">{filteredPosts.length} / {posts.length}</span>
+                  )}
                 </div>
                 <button onClick={() => setShowNewPostModal(true)} className="px-4 py-2 bg-sky-500 text-white rounded-xl font-medium hover:bg-sky-600 flex items-center gap-2"><Edit3 className="w-4 h-4" />{tx("Neuer Post", "New Post")}</button>
               </div>
@@ -1861,13 +2013,13 @@ const LinkedInDashboardContent = () => {
                       </span>
                     </div>
                     <p className="font-medium mb-3 line-clamp-2">{post.content}</p>
-                    <p className="text-xs text-gray-400 mb-4">{post.publishedAt}</p>
+                    <p className="text-xs text-gray-400 mb-4">{formatDate(post.publishedAt, lang)}</p>
                     {post.status === "published" && (
                       <div className="grid grid-cols-4 gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
-                        <div className="text-center"><p className="text-lg font-bold">{formatNumber(Math.round(post.impressions * dateMultiplier))}</p><p className="text-xs text-gray-500">Views</p></div>
-                        <div className="text-center"><p className="text-lg font-bold">{formatNumber(Math.round(post.likes * dateMultiplier))}</p><p className="text-xs text-gray-500">Likes</p></div>
-                        <div className="text-center"><p className="text-lg font-bold">{Math.round(post.comments * dateMultiplier)}</p><p className="text-xs text-gray-500">Comments</p></div>
-                        <div className="text-center"><p className="text-lg font-bold text-sky-500">{post.engagementRate}%</p><p className="text-xs text-gray-500">Eng.</p></div>
+                        <div className="text-center"><p className="text-lg font-bold">{formatNumber(Math.round(post.impressions * dateMultiplier))}</p><p className="text-xs text-gray-500">{tx("Aufrufe", "Views")}</p></div>
+                        <div className="text-center"><p className="text-lg font-bold">{formatNumber(Math.round(post.likes * dateMultiplier))}</p><p className="text-xs text-gray-500">{tx("Likes", "Likes")}</p></div>
+                        <div className="text-center"><p className="text-lg font-bold">{Math.round(post.comments * dateMultiplier)}</p><p className="text-xs text-gray-500">{tx("Kommentare", "Comments")}</p></div>
+                        <div className="text-center"><p className="text-lg font-bold text-sky-500">{post.engagementRate}%</p><p className="text-xs text-gray-500">{tx("Eng.", "Eng.")}</p></div>
                       </div>
                     )}
                   </div>
@@ -1907,6 +2059,9 @@ const LinkedInDashboardContent = () => {
                   icon={<Filter className="w-4 h-4 text-gray-500" />}
                 />
                 <span className="text-sm text-gray-500">{filteredLeads.length} Leads</span>
+                {(search || leadStatusFilter !== "all") && (
+                  <span className="text-xs text-gray-400">{filteredLeads.length} / {leads.length}</span>
+                )}
               </div>
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
                 <table className="w-full">
@@ -1922,7 +2077,7 @@ const LinkedInDashboardContent = () => {
                           <td className="py-3 px-4 text-gray-500 text-sm">{lead.campaign}</td>
                           <td className="py-3 px-4"><span className={`text-xs px-2 py-1 rounded-full ${sc.bg} ${sc.text}`}>{statusLabels[lead.status]}</span></td>
                           <td className="py-3 px-4 text-gray-400 text-sm">{lead.lastActivity}</td>
-                          <td className="py-3 px-4"><a href={lead.profileUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg inline-flex"><ExternalLink className="w-4 h-4 text-gray-400 hover:text-sky-500" /></a></td>
+                          <td className="py-3 px-4"><a href={lead.profileUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg inline-flex" title={tx("Profil öffnen", "Open profile")}><ExternalLink className="w-4 h-4 text-gray-400 hover:text-sky-500" /></a></td>
                         </tr>
                       );
                     })}
@@ -1978,7 +2133,7 @@ const LinkedInDashboardContent = () => {
                 <h3 className="font-semibold mb-6">{tx("Kampagnen-Vergleich", "Campaign Comparison")}</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead><tr className="text-left text-sm text-gray-500 border-b border-gray-100 dark:border-gray-800"><th className="pb-3 font-medium">{tx("Kampagne", "Campaign")}</th><th className="pb-3 font-medium text-right">{tx("Gesendet", "Sent")}</th><th className="pb-3 font-medium text-right">Accept %</th><th className="pb-3 font-medium text-right">Reply %</th><th className="pb-3 font-medium text-right">Leads</th><th className="pb-3 font-medium text-right">Conv. %</th></tr></thead>
+                    <thead><tr className="text-left text-sm text-gray-500 border-b border-gray-100 dark:border-gray-800"><th className="pb-3 font-medium">{tx("Kampagne", "Campaign")}</th><th className="pb-3 font-medium text-right">{tx("Gesendet", "Sent")}</th><th className="pb-3 font-medium text-right">{tx("Akzeptanz %", "Accept %")}</th><th className="pb-3 font-medium text-right">{tx("Antwort %", "Reply %")}</th><th className="pb-3 font-medium text-right">{tx("Leads", "Leads")}</th><th className="pb-3 font-medium text-right">{tx("Conv. %", "Conv. %")}</th></tr></thead>
                     <tbody>
                       {campaigns.map(c => (
                         <tr key={c.id} className="border-b border-gray-50 dark:border-gray-800">
@@ -2031,7 +2186,7 @@ const LinkedInDashboardContent = () => {
                               onClick={() => setShowNewPostModal(true)}
                               className="w-full p-2 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg text-gray-400 hover:border-sky-300 hover:text-sky-500 transition-colors text-xs"
                             >
-                              + Post
+                              {tx("+ Post", "+ Post")}
                             </button>
                           )}
                         </div>
@@ -2046,10 +2201,10 @@ const LinkedInDashboardContent = () => {
                   {posts.filter(p => p.status === "scheduled").map(post => (
                     <div key={post.id} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                       <Calendar className="w-5 h-5 text-blue-600" />
-                      <div className="flex-1"><p className="font-medium truncate">{post.content}</p><p className="text-sm text-gray-500">{post.publishedAt}</p></div>
+                      <div className="flex-1"><p className="font-medium truncate">{post.content}</p><p className="text-sm text-gray-500">{formatDate(post.publishedAt, lang)}</p></div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setSelectedPost(post)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg"><Edit3 className="w-4 h-4 text-gray-500" /></button>
-                        <button onClick={() => handlePostAction("delete", post.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"><Trash2 className="w-4 h-4 text-red-500" /></button>
+                        <button onClick={() => setSelectedPost(post)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg" title={tx("Post bearbeiten", "Edit post")}><Edit3 className="w-4 h-4 text-gray-500" /></button>
+                        <button onClick={() => handlePostAction("delete", post.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg" title={tx("Post löschen", "Delete post")}><Trash2 className="w-4 h-4 text-red-500" /></button>
                       </div>
                     </div>
                   ))}
@@ -2088,7 +2243,7 @@ const LinkedInDashboardContent = () => {
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
                       <div className="flex items-center gap-2"><Layers className="w-4 h-4 text-sky-500" /><span className="text-sm text-gray-500">{seq.steps.length} {tx("Schritte", "steps")}</span></div>
-                      <span className="text-xs text-gray-400">{seq.createdAt}</span>
+                      <span className="text-xs text-gray-400">{formatDate(seq.createdAt, lang)}</span>
                     </div>
                   </div>
                 ))}
@@ -2098,6 +2253,8 @@ const LinkedInDashboardContent = () => {
               {selectedSequence && (() => {
                 const SequenceEditor = () => {
                   const [editSeq, setEditSeq] = useState<AutomationSequence>({ ...selectedSequence, steps: selectedSequence.steps.map(s => ({ ...s })) });
+                  const [showSeqDeleteConfirm, setShowSeqDeleteConfirm] = useState(false);
+                  useModalEsc(!!selectedSequence, () => setSelectedSequence(null));
                   const stepTypeOptions: { value: SequenceStep['type']; label: string }[] = [
                     { value: 'connection_request', label: tx("Verbindungsanfrage", "Connection Request") },
                     { value: 'message', label: tx("Nachricht", "Message") },
@@ -2165,7 +2322,7 @@ const LinkedInDashboardContent = () => {
                     <div className="fixed inset-0 z-50 flex items-center justify-center">
                       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedSequence(null)} />
                       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-3xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <button onClick={() => setSelectedSequence(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+                        <button onClick={() => setSelectedSequence(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
                         {/* Editable Name */}
                         <div className="flex items-center gap-4 mb-6">
                           <div className={`w-4 h-4 rounded-full ${editSeq.status === "active" ? "bg-emerald-500" : editSeq.status === "paused" ? "bg-yellow-500" : "bg-gray-400"}`} />
@@ -2207,9 +2364,9 @@ const LinkedInDashboardContent = () => {
                                     <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <button onClick={() => handleMoveStep(i, -1)} disabled={i === 0} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-30"><ChevronUp className="w-4 h-4 text-gray-500" /></button>
-                                    <button onClick={() => handleMoveStep(i, 1)} disabled={i === editSeq.steps.length - 1} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-30"><ChevronDown className="w-4 h-4 text-gray-500" /></button>
-                                    <button onClick={() => handleRemoveStep(i)} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"><X className="w-4 h-4 text-red-500" /></button>
+                                    <button onClick={() => handleMoveStep(i, -1)} disabled={i === 0} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-30" title={tx("Nach oben", "Move up")}><ChevronUp className="w-4 h-4 text-gray-500" /></button>
+                                    <button onClick={() => handleMoveStep(i, 1)} disabled={i === editSeq.steps.length - 1} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-30" title={tx("Nach unten", "Move down")}><ChevronDown className="w-4 h-4 text-gray-500" /></button>
+                                    <button onClick={() => handleRemoveStep(i)} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg" title={tx("Schritt entfernen", "Remove step")}><X className="w-4 h-4 text-red-500" /></button>
                                   </div>
                                 </div>
                                 {showContent(step.type) && (
@@ -2257,8 +2414,18 @@ const LinkedInDashboardContent = () => {
                           ) : (
                             <button onClick={() => { setSequences(s => s.map(x => x.id === selectedSequence.id ? { ...x, status: "active" as const } : x)); setSelectedSequence(null); }} className="py-3 px-6 bg-emerald-100 text-emerald-700 font-medium rounded-xl hover:bg-emerald-200 flex items-center justify-center gap-2"><Play className="w-4 h-4" />{tx("Aktivieren", "Activate")}</button>
                           )}
-                          <button onClick={() => { setSequences(s => s.filter(x => x.id !== selectedSequence.id)); setSelectedSequence(null); }} className="py-3 px-6 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => setShowSeqDeleteConfirm(true)} className="py-3 px-6 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 flex items-center justify-center gap-2" title={tx("Sequenz löschen", "Delete sequence")}><Trash2 className="w-4 h-4" /></button>
                         </div>
+                        <ConfirmDialog
+                          open={showSeqDeleteConfirm}
+                          title={tx("Sequenz löschen?", "Delete sequence?")}
+                          message={tx("Diese Sequenz wird unwiderruflich gelöscht.", "This sequence will be permanently deleted.")}
+                          confirmLabel={tx("Löschen", "Delete")}
+                          cancelLabel={tx("Abbrechen", "Cancel")}
+                          variant="danger"
+                          onConfirm={() => { setShowSeqDeleteConfirm(false); setSequences(s => s.filter(x => x.id !== selectedSequence.id)); setSelectedSequence(null); }}
+                          onCancel={() => setShowSeqDeleteConfirm(false)}
+                        />
                       </div>
                     </div>
                   );
@@ -2271,7 +2438,7 @@ const LinkedInDashboardContent = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowNewSequenceModal(false)} />
                   <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
-                    <button onClick={() => setShowNewSequenceModal(false)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+                    <button onClick={() => setShowNewSequenceModal(false)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
                     <h2 className="text-2xl font-bold mb-6">{tx("Neue Sequenz erstellen", "Create new sequence")}</h2>
                     <p className="text-gray-500 mb-6">{tx("Wähle eine Vorlage oder starte von Grund auf.", "Choose a template or start from scratch.")}</p>
                     <div className="space-y-3">
@@ -2440,6 +2607,7 @@ const LinkedInDashboardContent = () => {
                             }
                           }}
                           className="p-3 bg-sky-500 text-white rounded-xl hover:bg-sky-600"
+                          title={tx("Senden", "Send")}
                         >
                           <Send className="w-5 h-5" />
                         </button>
@@ -2635,9 +2803,9 @@ const LinkedInDashboardContent = () => {
                         </td>
                         <td className="py-3 px-4 font-medium">{entry.value}</td>
                         <td className="py-3 px-4 text-gray-500">{entry.reason}</td>
-                        <td className="py-3 px-4 text-gray-400 text-sm">{entry.addedAt}</td>
+                        <td className="py-3 px-4 text-gray-400 text-sm">{formatDate(entry.addedAt, lang)}</td>
                         <td className="py-3 px-4">
-                          <button onClick={() => setBlacklist(b => b.filter(x => x.id !== entry.id))} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"><Trash2 className="w-4 h-4 text-red-500" /></button>
+                          <button onClick={() => setBlacklist(b => b.filter(x => x.id !== entry.id))} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg" title={tx("Entfernen", "Remove")}><Trash2 className="w-4 h-4 text-red-500" /></button>
                         </td>
                       </tr>
                     ))}
@@ -2650,7 +2818,7 @@ const LinkedInDashboardContent = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowBlacklistModal(false)} />
                   <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
-                    <button onClick={() => setShowBlacklistModal(false)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+                    <button onClick={() => setShowBlacklistModal(false)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
                     <h2 className="text-xl font-bold mb-6">{tx("Zur Blacklist hinzufügen", "Add to Blacklist")}</h2>
                     <div className="space-y-4">
                       <div>
@@ -2716,7 +2884,7 @@ const LinkedInDashboardContent = () => {
                         <td className="py-3 px-4 text-right">{entry.totalFound}</td>
                         <td className="py-3 px-4 text-right text-emerald-500 font-medium">{entry.imported}</td>
                         <td className="py-3 px-4 text-right text-gray-400">{entry.skipped}</td>
-                        <td className="py-3 px-4 text-gray-400 text-sm">{entry.date}</td>
+                        <td className="py-3 px-4 text-gray-400 text-sm">{formatDate(entry.date, lang)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2984,7 +3152,7 @@ const LinkedInDashboardContent = () => {
                           >
                             {webhookTestId === wh.id ? tx("Gesendet!", "Sent!") : tx("Test", "Test")}
                           </button>
-                          <button onClick={() => setWebhooks(w => w.filter(x => x.id !== wh.id))} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"><Trash2 className="w-4 h-4 text-red-500" /></button>
+                          <button onClick={() => setWebhooks(w => w.filter(x => x.id !== wh.id))} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg" title={tx("Webhook löschen", "Delete webhook")}><Trash2 className="w-4 h-4 text-red-500" /></button>
                         </div>
                       ))}
                     </div>
@@ -2995,10 +3163,10 @@ const LinkedInDashboardContent = () => {
                     <h3 className="font-semibold mb-4">Zapier / Make</h3>
                     <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                       <div className="flex-1">
-                        <p className="text-sm text-gray-500 mb-1">API Key</p>
+                        <p className="text-sm text-gray-500 mb-1">{tx("API-Schlüssel", "API Key")}</p>
                         <div className="flex items-center gap-2">
                           <code className="text-sm font-mono bg-white dark:bg-gray-900 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 flex-1">sk-****************************a4f2</code>
-                          <button onClick={() => navigator.clipboard.writeText('sk-demo-key-1234567890abcdef-a4f2')} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg"><Copy className="w-4 h-4 text-gray-500" /></button>
+                          <button onClick={() => navigator.clipboard.writeText('sk-demo-key-1234567890abcdef-a4f2')} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg" title={tx("Kopieren", "Copy")}><Copy className="w-4 h-4 text-gray-500" /></button>
                         </div>
                       </div>
                     </div>
@@ -3078,7 +3246,7 @@ const LinkedInDashboardContent = () => {
                             <button onClick={() => setEventTriggers(t => t.map(x => x.id === trigger.id ? { ...x, isActive: !x.isActive } : x))} className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-200 ${trigger.isActive ? "bg-sky-500" : "bg-gray-200 dark:bg-gray-600"}`}>
                               <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-1 ring-black/5 transition-transform duration-200 ease-in-out ${trigger.isActive ? "translate-x-6" : "translate-x-1"}`} />
                             </button>
-                            <button onClick={() => setEventTriggers(t => t.filter(x => x.id !== trigger.id))} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"><Trash2 className="w-4 h-4 text-red-500" /></button>
+                            <button onClick={() => setEventTriggers(t => t.filter(x => x.id !== trigger.id))} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg" title={tx("Trigger löschen", "Delete trigger")}><Trash2 className="w-4 h-4 text-red-500" /></button>
                           </div>
                         );
                       })}

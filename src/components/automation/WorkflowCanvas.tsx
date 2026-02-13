@@ -17,7 +17,11 @@ import {
   Maximize2, Minimize2, ZoomIn, ZoomOut, Crosshair, ChevronDown,
   Undo2, Redo2, Magnet, HelpCircle, Copy, Scissors,
   Download, GitBranch, StickyNote as StickyNoteIcon,
-  X, Bold, Italic,
+  X, Bold, Italic, Paperclip,
+  Bot, Brain, Workflow, Filter, Timer, ShieldCheck,
+  Bell, LayoutDashboard, Webhook, Split, Repeat, FileSearch,
+  MessageSquare, Gauge, Lock, Cpu, Layers, Settings,
+  ChevronLeft, ChevronRight, ChevronUp,
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import type { AutomationSystem, SystemNode, NodeConnection, NodeType, CanvasGroup, StickyNote, StickyNoteColor, PortDirection } from '@/types/automation';
@@ -34,10 +38,15 @@ const ICONS: Record<string, IconComponent> = {
   'sparkles': Sparkles, 'search': Search, 'image': Image, 'folder-open': FolderOpen,
   'send': Send, 'trending-up': TrendingUp, 'eye': Eye, 'play': Play,
   'mic': Mic, 'type': Type, 'clipboard': Clipboard, 'activity': Activity,
+  'bot': Bot, 'brain': Brain, 'workflow': Workflow, 'filter': Filter,
+  'timer': Timer, 'shield-check': ShieldCheck, 'bell': Bell,
+  'layout-dashboard': LayoutDashboard, 'webhook': Webhook, 'split': Split,
+  'repeat': Repeat, 'file-search': FileSearch, 'message-square': MessageSquare,
+  'gauge': Gauge, 'lock': Lock, 'cpu': Cpu, 'layers': Layers, 'settings': Settings,
 };
 
 const NODE_W = 230;
-const NODE_H = 84;
+const NODE_H = 92;
 const SNAP_THRESHOLD = 8;
 const MAX_LABEL_LENGTH = 40;
 const MAX_DESC_LENGTH = 120;
@@ -194,6 +203,76 @@ function getTempPath(
   return `M ${fx} ${fy} C ${fx + fromDir[0] * offset} ${fy + fromDir[1] * offset}, ${tx} ${ty}, ${tx} ${ty}`;
 }
 
+// ─── Alternative Path Functions ──────────────────────────────────────────────
+
+function getStraightPath(
+  fromNode: SystemNode, toNode: SystemNode,
+  fromPort: PortDirection = 'right', toPort: PortDirection = 'left',
+): string {
+  const p1 = getPortPosition(fromNode, fromPort);
+  const p2 = getPortPosition(toNode, toPort);
+  return `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
+}
+
+function getElbowPath(
+  fromNode: SystemNode, toNode: SystemNode,
+  fromPort: PortDirection = 'right', toPort: PortDirection = 'left',
+): string {
+  const p1 = getPortPosition(fromNode, fromPort);
+  const p2 = getPortPosition(toNode, toPort);
+  const midX = (p1.x + p2.x) / 2;
+  return `M ${p1.x} ${p1.y} L ${midX} ${p1.y} L ${midX} ${p2.y} L ${p2.x} ${p2.y}`;
+}
+
+// ─── Path Midpoint ───────────────────────────────────────────────────────────
+
+function getPathMidpoint(
+  fromNode: SystemNode, toNode: SystemNode,
+  fromPort: PortDirection = 'right', toPort: PortDirection = 'left',
+  curveStyle: 'bezier' | 'straight' | 'elbow',
+): { x: number; y: number } {
+  const p1 = getPortPosition(fromNode, fromPort);
+  const p2 = getPortPosition(toNode, toPort);
+  if (curveStyle === 'straight') {
+    return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+  }
+  if (curveStyle === 'elbow') {
+    const midX = (p1.x + p2.x) / 2;
+    return { x: midX, y: (p1.y + p2.y) / 2 };
+  }
+  // Bezier: de Casteljau at t=0.5
+  const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  const offset = Math.max(60, dist * 0.35);
+  const d1 = PORT_DIR[fromPort];
+  const d2 = PORT_DIR[toPort];
+  const cp1x = p1.x + d1[0] * offset, cp1y = p1.y + d1[1] * offset;
+  const cp2x = p2.x + d2[0] * offset, cp2y = p2.y + d2[1] * offset;
+  const t = 0.5, mt = 0.5;
+  return {
+    x: mt * mt * mt * p1.x + 3 * mt * mt * t * cp1x + 3 * mt * t * t * cp2x + t * t * t * p2.x,
+    y: mt * mt * mt * p1.y + 3 * mt * mt * t * cp1y + 3 * mt * t * t * cp2y + t * t * t * p2.y,
+  };
+}
+
+// ─── Connection Color Themes ────────────────────────────────────────────────
+
+const CONN_COLORS: Record<string, { default: string; hover: string; selected: string; dot: string }> = {
+  purple:  { default: 'rgba(139,92,246,0.5)',  hover: 'rgba(168,85,247,0.8)',  selected: '#a855f7', dot: '#a855f7' },
+  blue:    { default: 'rgba(59,130,246,0.5)',  hover: 'rgba(96,165,250,0.8)',  selected: '#3b82f6', dot: '#3b82f6' },
+  mono:    { default: 'rgba(156,163,175,0.5)', hover: 'rgba(107,114,128,0.8)', selected: '#6b7280', dot: '#9ca3af' },
+  neon:    { default: 'rgba(34,211,238,0.5)',  hover: 'rgba(6,182,212,0.8)',   selected: '#06b6d4', dot: '#22d3ee' },
+  pastel:  { default: 'rgba(196,181,253,0.5)', hover: 'rgba(167,139,250,0.8)', selected: '#a78bfa', dot: '#c4b5fd' },
+  emerald: { default: 'rgba(16,185,129,0.5)',  hover: 'rgba(52,211,153,0.8)',  selected: '#10b981', dot: '#34d399' },
+  sunset:  { default: 'rgba(249,115,22,0.5)',  hover: 'rgba(251,146,60,0.8)',  selected: '#f97316', dot: '#fb923c' },
+  rose:    { default: 'rgba(244,63,94,0.5)',   hover: 'rgba(251,113,133,0.8)', selected: '#f43f5e', dot: '#fb7185' },
+};
+
+const STROKE_DASH: Record<string, string | undefined> = {
+  solid: undefined,
+  dashed: '8,4',
+  dotted: '2,4',
+};
+
 // ─── Equal-Spacing Detection ────────────────────────────────────────────────
 
 interface CanvasItem { id: string; x: number; y: number; w: number; h: number }
@@ -265,14 +344,36 @@ interface PaletteItem {
 }
 
 const PALETTE_ITEMS: PaletteItem[] = [
-  { icon: 'zap', tKey: 'palette.trigger', type: 'trigger' },
-  { icon: 'sparkles', tKey: 'palette.aiStep', type: 'ai' },
-  { icon: 'database', tKey: 'palette.data', type: 'process' },
-  { icon: 'globe', tKey: 'palette.website', type: 'output' },
-  { icon: 'file-text', tKey: 'palette.document', type: 'output' },
-  { icon: 'mail', tKey: 'palette.email', type: 'output' },
-  { icon: 'send', tKey: 'palette.send', type: 'output' },
-  { icon: 'target', tKey: 'palette.ads', type: 'output' },
+  // ── Trigger ──
+  { icon: 'logo-zapier', tKey: 'palette.trigger', type: 'trigger' },
+  { icon: 'webhook', tKey: 'palette.webhook', type: 'trigger' },
+  // ── KI / AI ──
+  { icon: 'logo-openai', tKey: 'palette.aiStep', type: 'ai' },
+  { icon: 'logo-claude', tKey: 'palette.aiAgent', type: 'ai' },
+  { icon: 'logo-openai', tKey: 'palette.aiAnalysis', type: 'ai' },
+  // ── Process ──
+  { icon: 'logo-google-sheets', tKey: 'palette.data', type: 'process' },
+  { icon: 'filter', tKey: 'palette.filter', type: 'process' },
+  { icon: 'split', tKey: 'palette.split', type: 'process' },
+  { icon: 'repeat', tKey: 'palette.loop', type: 'process' },
+  { icon: 'timer', tKey: 'palette.timer', type: 'process' },
+  { icon: 'shield-check', tKey: 'palette.approval', type: 'process' },
+  { icon: 'file-search', tKey: 'palette.search', type: 'process' },
+  { icon: 'logo-make', tKey: 'palette.processor', type: 'process' },
+  { icon: 'layers', tKey: 'palette.multiStep', type: 'process' },
+  { icon: 'settings', tKey: 'palette.config', type: 'process' },
+  { icon: 'logo-n8n', tKey: 'palette.workflow', type: 'process' },
+  // ── Output ──
+  { icon: 'logo-wordpress', tKey: 'palette.website', type: 'output' },
+  { icon: 'logo-google-docs', tKey: 'palette.document', type: 'output' },
+  { icon: 'logo-gmail', tKey: 'palette.email', type: 'output' },
+  { icon: 'logo-slack', tKey: 'palette.send', type: 'output' },
+  { icon: 'logo-google-ads', tKey: 'palette.ads', type: 'output' },
+  { icon: 'bell', tKey: 'palette.notification', type: 'output' },
+  { icon: 'logo-google-analytics', tKey: 'palette.dashboard', type: 'output' },
+  { icon: 'logo-whatsapp', tKey: 'palette.chat', type: 'output' },
+  { icon: 'gauge', tKey: 'palette.monitoring', type: 'output' },
+  { icon: 'lock', tKey: 'palette.auth', type: 'output' },
 ];
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -289,7 +390,7 @@ interface WorkflowCanvasProps {
 }
 
 export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readOnly, className, style, nodeStates: externalNodeStates }: WorkflowCanvasProps) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const viewportRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -323,10 +424,35 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(!readOnly && !initialSystem);
   const [paletteTab, setPaletteTab] = useState<'generic' | 'tools' | 'groups'>('generic');
+  const [scrollSpeed, setScrollSpeed] = useState(3); // 1-5, default 3
+  const [phaseDropdownOpen, setPhaseDropdownOpen] = useState(false);
+  const [showCanvasSettings, setShowCanvasSettings] = useState(false);
+  const [groupTransparency, setGroupTransparency] = useState(0);   // 0=voll sichtbar, 100=unsichtbar
+  const [nodeTransparency, setNodeTransparency] = useState(0);    // 0=voll sichtbar, 100=unsichtbar
+  const [phaseZoomAuto, setPhaseZoomAuto] = useState(true);  // true=auto-fit, false=fixed zoom
+  const [phaseZoomLevel, setPhaseZoomLevel] = useState(70); // 10-100, percentage of auto-fit zoom (used when auto=false)
+  const [phaseAnimated, setPhaseAnimated] = useState(true); // smooth scroll vs instant jump
+  const [phaseAnimSpeed, setPhaseAnimSpeed] = useState(500); // animation duration ms (200-1500)
+
+  // Connection line styles
+  const [connLineStyle, setConnLineStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
+  const [connArrowHead, setConnArrowHead] = useState<'none' | 'arrow' | 'diamond' | 'circle'>('arrow');
+  const [connColorTheme, setConnColorTheme] = useState<string>('purple');
+  const [connCurveStyle, setConnCurveStyle] = useState<'bezier' | 'straight' | 'elbow'>('bezier');
+  const [connGlow, setConnGlow] = useState(false);
+  const [connStrokeWidth, setConnStrokeWidth] = useState<1 | 2 | 3>(2);
+
+  // Node design themes
+  type NodeDesignTheme = 'default' | 'glass' | 'minimal' | 'outlined' | 'neon' | 'gradient' | 'solid' | 'wire';
+  const [nodeDesignTheme, setNodeDesignTheme] = useState<NodeDesignTheme>('default');
+
+  // Presentation mode
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
   const [editNode, setEditNode] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [editLinkedResource, setEditLinkedResource] = useState<string>('');
   const [editGroupId, setEditGroupId] = useState<string | null>(null);
   const [editGroupLabel, setEditGroupLabel] = useState('');
 
@@ -438,8 +564,10 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   // Refs for wheel handler (avoid stale closures)
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
+  const scrollSpeedRef = useRef(scrollSpeed);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   useEffect(() => { panRef.current = pan; }, [pan]);
+  useEffect(() => { scrollSpeedRef.current = scrollSpeed; }, [scrollSpeed]);
 
   // Auto-fit on initial load when viewing existing system
   // Double-rAF ensures the container is fully laid out before measuring
@@ -554,6 +682,81 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     setSearchQuery('');
   }, [nodes, zoom]);
 
+  // ─── Phase Navigator helpers ────────────────────────────────────────────────
+
+  // Groups sorted left-to-right by x position for phase navigation
+  const sortedGroups = useMemo(() =>
+    [...groups].sort((a, b) => a.x - b.x || a.y - b.y),
+  [groups]);
+
+  // Determine which group is currently closest to viewport center
+  const currentPhaseIndex = useMemo(() => {
+    if (sortedGroups.length === 0) return -1;
+    const rect = viewportRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const viewCenterX = (rect.width / 2 - pan.x) / zoom;
+    const viewCenterY = (rect.height / 2 - pan.y) / zoom;
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    sortedGroups.forEach((g, i) => {
+      const gCx = g.x + g.width / 2;
+      const gCy = g.y + g.height / 2;
+      const d = Math.hypot(gCx - viewCenterX, gCy - viewCenterY);
+      if (d < bestDist) { bestDist = d; bestIdx = i; }
+    });
+    return bestIdx;
+  }, [sortedGroups, pan, zoom]);
+
+  const phaseAnimRef = useRef<number>(0);
+
+  const focusGroup = useCallback((groupIndex: number) => {
+    const group = sortedGroups[groupIndex];
+    if (!group) return;
+    const rect = viewportRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const gCx = group.x + group.width / 2;
+    const gCy = group.y + group.height / 2;
+    // Auto-fit: zoom to show entire group with generous padding
+    const padded = 120;
+    const scaleX = rect.width / (group.width + padded);
+    const scaleY = rect.height / (group.height + padded);
+    const autoFitZoom = Math.min(scaleX, scaleY, 1.5);
+    // Auto: use computed auto-fit zoom. Manual: scale by phaseZoomLevel
+    const targetZoom = phaseZoomAuto ? autoFitZoom : autoFitZoom * (phaseZoomLevel / 100);
+    const targetPan = {
+      x: rect.width / 2 - gCx * targetZoom,
+      y: rect.height / 2 - gCy * targetZoom,
+    };
+
+    if (!phaseAnimated) {
+      // Instant jump
+      setZoom(targetZoom);
+      setPan(targetPan);
+    } else {
+      // Smooth animation
+      cancelAnimationFrame(phaseAnimRef.current);
+      const startZoom = zoom;
+      const startPan = { ...pan };
+      const duration = phaseAnimSpeed;
+      const startTime = performance.now();
+
+      const animate = (now: number) => {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        // Ease-out cubic
+        const ease = 1 - Math.pow(1 - t, 3);
+        setZoom(startZoom + (targetZoom - startZoom) * ease);
+        setPan({
+          x: startPan.x + (targetPan.x - startPan.x) * ease,
+          y: startPan.y + (targetPan.y - startPan.y) * ease,
+        });
+        if (t < 1) phaseAnimRef.current = requestAnimationFrame(animate);
+      };
+      phaseAnimRef.current = requestAnimationFrame(animate);
+    }
+    setPhaseDropdownOpen(false);
+  }, [sortedGroups, phaseZoomAuto, phaseZoomLevel, phaseAnimated, phaseAnimSpeed, zoom, pan]);
+
   // ─── Wheel Zoom ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -569,7 +772,8 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      const delta = -e.deltaY * 0.003;
+      const speedMultiplier = scrollSpeedRef.current / 3; // 1→0.33x, 3→1x, 5→1.67x
+      const delta = -e.deltaY * 0.003 * speedMultiplier;
       const newZoom = Math.min(Math.max(currentZoom * (1 + delta), 0.1), 5);
       const ratio = newZoom / currentZoom;
 
@@ -594,6 +798,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       }
 
       if (e.key === 'Escape') {
+        if (isPresentationMode) { setIsPresentationMode(false); setIsFullscreen(false); return; }
         if (contextMenu) { setContextMenu(null); return; }
         if (searchOpen) { setSearchOpen(false); setSearchQuery(''); return; }
         if (showShortcuts) { setShowShortcuts(false); return; }
@@ -1133,13 +1338,26 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       svg += `<text x="${s.x + 12}" y="${s.y + 20}" font-family="sans-serif" font-size="12" fill="${c.text}">${s.text.length > 40 ? s.text.substring(0, 38) + '…' : s.text}</text>`;
     }
 
+    // Connection marker defs
+    const ecc = CONN_COLORS[connColorTheme];
+    svg += `<defs>`;
+    svg += `<marker id="exp-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 10 3.5 L 0 7" fill="none" stroke="${ecc.selected}" stroke-width="1.5"/></marker>`;
+    svg += `<marker id="exp-diamond" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="5,0 10,5 5,10 0,5" fill="${ecc.selected}"/></marker>`;
+    svg += `<marker id="exp-circle" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="userSpaceOnUse"><circle cx="4" cy="4" r="3" fill="${ecc.selected}"/></marker>`;
+    svg += `</defs>`;
+
     // Connections
+    const expDash = STROKE_DASH[connLineStyle];
+    const expMarker = connArrowHead !== 'none' ? ` marker-end="url(#exp-${connArrowHead})"` : '';
     for (const conn of connections) {
       const fromNode = nodes.find(n => n.id === conn.from);
       const toNode = nodes.find(n => n.id === conn.to);
       if (!fromNode || !toNode) continue;
-      const pathD = getConnectionPath(fromNode, toNode, conn.fromPort || 'right', conn.toPort || 'left');
-      svg += `<path d="${pathD}" stroke="#a855f7" stroke-width="2" fill="none" opacity="0.6" />`;
+      const fp = conn.fromPort || 'right';
+      const tp = conn.toPort || 'left';
+      const pathD = connCurveStyle === 'straight' ? getStraightPath(fromNode, toNode, fp, tp) : connCurveStyle === 'elbow' ? getElbowPath(fromNode, toNode, fp, tp) : getConnectionPath(fromNode, toNode, fp, tp);
+      if (connGlow) svg += `<path d="${pathD}" stroke="${ecc.selected}" stroke-width="${connStrokeWidth * 4}" fill="none" opacity="0.1" />`;
+      svg += `<path d="${pathD}" stroke="${ecc.default}" stroke-width="${connStrokeWidth}" fill="none"${expDash ? ` stroke-dasharray="${expDash}"` : ''}${expMarker} />`;
     }
 
     // Nodes
@@ -1180,7 +1398,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       document.body.removeChild(a);
     };
     img.src = url;
-  }, [nodes, connections, groups, stickyNotes, isDark, initialSystem]);
+  }, [nodes, connections, groups, stickyNotes, isDark, initialSystem, connLineStyle, connArrowHead, connColorTheme, connCurveStyle, connGlow, connStrokeWidth]);
 
   // ─── Drag & Drop from Palette ─────────────────────────────────────────────
 
@@ -1255,17 +1473,49 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     setEditLabel(node.label);
     setEditDesc(node.description);
     setEditIcon(node.icon);
+    setEditLinkedResource(node.linkedResourceType || '');
     setShowIconPicker(false);
   };
 
   const saveNodeEdit = () => {
     if (editNode) {
       pushHistory();
-      setNodes(prev => prev.map(n => n.id === editNode ? { ...n, label: editLabel, description: editDesc, icon: editIcon } : n));
+      setNodes(prev => prev.map(n => n.id === editNode ? { ...n, label: editLabel, description: editDesc, icon: editIcon, linkedResourceType: (editLinkedResource || undefined) as SystemNode['linkedResourceType'] } : n));
       setEditNode(null);
       setShowIconPicker(false);
     }
   };
+
+  // ─── Insert Node on Connection ─────────────────────────────────────────────
+  const insertNodeOnConnection = useCallback((connIdx: number) => {
+    const conn = connections[connIdx];
+    if (!conn) return;
+    const fromNode = nodes.find(n => n.id === conn.from);
+    const toNode = nodes.find(n => n.id === conn.to);
+    if (!fromNode || !toNode) return;
+    const fp = conn.fromPort || 'right';
+    const tp = conn.toPort || 'left';
+    const mid = getPathMidpoint(fromNode, toNode, fp, tp, connCurveStyle);
+    pushHistory();
+    const id = `node-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const newNode: SystemNode = {
+      id, label: '', description: '', icon: 'sparkles', type: 'process',
+      x: mid.x - NODE_W / 2, y: mid.y - NODE_H / 2,
+    };
+    setNodes(prev => [...prev, newNode]);
+    setConnections(prev => {
+      const without = prev.filter((_, i) => i !== connIdx);
+      return [
+        ...without,
+        { from: conn.from, to: id, fromPort: conn.fromPort, toPort: 'left' as PortDirection },
+        { from: id, to: conn.to, fromPort: 'right' as PortDirection, toPort: conn.toPort },
+      ];
+    });
+    setSelectedNodeId(id);
+    setSelectedConnId(null);
+    setHoveredConnId(null);
+    setTimeout(() => startNodeEdit(id), 50);
+  }, [connections, nodes, connCurveStyle, pushHistory, startNodeEdit]);
 
   const startGroupEdit = (groupId: string) => {
     if (readOnly) return;
@@ -1435,7 +1685,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   // ─── Render ────────────────────────────────────────────────────────────────
 
   const zoomPct = Math.round(zoom * 100);
-  const showPalette = !readOnly && paletteOpen;
+  const showPalette = !readOnly && paletteOpen && !isPresentationMode;
   // Container height: style.height > className > built-in default
   const containerHeight = (style?.height || className) ? '' : (readOnly && !isFullscreen ? 'h-[500px]' : 'h-[calc(100vh-120px)] min-h-[400px]');
 
@@ -1468,12 +1718,13 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {paletteTab === 'generic' && PALETTE_ITEMS.map(item => {
-              const Icon = ICONS[item.icon] || Zap;
+              const isLogo = item.icon.startsWith('logo-');
+              const Icon = !isLogo ? (ICONS[item.icon] || Zap) : null;
               const style = NODE_STYLES[item.type];
               return (
                 <button key={item.icon + item.tKey} onClick={() => addNode(item)} draggable onDragStart={e => { e.dataTransfer.setData('application/json', JSON.stringify(item)); e.dataTransfer.effectAllowed = 'copy'; }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors group cursor-grab active:cursor-grabbing" aria-label={t('palette.addNode', { label: t(item.tKey) })}>
                   <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: style.accent + '15' }}>
-                    <Icon size={14} style={{ color: style.accent }} />
+                    {isLogo ? renderNodeIcon(item.icon, undefined, <Zap size={14} style={{ color: style.accent }} />, 14) : Icon && <Icon size={14} style={{ color: style.accent }} />}
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs font-medium text-gray-800 dark:text-zinc-200 truncate">{t(item.tKey)}</div>
@@ -1532,7 +1783,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Toolbar */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 z-10 shrink-0" role="toolbar" aria-label="Canvas-Toolbar">
+        {!isPresentationMode && <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 z-10 shrink-0" role="toolbar" aria-label="Canvas-Toolbar">
           {!readOnly && (
             <button onClick={() => setPaletteOpen(!paletteOpen)} className={`p-1.5 rounded-lg transition-colors ${paletteOpen ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800'}`} title={t('toolbar.palette')} aria-label={t('toolbar.paletteToggle')}>
               <Plus size={16} />
@@ -1617,6 +1868,260 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
 
           <div className="h-4 w-px bg-gray-200 dark:bg-zinc-700" />
 
+          {/* Scroll Speed */}
+          <div className="flex items-center gap-1.5 px-1">
+            <MousePointer size={13} className="text-gray-400 dark:text-zinc-500 shrink-0" />
+            <input
+              type="range"
+              min={1}
+              max={5}
+              step={1}
+              value={scrollSpeed}
+              onChange={e => setScrollSpeed(Number(e.target.value))}
+              className="w-14 h-1 accent-gray-400 dark:accent-zinc-500 cursor-pointer"
+              title={t('toolbar.scrollSpeed')}
+              aria-label={t('toolbar.scrollSpeed')}
+            />
+          </div>
+
+          {/* Canvas Settings (opacity etc.) */}
+          <div className="relative">
+            <button
+              onClick={() => setShowCanvasSettings(!showCanvasSettings)}
+              className={`p-1.5 rounded-lg transition-colors ${showCanvasSettings ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800'}`}
+              title={t('toolbar.canvasSettings')}
+              aria-label={t('toolbar.canvasSettings')}
+            >
+              <Settings size={15} />
+            </button>
+            {showCanvasSettings && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowCanvasSettings(false)} />
+                <div className="absolute right-0 top-full mt-1.5 z-40 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-2xl p-4 min-w-[220px]">
+                  <div className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-3">{t('toolbar.canvasSettings')}</div>
+
+                  {/* Group/Phase opacity */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-gray-600 dark:text-zinc-400">{t('settings.groupOpacity')}</span>
+                      <span className="text-[10px] text-gray-400 dark:text-zinc-600 tabular-nums">{groupTransparency}%</span>
+                    </div>
+                    <input
+                      type="range" min={0} max={100} step={5} value={groupTransparency}
+                      onChange={e => setGroupTransparency(Number(e.target.value))}
+                      className="w-full h-1 accent-purple-500 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Node opacity */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-gray-600 dark:text-zinc-400">{t('settings.nodeOpacity')}</span>
+                      <span className="text-[10px] text-gray-400 dark:text-zinc-600 tabular-nums">{nodeTransparency}%</span>
+                    </div>
+                    <input
+                      type="range" min={0} max={100} step={5} value={nodeTransparency}
+                      onChange={e => setNodeTransparency(Number(e.target.value))}
+                      className="w-full h-1 accent-purple-500 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Phase navigation section */}
+                  <div className="border-t border-gray-200 dark:border-zinc-700 pt-3">
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-zinc-600 uppercase tracking-wider mb-2">{t('settings.phaseNavSection')}</div>
+
+                    {/* Phase zoom: auto vs manual */}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs text-gray-600 dark:text-zinc-400">{t('settings.phaseZoom')}</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setPhaseZoomAuto(true)}
+                            className={`text-[10px] px-1.5 py-0.5 rounded ${phaseZoomAuto ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold' : 'text-gray-400 dark:text-zinc-600 hover:text-gray-600'}`}
+                          >
+                            Auto
+                          </button>
+                          <button
+                            onClick={() => setPhaseZoomAuto(false)}
+                            className={`text-[10px] px-1.5 py-0.5 rounded ${!phaseZoomAuto ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold' : 'text-gray-400 dark:text-zinc-600 hover:text-gray-600'}`}
+                          >
+                            {t('settings.phaseZoomManual')}
+                          </button>
+                        </div>
+                      </div>
+                      {!phaseZoomAuto && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="range" min={10} max={100} step={5} value={phaseZoomLevel}
+                            onChange={e => setPhaseZoomLevel(Number(e.target.value))}
+                            className="flex-1 h-1 accent-purple-500 cursor-pointer"
+                          />
+                          <span className="text-[10px] text-gray-400 dark:text-zinc-600 tabular-nums w-7 text-right">{phaseZoomLevel}%</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Animated toggle */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs text-gray-600 dark:text-zinc-400">{t('settings.phaseAnimated')}</span>
+                      <button
+                        onClick={() => setPhaseAnimated(!phaseAnimated)}
+                        className={`w-8 h-4.5 rounded-full transition-colors relative ${phaseAnimated ? 'bg-purple-500' : 'bg-gray-300 dark:bg-zinc-600'}`}
+                      >
+                        <div className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${phaseAnimated ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+
+                    {/* Animation speed */}
+                    {phaseAnimated && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs text-gray-600 dark:text-zinc-400">{t('settings.phaseSpeed')}</span>
+                          <span className="text-[10px] text-gray-400 dark:text-zinc-600 tabular-nums">{phaseAnimSpeed}ms</span>
+                        </div>
+                        <input
+                          type="range" min={200} max={1500} step={100} value={phaseAnimSpeed}
+                          onChange={e => setPhaseAnimSpeed(Number(e.target.value))}
+                          className="w-full h-1 accent-purple-500 cursor-pointer"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Connection Settings ── */}
+                  <div className="border-t border-gray-200 dark:border-zinc-700 pt-3 mt-3">
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-zinc-600 uppercase tracking-wider mb-2">{t('settings.connSection')}</div>
+
+                    {/* Curve style */}
+                    <div className="mb-3">
+                      <span className="text-xs text-gray-600 dark:text-zinc-400 block mb-1.5">{t('settings.connCurve')}</span>
+                      <div className="flex items-center gap-1">
+                        {(['bezier', 'straight', 'elbow'] as const).map(v => (
+                          <button key={v} onClick={() => setConnCurveStyle(v)}
+                            className={`text-[10px] px-2 py-1 rounded-md transition-colors ${connCurveStyle === v ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold' : 'text-gray-400 dark:text-zinc-600 hover:text-gray-600 dark:hover:text-zinc-400 bg-gray-50 dark:bg-zinc-800'}`}
+                          >
+                            {t(`settings.curve${v.charAt(0).toUpperCase() + v.slice(1)}` as 'settings.curveBezier')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Line style */}
+                    <div className="mb-3">
+                      <span className="text-xs text-gray-600 dark:text-zinc-400 block mb-1.5">{t('settings.connLineStyle')}</span>
+                      <div className="flex items-center gap-1">
+                        {(['solid', 'dashed', 'dotted'] as const).map(v => (
+                          <button key={v} onClick={() => setConnLineStyle(v)}
+                            className={`flex items-center justify-center w-10 h-7 rounded-md transition-colors ${connLineStyle === v ? 'bg-purple-100 dark:bg-purple-500/20 ring-1 ring-purple-400' : 'bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700'}`}
+                            title={v}
+                          >
+                            <svg width="24" height="4" viewBox="0 0 24 4">
+                              <line x1="0" y1="2" x2="24" y2="2"
+                                stroke={connLineStyle === v ? '#a855f7' : '#9ca3af'}
+                                strokeWidth="2"
+                                strokeDasharray={v === 'dashed' ? '4,3' : v === 'dotted' ? '2,3' : undefined}
+                              />
+                            </svg>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Arrow head */}
+                    <div className="mb-3">
+                      <span className="text-xs text-gray-600 dark:text-zinc-400 block mb-1.5">{t('settings.connArrowHead')}</span>
+                      <div className="flex items-center gap-1">
+                        {(['none', 'arrow', 'diamond', 'circle'] as const).map(v => (
+                          <button key={v} onClick={() => setConnArrowHead(v)}
+                            className={`text-[10px] px-2 py-1 rounded-md transition-colors ${connArrowHead === v ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold' : 'text-gray-400 dark:text-zinc-600 hover:text-gray-600 dark:hover:text-zinc-400 bg-gray-50 dark:bg-zinc-800'}`}
+                          >
+                            {v === 'none' ? '—' : v === 'arrow' ? '→' : v === 'diamond' ? '◇' : '●'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Color theme */}
+                    <div className="mb-3">
+                      <span className="text-xs text-gray-600 dark:text-zinc-400 block mb-1.5">{t('settings.connColor')}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {Object.keys(CONN_COLORS).map(v => (
+                          <button key={v} onClick={() => setConnColorTheme(v)}
+                            className={`w-5 h-5 rounded-full transition-all ${connColorTheme === v ? 'ring-2 ring-offset-1 ring-purple-400 dark:ring-offset-zinc-900 scale-110' : 'hover:scale-105'}`}
+                            style={{ background: CONN_COLORS[v].selected }}
+                            title={v.charAt(0).toUpperCase() + v.slice(1)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Stroke width */}
+                    <div className="mb-3">
+                      <span className="text-xs text-gray-600 dark:text-zinc-400 block mb-1.5">{lang === 'en' ? 'Stroke Width' : 'Linienstärke'}</span>
+                      <div className="flex items-center gap-1">
+                        {([1, 2, 3] as const).map(v => (
+                          <button key={v} onClick={() => setConnStrokeWidth(v)}
+                            className={`flex items-center justify-center w-10 h-7 rounded-md transition-colors ${connStrokeWidth === v ? 'bg-purple-100 dark:bg-purple-500/20 ring-1 ring-purple-400' : 'bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700'}`}
+                            title={v === 1 ? 'Thin' : v === 2 ? 'Normal' : 'Bold'}
+                          >
+                            <svg width="24" height="8" viewBox="0 0 24 8">
+                              <line x1="0" y1="4" x2="24" y2="4" stroke={connStrokeWidth === v ? '#a855f7' : '#9ca3af'} strokeWidth={v} />
+                            </svg>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Glow toggle */}
+                    <div>
+                      <button
+                        onClick={() => setConnGlow(!connGlow)}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors ${connGlow ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 ring-1 ring-purple-400' : 'bg-gray-50 dark:bg-zinc-800 text-gray-500 dark:text-zinc-500 hover:bg-gray-100 dark:hover:bg-zinc-700'}`}
+                      >
+                        <Sparkles size={12} />
+                        {lang === 'en' ? 'Glow Effect' : 'Leuchteffekt'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ── Node Design Themes ── */}
+                  <div className="border-t border-gray-200 dark:border-zinc-700 pt-3 mt-3">
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-zinc-600 uppercase tracking-wider mb-2">{t('settings.nodeDesign')}</div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {([
+                        { key: 'default' as const, de: 'Standard', en: 'Default', preview: 'bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700' },
+                        { key: 'glass' as const, de: 'Glas', en: 'Glass', preview: 'bg-purple-50/50 dark:bg-purple-500/5 border border-purple-200/40 backdrop-blur-sm' },
+                        { key: 'minimal' as const, de: 'Minimal', en: 'Minimal', preview: 'bg-transparent border border-gray-300 dark:border-zinc-600' },
+                        { key: 'outlined' as const, de: 'Outlined', en: 'Outlined', preview: 'bg-white dark:bg-zinc-800 border-l-[3px] border-l-purple-500 border border-gray-200 dark:border-zinc-700' },
+                        { key: 'neon' as const, de: 'Neon', en: 'Neon', preview: 'bg-[#0c0c14] border-2 border-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)]' },
+                        { key: 'gradient' as const, de: 'Gradient', en: 'Gradient', preview: 'bg-gradient-to-br from-purple-500/80 to-purple-500/50 border-0' },
+                        { key: 'solid' as const, de: 'Solid', en: 'Solid', preview: 'bg-purple-500 border-0' },
+                        { key: 'wire' as const, de: 'Wire', en: 'Wire', preview: 'bg-transparent border-2 border-dashed border-purple-400/50' },
+                      ]).map(th => (
+                        <button
+                          key={th.key}
+                          onClick={() => setNodeDesignTheme(th.key)}
+                          className={`flex flex-col items-center gap-1 px-1.5 py-1.5 rounded-lg transition-all ${
+                            nodeDesignTheme === th.key
+                              ? 'ring-2 ring-purple-400 bg-purple-50 dark:bg-purple-500/10'
+                              : 'hover:bg-gray-100 dark:hover:bg-zinc-800'
+                          }`}
+                        >
+                          <div className={`w-full h-5 rounded-md ${th.preview}`} />
+                          <span className={`text-[9px] ${nodeDesignTheme === th.key ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-gray-500 dark:text-zinc-500'}`}>
+                            {lang === 'en' ? th.en : th.de}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="h-4 w-px bg-gray-200 dark:bg-zinc-700" />
+
           {/* #24 – Shortcuts Help */}
           <button onClick={() => setShowShortcuts(!showShortcuts)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors" title={t('toolbar.shortcutsKey')} aria-label={t('toolbar.shortcutsShow')}>
             <HelpCircle size={15} />
@@ -1625,6 +2130,16 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
           <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors" title={isFullscreen ? t('toolbar.fullscreenExit') : t('toolbar.fullscreen')} aria-label={isFullscreen ? t('toolbar.fullscreenExit') : t('toolbar.fullscreen')}>
             {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
           </button>
+
+          {!readOnly && (
+            <button
+              onClick={() => { setIsPresentationMode(true); setIsFullscreen(true); setPaletteOpen(false); setTimeout(() => fitToScreen(), 100); }}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+              title={lang === 'en' ? 'Presentation Mode' : 'Präsentationsmodus'}
+            >
+              <Eye size={15} />
+            </button>
+          )}
 
           {initialSystem && (
             <>
@@ -1692,7 +2207,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
               </button>
             </>
           )}
-        </div>
+        </div>}
 
         {/* #23 – Search Bar */}
         {searchOpen && (
@@ -1773,21 +2288,41 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
           >
             {/* SVG Connections */}
             <svg className="absolute inset-0 pointer-events-none" style={{ width: canvasW, height: canvasH, overflow: 'visible' }}>
-              {/* No <defs> needed — solid colors replace gradients to fix
-                   rendering failure on horizontal/vertical paths (zero-height bounding box) */}
+              {/* SVG Marker defs for arrowheads */}
+              {(() => {
+                const cc = CONN_COLORS[connColorTheme];
+                return (
+                  <defs>
+                    <marker id="conn-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
+                      <path d="M 0 0 L 10 3.5 L 0 7" fill="none" stroke={cc.selected} strokeWidth="1.5" />
+                    </marker>
+                    <marker id="conn-diamond" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+                      <path d="M 0 5 L 5 0 L 10 5 L 5 10 Z" fill={cc.selected} />
+                    </marker>
+                    <marker id="conn-circle" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+                      <circle cx="4" cy="4" r="3" fill={cc.selected} />
+                    </marker>
+                  </defs>
+                );
+              })()}
 
               {connections.map((conn, i) => {
                 const fromNode = nodes.find(n => n.id === conn.from);
                 const toNode = nodes.find(n => n.id === conn.to);
                 if (!fromNode || !toNode) return null;
-                const pathD = getConnectionPath(fromNode, toNode, conn.fromPort || 'right', conn.toPort || 'left');
+                const fp = conn.fromPort || 'right';
+                const tp = conn.toPort || 'left';
+                const pathD = connCurveStyle === 'straight' ? getStraightPath(fromNode, toNode, fp, tp) : connCurveStyle === 'elbow' ? getElbowPath(fromNode, toNode, fp, tp) : getConnectionPath(fromNode, toNode, fp, tp);
                 const isSelected = selectedConnId === i;
                 const isHovered = hoveredConnId === i;
+                const cc = CONN_COLORS[connColorTheme];
+                const markerEnd = connArrowHead !== 'none' ? `url(#conn-${connArrowHead})` : undefined;
+                const dashArr = STROKE_DASH[connLineStyle];
 
                 // Connection dot color based on node execution states
                 const fromStatus = externalNodeStates?.get(conn.from) || 'idle';
                 const toStatus = externalNodeStates?.get(conn.to) || 'idle';
-                let dotColor = '#a855f7';
+                let dotColor = cc.dot;
                 let dotSpeed = 2.5 + i * 0.3;
                 let dotR = 3;
                 if (fromStatus === 'completed' && toStatus === 'completed') {
@@ -1808,15 +2343,39 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                     onContextMenu={e => handleContextMenu(e, undefined, undefined, i)}
                   >
                     <path d={pathD} stroke="transparent" strokeWidth={12 / zoom} fill="none" style={{ cursor: readOnly ? 'default' : 'pointer', pointerEvents: 'stroke' }} />
+                    {connGlow && (
+                      <path d={pathD} stroke={cc.selected} strokeWidth={connStrokeWidth * 4} fill="none" opacity={0.1} />
+                    )}
                     <path
                       d={pathD}
-                      stroke={isSelected ? '#a855f7' : isHovered ? 'rgba(168,85,247,0.8)' : 'rgba(139,92,246,0.5)'}
-                      strokeWidth={isSelected ? 3 : isHovered ? 2.5 : 2}
+                      stroke={isSelected ? cc.selected : isHovered ? cc.hover : cc.default}
+                      strokeWidth={isSelected ? connStrokeWidth + 1 : isHovered ? connStrokeWidth + 0.5 : connStrokeWidth}
+                      strokeDasharray={dashArr}
+                      markerEnd={markerEnd}
                       fill="none"
                     />
                     <circle r={dotR} fill={dotColor} opacity={0.8}>
                       <animateMotion dur={`${dotSpeed}s`} repeatCount="indefinite" path={pathD} />
                     </circle>
+                    {isHovered && !readOnly && (() => {
+                      const fp2 = conn.fromPort || 'right';
+                      const tp2 = conn.toPort || 'left';
+                      const mid = getPathMidpoint(fromNode, toNode, fp2, tp2, connCurveStyle);
+                      return (
+                        <foreignObject x={mid.x - 12} y={mid.y - 12} width={24} height={24} style={{ pointerEvents: 'all', overflow: 'visible' }}>
+                          <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); insertNodeOnConnection(i); }}
+                              className="w-6 h-6 rounded-full bg-purple-500 hover:bg-purple-400 text-white flex items-center justify-center shadow-lg transition-all hover:scale-110 border-2 border-white dark:border-zinc-900"
+                              title={t('conn.insertNode')}
+                              style={{ fontSize: 16, lineHeight: 1, fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </foreignObject>
+                      );
+                    })()}
                   </g>
                 );
               })}
@@ -1885,6 +2444,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                   style={{
                     left: group.x, top: group.y, width: group.width, height: group.height,
                     background: colors.bg, borderColor: colors.border,
+                    opacity: (100 - groupTransparency) / 100,
                     // #11 – Selected group gets higher z-index
                     zIndex: isSelected ? 3 : 1,
                     cursor: readOnly ? 'default' : (dragGroupState?.groupId === group.id ? 'grabbing' : 'grab'),
@@ -1987,14 +2547,73 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
               };
               const ss = statusStyles[nodeStatus];
 
+              // Node design theme variants
+              const isLightText = nodeDesignTheme === 'neon' || nodeDesignTheme === 'gradient' || nodeDesignTheme === 'solid';
+              let themeClass: string;
+              let themeStyle: React.CSSProperties;
+              switch (nodeDesignTheme) {
+                case 'glass':
+                  themeClass = 'absolute rounded-2xl border backdrop-blur-2xl select-none';
+                  themeStyle = {
+                    background: `linear-gradient(145deg, ${style.accent}14, ${style.accent}06)`,
+                    borderColor: style.accent + '40',
+                    boxShadow: `0 0 30px ${style.accent}15, 0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.12)`,
+                  };
+                  break;
+                case 'minimal':
+                  themeClass = 'absolute rounded-lg border select-none';
+                  themeStyle = { background: 'transparent', borderColor: ss.border, borderWidth: 1 };
+                  break;
+                case 'outlined':
+                  themeClass = 'absolute border-l-4 border select-none';
+                  themeStyle = {
+                    borderLeft: `4px solid ${style.accent}`,
+                    background: isDark ? 'rgba(24,24,27,0.95)' : 'rgba(255,255,255,0.97)',
+                    borderColor: isDark ? 'rgba(63,63,70,0.4)' : 'rgba(229,231,235,0.6)',
+                    borderRadius: 4,
+                  };
+                  break;
+                case 'neon':
+                  themeClass = 'absolute rounded-lg border-2 select-none';
+                  themeStyle = {
+                    background: isDark ? 'rgba(8,8,20,0.97)' : 'rgba(12,12,28,0.95)',
+                    borderColor: style.accent,
+                    boxShadow: `0 0 14px ${style.accent}55, 0 0 40px ${style.accent}20, inset 0 0 20px ${style.accent}08`,
+                  };
+                  break;
+                case 'gradient':
+                  themeClass = 'absolute rounded-2xl select-none';
+                  themeStyle = {
+                    background: `linear-gradient(135deg, ${style.accent}dd, ${style.accent}88)`,
+                    border: 'none',
+                    boxShadow: `0 10px 30px ${style.accent}30, 0 4px 12px rgba(0,0,0,0.1)`,
+                  };
+                  break;
+                case 'solid':
+                  themeClass = 'absolute rounded-xl select-none';
+                  themeStyle = {
+                    background: style.accent,
+                    border: 'none',
+                    boxShadow: `0 8px 24px ${style.accent}35, 0 2px 8px rgba(0,0,0,0.15)`,
+                  };
+                  break;
+                case 'wire':
+                  themeClass = 'absolute rounded-xl select-none';
+                  themeStyle = { background: 'transparent', border: `2px dashed ${style.accent}60` };
+                  break;
+                default:
+                  themeClass = 'absolute rounded-xl border backdrop-blur-sm select-none';
+                  themeStyle = { background: ss.bg, borderColor: ss.border };
+              }
+
               return (
                 <div
                   key={node.id}
-                  className={`absolute rounded-xl border backdrop-blur-sm select-none ${dragState?.nodeId === node.id ? '' : 'transition-[box-shadow,border-color,background-color] duration-500'} ${(isSelected || isMultiSelected) && !readOnly && !isNodeActive ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-500/10' : ''} ${isConnecting ? 'ring-2 ring-purple-400 ring-dashed' : ''} ${isNodeActive ? `${ss.ring} ${ss.shadow}` : ''}`}
+                  className={`${themeClass} ${dragState?.nodeId === node.id ? '' : 'transition-[box-shadow,border-color,background-color] duration-500'} ${(isSelected || isMultiSelected) && !readOnly && !isNodeActive ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-500/10' : ''} ${isConnecting ? 'ring-2 ring-purple-400 ring-dashed' : ''} ${isNodeActive ? `${ss.ring} ${ss.shadow}` : ''}`}
                   style={{
                     left: node.x, top: node.y, width: NODE_W, height: NODE_H,
-                    background: ss.bg,
-                    borderColor: ss.border,
+                    ...themeStyle,
+                    opacity: (100 - nodeTransparency) / 100,
                     cursor: readOnly ? 'default' : (dragState?.nodeId === node.id ? 'grabbing' : 'grab'),
                     zIndex: isNodeActive ? 15 : (isSelected ? 20 : 10),
                   }}
@@ -2008,18 +2627,25 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                   tabIndex={0}
                 >
                   <div className="h-full flex items-center px-4 gap-3.5">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: style.accent + '15' }}>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: isLightText ? 'rgba(255,255,255,0.18)' : style.accent + '15' }}>
                       {renderIcon(node)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-[13px] text-gray-900 dark:text-white truncate">{node.label}</div>
-                      {node.description && <div className="text-[11px] text-gray-500 dark:text-zinc-500 mt-0.5 truncate">{node.description}</div>}
+                      <div className="font-medium text-[13px] text-gray-900 dark:text-white truncate" style={isLightText ? { color: 'rgba(255,255,255,0.95)' } : undefined}>{node.label}</div>
+                      {node.description && <div className="text-[11px] text-gray-500 dark:text-zinc-500 mt-0.5 line-clamp-2 leading-tight" style={isLightText ? { color: 'rgba(255,255,255,0.65)' } : undefined}>{node.description}</div>}
                     </div>
                   </div>
 
-                  <div className="absolute -top-2 -right-2 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md border" style={{ background: style.bg, borderColor: style.border, color: style.accent }}>
+                  <div className={`absolute -top-2 -right-2 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 border ${nodeDesignTheme === 'outlined' ? 'rounded-sm' : nodeDesignTheme === 'minimal' ? 'rounded text-[8px]' : 'rounded-md'}`} style={isLightText ? { background: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.25)', color: 'rgba(255,255,255,0.9)' } : { background: style.bg, borderColor: style.border, color: style.accent }}>
                     {style.label}
                   </div>
+
+                  {/* Resource badge (top-left) */}
+                  {node.linkedResourceType && (
+                    <div className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-500/20 border border-purple-300 dark:border-purple-500/30 flex items-center justify-center" title={`${t('node.linkedResource')}: ${t(`resource.type.${node.linkedResourceType}` as keyof typeof t)}`}>
+                      <Paperclip size={10} className="text-purple-600 dark:text-purple-400" />
+                    </div>
+                  )}
 
                   {/* Status overlay icon (bottom-right) — minimal, single accent */}
                   {(nodeStatus === 'running' || nodeStatus === 'completed' || nodeStatus === 'failed') && (
@@ -2125,6 +2751,19 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                       </div>
                     </div>
                   )}
+
+                  {/* Resource Type Linking */}
+                  <select
+                    value={editLinkedResource}
+                    onChange={e => setEditLinkedResource(e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 mb-2 focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="">{t('node.resourceNone')}</option>
+                    <option value="transcript">{t('resource.type.transcript')}</option>
+                    <option value="document">{t('resource.type.document')}</option>
+                    <option value="note">{t('resource.type.note')}</option>
+                    <option value="dataset">{t('resource.type.dataset')}</option>
+                  </select>
 
                   <div className="flex gap-2">
                     <button onClick={() => { setEditNode(null); setShowIconPicker(false); }} className="flex-1 py-1.5 rounded-lg text-xs border border-gray-200 dark:border-zinc-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-800">{t('edit.cancel')}</button>
@@ -2240,6 +2879,72 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
             </div>
           )}
 
+          {/* ─── Phase Navigator (fullscreen only) ─── */}
+          {isFullscreen && sortedGroups.length > 0 && (
+            <div className="absolute bottom-5 left-5 z-50 flex items-center gap-1 select-none">
+              {/* Prev phase */}
+              <button
+                onClick={() => focusGroup(Math.max(0, currentPhaseIndex - 1))}
+                disabled={currentPhaseIndex <= 0}
+                className="p-1.5 rounded-lg bg-white/90 dark:bg-zinc-900/90 border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 backdrop-blur-sm shadow-lg"
+                title={t('phaseNav.prev')}
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {/* Current phase label + dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setPhaseDropdownOpen(!phaseDropdownOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/90 dark:bg-zinc-900/90 border border-gray-200 dark:border-zinc-700 text-sm font-medium text-gray-800 dark:text-zinc-200 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors backdrop-blur-sm shadow-lg min-w-[140px] justify-between"
+                >
+                  <span className="truncate max-w-[200px]">
+                    {sortedGroups[currentPhaseIndex]?.label || t('phaseNav.noPhase')}
+                  </span>
+                  <ChevronUp size={14} className={`shrink-0 text-gray-400 dark:text-zinc-500 transition-transform ${phaseDropdownOpen ? '' : 'rotate-180'}`} />
+                </button>
+
+                {/* Phase dropdown */}
+                {phaseDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setPhaseDropdownOpen(false)} />
+                    <div className="absolute bottom-full left-0 mb-1.5 z-40 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-2xl py-1 min-w-[200px] max-h-[280px] overflow-y-auto backdrop-blur-sm">
+                      <div className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 dark:text-zinc-600 uppercase tracking-wider">{t('phaseNav.jumpTo')}</div>
+                      {sortedGroups.map((group, idx) => {
+                        const colors = GROUP_COLORS[group.color] || GROUP_COLORS.gray;
+                        return (
+                          <button
+                            key={group.id}
+                            onClick={() => focusGroup(idx)}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors ${idx === currentPhaseIndex ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold' : 'text-gray-700 dark:text-zinc-300'}`}
+                          >
+                            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: colors.border }} />
+                            <span className="truncate">{group.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Next phase */}
+              <button
+                onClick={() => focusGroup(Math.min(sortedGroups.length - 1, currentPhaseIndex + 1))}
+                disabled={currentPhaseIndex >= sortedGroups.length - 1}
+                className="p-1.5 rounded-lg bg-white/90 dark:bg-zinc-900/90 border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 backdrop-blur-sm shadow-lg"
+                title={t('phaseNav.next')}
+              >
+                <ChevronRight size={16} />
+              </button>
+
+              {/* Phase counter */}
+              <span className="text-[10px] text-gray-400 dark:text-zinc-600 ml-1 tabular-nums">
+                {currentPhaseIndex + 1}/{sortedGroups.length}
+              </span>
+            </div>
+          )}
+
           {/* #18 – Toast Message */}
           {toastMessage && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-medium px-4 py-2 rounded-lg shadow-lg animate-fade-in">
@@ -2269,8 +2974,34 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                   <Eye size={13} /> {t('contextMenu.edit')}
                 </button>
               )}
+              {contextMenu.connIdx !== undefined && (
+                <button onClick={() => { insertNodeOnConnection(contextMenu.connIdx!); setContextMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
+                  <Plus size={13} /> {t('contextMenu.insertNode')}
+                </button>
+              )}
               <button onClick={() => handleContextAction('delete')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
                 <Trash2 size={13} /> {t('contextMenu.delete')}
+              </button>
+            </div>
+          )}
+
+          {/* Presentation Mode floating bar */}
+          {isPresentationMode && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-2.5 bg-black/70 backdrop-blur-xl rounded-full shadow-2xl border border-white/10">
+              <span className="text-xs text-white/60 font-medium">{lang === 'en' ? 'Presentation Mode' : 'Präsentationsmodus'}</span>
+              <div className="w-px h-4 bg-white/20" />
+              <button
+                onClick={() => fitToScreen()}
+                className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                title={t('toolbar.fitScreen')}
+              >
+                <Crosshair size={14} />
+              </button>
+              <button
+                onClick={() => { setIsPresentationMode(false); setIsFullscreen(false); }}
+                className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors"
+              >
+                {lang === 'en' ? 'Exit' : 'Beenden'}
               </button>
             </div>
           )}

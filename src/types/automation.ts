@@ -11,6 +11,7 @@ export interface SystemNode {
   type: NodeType;
   x: number;              // Pixel x-position on canvas
   y: number;              // Pixel y-position on canvas
+  linkedResourceType?: ResourceType;  // Auto-link to resources of this type
 }
 
 export type PortDirection = 'top' | 'right' | 'bottom' | 'left';
@@ -58,6 +59,35 @@ export interface StickyNote {
   fontStyle?: 'normal' | 'italic';
   customTextColor?: string;
   fontSize?: number;
+}
+
+// ── Resources ──────────────────────────────────────────
+export type ResourceType = 'transcript' | 'document' | 'note' | 'dataset';
+
+export interface SystemResource {
+  id: string;
+  systemId: string;
+  title: string;
+  type: ResourceType;
+  content: string;
+  fileReference?: string;
+  createdAt: string;
+  source?: string;
+}
+
+export interface OnboardingFormData {
+  clientName: string;
+  companyName: string;
+  email: string;
+  phone: string;
+  packageTier: string;
+  startDate: string;
+  industry: string;
+  targetAudience: string;
+  brandGuidelines: string;
+  websiteUrl: string;
+  socialMediaUrls: string;
+  specialRequirements: string;
 }
 
 export interface AutomationSystem {

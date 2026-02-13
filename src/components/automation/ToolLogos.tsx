@@ -184,6 +184,21 @@ const Jira = () => (
   </svg>
 );
 
+const WordPress = () => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="9.5" stroke="#21759B" strokeWidth="1.2" fill="#21759B" opacity={0.1}/>
+    <path d="M12 3.5a8.5 8.5 0 0 0-7.92 5.38L9.44 21.2A8.5 8.5 0 0 0 12 3.5zm-8.27 6.4A8.47 8.47 0 0 0 3.5 12a8.5 8.5 0 0 0 4.62 7.56L4.07 9.9h-.34zm16.48 1.14c0-1.04-.38-1.76-.7-2.32a4.32 4.32 0 0 0-.68-1.04c-.24-.3-.46-.55-.46-.85 0-.33.26-.64.62-.64h.05a8.48 8.48 0 0 0-12.84-.4h.68c1.1 0 2.82-.14 2.82-.14a.44.44 0 0 1 .05.86s-.58.07-1.22.1l3.86 11.48 2.32-6.96-1.66-4.52c-.57-.03-1.1-.1-1.1-.1a.44.44 0 0 1 .05-.86s1.74.14 2.78.14c1.1 0 2.82-.14 2.82-.14a.44.44 0 0 1 .05.86s-.58.07-1.22.1l3.84 11.4.6-2.16c.38-1.02.6-1.82.6-2.51zM12.3 13.1l-3.18 9.24a8.5 8.5 0 0 0 5.24-.14.76.76 0 0 1-.06-.12L12.3 13.1zm7.5-6.02c.04.33.07.68.07 1.07 0 1.06-.2 2.24-.8 3.72l-3.2 9.24A8.49 8.49 0 0 0 20.5 12c0-1.72-.52-3.32-1.4-4.66l.7-.26z" fill="#21759B" opacity={0.7}/>
+  </svg>
+);
+
+const GoogleAnalytics = () => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect x="5" y="14" width="3.5" height="6" rx="1.2" fill="#F9AB00" opacity={0.6}/>
+    <rect x="10.25" y="9" width="3.5" height="11" rx="1.2" fill="#F9AB00" opacity={0.75}/>
+    <rect x="15.5" y="4" width="3.5" height="16" rx="1.2" fill="#E37400" opacity={0.75}/>
+  </svg>
+);
+
 // ─── Logo Registry ────────────────────────────────────────────────────────────
 
 export interface ToolLogo {
@@ -222,7 +237,9 @@ export const TOOL_LOGOS: Record<string, ToolLogo> = {
   'logo-calendly':        { id: 'logo-calendly',        name: 'Calendly',        category: 'Booking',       component: Calendly,       color: '#006BFF' },
   'logo-stripe':          { id: 'logo-stripe',          name: 'Stripe',          category: 'Payment',       component: Stripe,         color: '#635BFF' },
   'logo-youtube':         { id: 'logo-youtube',         name: 'YouTube',         category: 'Social',        component: YouTube,        color: '#FF0000' },
-  'logo-typeform':        { id: 'logo-typeform',        name: 'Typeform',        category: 'Forms',         component: Typeform,       color: '#262627' },
+  'logo-typeform':          { id: 'logo-typeform',          name: 'Typeform',          category: 'Forms',         component: Typeform,          color: '#262627' },
+  'logo-wordpress':         { id: 'logo-wordpress',         name: 'WordPress',         category: 'CMS',           component: WordPress,         color: '#21759B' },
+  'logo-google-analytics':  { id: 'logo-google-analytics',  name: 'Google Analytics',  category: 'Analytics',     component: GoogleAnalytics,   color: '#F9AB00' },
 };
 
 // ─── Unified Icon Renderer ────────────────────────────────────────────────────

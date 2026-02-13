@@ -5,6 +5,10 @@
 
 import React, { useState, useEffect, useMemo, ReactNode } from "react";
 import {
+  loadMarketingCampaigns, saveMarketingCampaigns,
+  loadMarketingLeads, saveMarketingLeads,
+} from '../data/marketingStorage';
+import {
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -53,8 +57,10 @@ import {
   Receipt,
   Timer,
   ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { LanguageProvider, useLanguage } from '../i18n/LanguageContext';
+import ConfirmDialog, { useModalEsc } from '../components/ui/ConfirmDialog';
 
 // ============================================
 // TYPES
@@ -281,7 +287,7 @@ const NotificationDropdown = ({ notifications, onMarkRead, onClear }: { notifica
 
   return (
     <div className="relative">
-      <button onClick={() => setIsOpen(!isOpen)} className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
+      <button onClick={() => setIsOpen(!isOpen)} className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx("Benachrichtigungen", "Notifications")}>
         <Bell className="w-5 h-5 text-gray-500" />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">{unreadCount}</span>
@@ -593,6 +599,7 @@ const LeadDetailModal = ({ lead, onClose, onStatusChange, onEmail, onCall }: { l
   const { lang } = useLanguage();
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
   const statusLabels = getStatusLabels(lang);
+  useModalEsc(!!lead, onClose);
   if (!lead) return null;
   const colors = platformColors[lead.source];
   const sc = statusColors[lead.status];
@@ -601,7 +608,7 @@ const LeadDetailModal = ({ lead, onClose, onStatusChange, onEmail, onCall }: { l
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className={`w-14 h-14 rounded-full ${colors.solid} flex items-center justify-center text-white text-xl font-bold`}>{lead.name.charAt(0)}</div>
           <div>
@@ -649,6 +656,7 @@ const LeadDetailModal = ({ lead, onClose, onStatusChange, onEmail, onCall }: { l
 const CampaignActionsModal = ({ campaign, onClose, onAction }: { campaign: CampaignData | null; onClose: () => void; onAction: (action: string, id: string) => void }) => {
   const { lang } = useLanguage();
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
+  useModalEsc(!!campaign, onClose);
   if (!campaign) return null;
   const colors = platformColors[campaign.platform];
   const actions = [
@@ -684,13 +692,14 @@ const CampaignActionsModal = ({ campaign, onClose, onAction }: { campaign: Campa
 const CampaignDetailModal = ({ campaign, onClose }: { campaign: CampaignData | null; onClose: () => void }) => {
   const { lang } = useLanguage();
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
+  useModalEsc(!!campaign, onClose);
   if (!campaign) return null;
   const colors = platformColors[campaign.platform];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className={`w-3 h-3 rounded-full ${campaign.status === "active" ? "bg-emerald-500" : "bg-yellow-500"}`} />
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{campaign.name}</h2>
@@ -701,7 +710,7 @@ const CampaignDetailModal = ({ campaign, onClose }: { campaign: CampaignData | n
             <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4"><p className="text-sm text-gray-500 mb-1">{s.label}</p><p className={`text-2xl font-bold ${s.color}`}>{s.value}</p></div>
           ))}
         </div>
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Performance Details</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">{tx("Performance Details", "Performance Details")}</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[{ label: tx("Impressionen", "Impressions"), value: formatNumber(campaign.impressions) }, { label: tx("Klicks", "Clicks"), value: formatNumber(campaign.clicks) }, { label: "CTR", value: formatPercent(campaign.ctr) }, { label: "CPL", value: `€${campaign.cpl.toFixed(2)}` }, { label: "Conversions", value: campaign.conversions.toString() }, { label: "CVR", value: formatPercent(campaign.cvr) }].map((s, i) => (
             <div key={i} className="flex justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><span className="text-gray-500">{s.label}</span><span className="font-medium text-gray-900 dark:text-white">{s.value}</span></div>
@@ -719,6 +728,7 @@ const ConnectionModal = ({ isOpen, onClose, connection }: { isOpen: boolean; onC
   const [step, setStep] = useState<"intro" | "creds" | "info">("intro");
   const [appId, setAppId] = useState("");
   const [appSecret, setAppSecret] = useState("");
+  useModalEsc(isOpen, onClose);
   useEffect(() => { if (isOpen) { setStep("intro"); setAppId(""); setAppSecret(""); } }, [isOpen]);
   if (!isOpen || !connection) return null;
   const urls: Record<string, { dev: string; doc: string }> = {
@@ -732,7 +742,7 @@ const ConnectionModal = ({ isOpen, onClose, connection }: { isOpen: boolean; onC
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
         {step === "intro" && (
           <>
             <div className={`w-16 h-16 rounded-2xl ${connection.color} flex items-center justify-center mb-6`}>{connection.icon}</div>
@@ -823,7 +833,7 @@ const GoalCard = ({ goal, onEdit }: { goal: Goal; onEdit: (id: string) => void }
     <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
       <div className="flex items-start justify-between mb-4">
         <div className={`w-12 h-12 rounded-xl ${goal.color} flex items-center justify-center`}>{goal.icon}</div>
-        <button onClick={() => onEdit(goal.id)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl">
+        <button onClick={() => onEdit(goal.id)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx('Ziel bearbeiten', 'Edit goal')}>
           <Edit3 className="w-4 h-4 text-gray-400" />
         </button>
       </div>
@@ -923,10 +933,24 @@ const GoalEditModal = ({ goal, onClose, onSave }: { goal: Goal | null; onClose: 
   const { lang } = useLanguage();
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
   const [target, setTarget] = useState(goal?.target || 0);
+  useModalEsc(!!goal, onClose);
 
   useEffect(() => {
     if (goal) setTarget(goal.target);
   }, [goal]);
+
+  // Ctrl+S / Cmd+S keyboard shortcut to save
+  useEffect(() => {
+    if (!goal) return;
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        onSave({ id: goal.id, target });
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [goal, target, onSave]);
 
   if (!goal) return null;
 
@@ -934,7 +958,7 @@ const GoalEditModal = ({ goal, onClose, onSave }: { goal: Goal | null; onClose: 
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><X className="w-5 h-5 text-gray-400" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className={`w-14 h-14 rounded-xl ${goal.color} flex items-center justify-center`}>{goal.icon}</div>
           <div>
@@ -987,6 +1011,16 @@ const DashboardContent = () => {
   const [expandedRevenueSource, setExpandedRevenueSource] = useState<string | null>(null);
   const [highlightedMonitorItem, setHighlightedMonitorItem] = useState<number | null>(null);
   const [reportToast, setReportToast] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Toast system
+  const [toasts, setToasts] = useState<{id:string;msg:string;type:string}[]>([]);
+  const addToast = (msg: string, type = 'success') => { const id = Date.now().toString(); setToasts(t => [...t, {id, msg, type}]); setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3000); };
+
+  // Confirm dialog states
+  const [deleteCampaignId, setDeleteCampaignId] = useState<string | null>(null);
+  const [confirmClearNotifications, setConfirmClearNotifications] = useState(false);
+  const [disconnectApiId, setDisconnectApiId] = useState<string | null>(null);
 
   // Modals
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
@@ -997,8 +1031,8 @@ const DashboardContent = () => {
 
   // Data
   const [notifications, setNotifications] = useState(initialNotifications);
-  const [leads, setLeads] = useState(allLeads);
-  const [campaigns, setCampaigns] = useState(allCampaigns);
+  const [leads, setLeads] = useState(() => { const s = loadMarketingLeads<LeadData>(); return s.length ? s : allLeads; });
+  const [campaigns, setCampaigns] = useState(() => { const s = loadMarketingCampaigns<CampaignData>(); return s.length ? s : allCampaigns; });
   const [settings, setSettings] = useState({ emailLeads: true, dailyReport: true, budgetAlerts: true, roasAlerts: false });
 
   // Goals
@@ -1008,6 +1042,10 @@ const DashboardContent = () => {
     { id: "3", name: tx("Umsatz Ziel", "Revenue Target"), target: 150000, current: 89460, unit: "€", icon: <DollarSign className="w-6 h-6 text-white" />, color: "bg-blue-500" },
     { id: "4", name: "Conversions", target: 250, current: 171, unit: "Conv.", icon: <ShoppingCart className="w-6 h-6 text-white" />, color: "bg-orange-500" },
   ]);
+
+  // Persist data to localStorage
+  useEffect(() => { saveMarketingCampaigns(campaigns); }, [campaigns]);
+  useEffect(() => { saveMarketingLeads(leads); }, [leads]);
 
   // Budget Data
   const budgetData: BudgetData[] = [
@@ -1117,8 +1155,8 @@ const DashboardContent = () => {
   }, [darkMode]);
 
   const [connections, setConnections] = useState<ApiConnection[]>([
-    { id: "meta", name: "Meta Ads", platform: "meta", connected: true, lastSync: "Vor 5 Min", accountName: "Flowstack GmbH", icon: <svg className="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>, color: "bg-blue-500" },
-    { id: "google", name: "Google Ads", platform: "google", connected: true, lastSync: "Vor 12 Min", accountName: "Flowstack", icon: <svg className="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>, color: "bg-emerald-500" },
+    { id: "meta", name: "Meta Ads", platform: "meta", connected: true, lastSync: tx("Vor 5 Min", "5 min ago"), accountName: "Flowstack GmbH", icon: <svg className="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>, color: "bg-blue-500" },
+    { id: "google", name: "Google Ads", platform: "google", connected: true, lastSync: tx("Vor 12 Min", "12 min ago"), accountName: "Flowstack", icon: <svg className="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>, color: "bg-emerald-500" },
     { id: "tiktok", name: "TikTok Ads", platform: "tiktok", connected: false, icon: <svg className="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>, color: "bg-pink-500" },
     { id: "linkedin", name: "LinkedIn Ads", platform: "linkedin", connected: false, icon: <svg className="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>, color: "bg-sky-500" },
   ]);
@@ -1167,17 +1205,17 @@ const DashboardContent = () => {
   const handleSort = (field: SortField) => { if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc"); else { setSortField(field); setSortDir("desc"); } setPage(1); };
   const handleExport = () => exportToCSV(filteredCampaigns, `campaigns-${dateRange}-${platform}.csv`);
   const handleMarkRead = (id: string) => setNotifications(n => n.map(x => x.id === id ? { ...x, read: true } : x));
-  const handleClearNotifications = () => setNotifications([]);
-  const handleLeadStatusChange = (id: string, status: LeadData["status"]) => setLeads(l => l.map(x => x.id === id ? { ...x, status } : x));
+  const handleClearNotifications = () => setConfirmClearNotifications(true);
+  const handleLeadStatusChange = (id: string, status: LeadData["status"]) => { setLeads(l => l.map(x => x.id === id ? { ...x, status } : x)); addToast(tx('Lead-Status aktualisiert', 'Lead status updated')); };
   const handleCampaignAction = (action: string, id: string) => {
     if (action === "view") setSelectedCampaign(campaigns.find(c => c.id === id) || null);
     else if (action === "toggle") setCampaigns(c => c.map(x => x.id === id ? { ...x, status: x.status === "active" ? "paused" : "active" } : x));
     else if (action === "duplicate") { const orig = campaigns.find(c => c.id === id); if (orig) setCampaigns(c => [...c, { ...orig, id: Date.now().toString(), name: orig.name + (lang === 'de' ? " (Kopie)" : " (Copy)") }]); }
-    else if (action === "delete") setCampaigns(c => c.filter(x => x.id !== id));
+    else if (action === "delete") setDeleteCampaignId(id);
     else if (action === "export") exportToCSV([campaigns.find(c => c.id === id)!], `campaign-${id}.csv`);
   };
   const handleToggleSetting = (key: keyof typeof settings) => setSettings(s => ({ ...s, [key]: !s[key] }));
-  const handleDisconnect = (id: string) => setConnections(c => c.map(x => x.id === id ? { ...x, connected: false, lastSync: undefined, accountName: undefined } : x));
+  const handleDisconnect = (id: string) => setDisconnectApiId(id);
 
   // Goal handlers
   const handleEditGoal = (id: string) => {
@@ -1187,6 +1225,7 @@ const DashboardContent = () => {
   const handleSaveGoal = (updatedGoal: { id: string; target: number }) => {
     setGoals(g => g.map(x => x.id === updatedGoal.id ? { ...x, target: updatedGoal.target } : x));
     setEditingGoal(null);
+    addToast(tx('Ziel gespeichert', 'Goal saved'));
   };
 
   // Create new campaign handler
@@ -1215,11 +1254,12 @@ const DashboardContent = () => {
   const handleGenerateReport = (reportName: string) => {
     setReportToast(reportName);
     setTimeout(() => setReportToast(null), 3000);
+    addToast(tx(`Report "${reportName}" wird generiert`, `Report "${reportName}" is being generated`));
   };
 
   // Lead contact handlers
   const handleEmailLead = (lead: LeadData) => {
-    window.location.href = `mailto:${lead.email}?subject=Anfrage zu ${lead.campaign}`;
+    window.location.href = `mailto:${lead.email}?subject=${tx("Anfrage zu", "Inquiry about")} ${lead.campaign}`;
   };
   const handleCallLead = (lead: LeadData) => {
     window.location.href = `tel:${lead.phone}`;
@@ -1245,13 +1285,61 @@ const DashboardContent = () => {
       <ConnectionModal isOpen={!!connectionModal} onClose={() => setConnectionModal(null)} connection={connectionModal} />
       <GoalEditModal goal={editingGoal} onClose={() => setEditingGoal(null)} onSave={handleSaveGoal} />
 
+      {/* Confirm Dialogs */}
+      <ConfirmDialog
+        open={!!deleteCampaignId}
+        title={tx('Kampagne löschen?', 'Delete campaign?')}
+        message={tx('Diese Kampagne wird unwiderruflich gelöscht.', 'This campaign will be permanently deleted.')}
+        confirmLabel={tx('Löschen', 'Delete')}
+        cancelLabel={tx('Abbrechen', 'Cancel')}
+        variant="danger"
+        onConfirm={() => { setCampaigns(c => c.filter(x => x.id !== deleteCampaignId)); addToast(tx('Kampagne gelöscht', 'Campaign deleted')); setDeleteCampaignId(null); }}
+        onCancel={() => setDeleteCampaignId(null)}
+      />
+      <ConfirmDialog
+        open={confirmClearNotifications}
+        title={tx('Benachrichtigungen löschen?', 'Clear notifications?')}
+        message={tx('Alle Benachrichtigungen werden gelöscht.', 'All notifications will be cleared.')}
+        confirmLabel={tx('Löschen', 'Clear')}
+        cancelLabel={tx('Abbrechen', 'Cancel')}
+        variant="warning"
+        onConfirm={() => { setNotifications([]); addToast(tx('Benachrichtigungen gelöscht', 'Notifications cleared')); setConfirmClearNotifications(false); }}
+        onCancel={() => setConfirmClearNotifications(false)}
+      />
+      <ConfirmDialog
+        open={!!disconnectApiId}
+        title={tx('Verbindung trennen?', 'Disconnect?')}
+        message={tx('Die API-Verbindung wird getrennt.', 'The API connection will be disconnected.')}
+        confirmLabel={tx('Trennen', 'Disconnect')}
+        cancelLabel={tx('Abbrechen', 'Cancel')}
+        variant="danger"
+        onConfirm={() => { setConnections(c => c.map(x => x.id === disconnectApiId ? { ...x, connected: false, lastSync: undefined, accountName: undefined } : x)); addToast(tx('Verbindung getrennt', 'Disconnected')); setDisconnectApiId(null); }}
+        onCancel={() => setDisconnectApiId(null)}
+      />
+
+      {/* Toast Notifications */}
+      {toasts.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-[110] flex flex-col gap-2">
+          {toasts.map(t => (
+            <div key={t.id} className={`px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white animate-in slide-in-from-bottom-2 fade-in duration-200 ${t.type === 'success' ? 'bg-emerald-500' : t.type === 'error' ? 'bg-red-500' : 'bg-gray-800'}`}>
+              {t.msg}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 z-40 hidden lg:flex flex-col">
+      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 z-40 hidden ${sidebarCollapsed ? '' : 'lg:flex'} flex-col transition-transform duration-300`}>
         <div className="p-6 flex items-center justify-between">
           <h1 className="text-xl font-bold flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center"><Zap className="w-5 h-5 text-white" /></div>Flowstack</h1>
-          <button onClick={() => setDarkMode(!darkMode)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
-            {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-gray-500" />}
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setDarkMode(!darkMode)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Design umschalten', 'Toggle theme')}>
+              {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-gray-500" />}
+            </button>
+            <button onClick={() => setSidebarCollapsed(true)} className="hidden lg:flex p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx("Sidebar einklappen", "Collapse sidebar")}>
+              <ChevronLeft className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
         </div>
         <nav className="px-4 space-y-1 flex-1 overflow-y-auto">
           <p className="text-xs text-gray-400 uppercase font-medium px-4 mb-2">{tx("Übersicht", "Overview")}</p>
@@ -1283,7 +1371,7 @@ const DashboardContent = () => {
         </nav>
         <div className="p-4">
           <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-            <p className="font-semibold mb-1">API Status</p>
+            <p className="font-semibold mb-1">{tx("API Status", "API Status")}</p>
             <p className="text-sm text-white/80 mb-3">{connections.filter(c => c.connected).length}/{connections.length} {tx("verbunden", "connected")}</p>
             <div className="flex gap-2">{connections.map(c => <div key={c.id} className={`w-2 h-2 rounded-full ${c.connected ? "bg-emerald-400" : "bg-white/30"}`} />)}</div>
           </div>
@@ -1291,13 +1379,16 @@ const DashboardContent = () => {
       </aside>
 
       {/* Main */}
-      <main className="lg:ml-64">
+      <main className={`transition-all duration-300 ${sidebarCollapsed ? '' : 'lg:ml-64'}`}>
         {/* Header */}
         <header className="sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-30">
           <div className="flex items-center justify-between px-6 py-4">
-            <div>
+            <div className="flex items-center gap-2">
+              {sidebarCollapsed && <button onClick={() => setSidebarCollapsed(false)} className="hidden lg:flex p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Sidebar ausklappen', 'Expand sidebar')}><ChevronRight className="w-5 h-5 text-gray-500" /></button>}
+              <div>
               <h1 className="text-2xl font-bold">{{ dashboard: "Dashboard", campaigns: tx("Kampagnen", "Campaigns"), leads: "Leads", funnel: tx("Funnel-Analyse", "Funnel Analysis"), goals: tx("Ziele & Tracking", "Goals & Tracking"), budget: "Budget Pacing", compare: tx("Zeitraum-Vergleich", "Period Comparison"), revenue: tx("Umsatz & Sales", "Revenue & Sales"), reports: "Reports", monitor: "Live Monitor", settings: tx("Einstellungen", "Settings") }[section]}</h1>
               <p className="text-sm text-gray-500">{section === "dashboard" ? `${dateLabels[dateRange]} · ${platform === "all" ? tx("Alle Plattformen", "All platforms") : platform}` : `${section === "campaigns" ? filteredCampaigns.length + tx(" Kampagnen", " campaigns") : section === "leads" ? filteredLeads.length + " Leads" : ""}`}</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="relative hidden md:block"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /><input type="text" placeholder={tx("Suchen...", "Search...")} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm w-64 focus:ring-2 focus:ring-purple-500 outline-none" /></div>
@@ -1401,7 +1492,7 @@ const DashboardContent = () => {
                             <td className="py-4 px-4 text-right">{formatNumber(c.impressions)}</td>
                             <td className="py-4 px-4 text-right">{formatPercent(c.ctr)}</td>
                             <td className="py-4 px-4 text-right">{formatPercent(c.cvr)}</td>
-                            <td className="py-4 px-4 text-right"><button onClick={e => { e.stopPropagation(); setActionCampaign(c); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><MoreHorizontal className="w-4 h-4 text-gray-400" /></button></td>
+                            <td className="py-4 px-4 text-right"><button onClick={e => { e.stopPropagation(); setActionCampaign(c); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" title={tx('Aktionen', 'Actions')}><MoreHorizontal className="w-4 h-4 text-gray-400" /></button></td>
                           </tr>
                         )];
                       }
@@ -1430,7 +1521,7 @@ const DashboardContent = () => {
                             <td className="py-4 px-4 text-right">{formatNumber(impressions)}</td>
                             <td className="py-4 px-4 text-right">{formatPercent(ctr)}</td>
                             <td className="py-4 px-4 text-right">{formatPercent(cvr)}</td>
-                            <td className="py-4 px-4 text-right"><button onClick={e => { e.stopPropagation(); setActionCampaign(c); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><MoreHorizontal className="w-4 h-4 text-gray-400" /></button></td>
+                            <td className="py-4 px-4 text-right"><button onClick={e => { e.stopPropagation(); setActionCampaign(c); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" title={tx('Aktionen', 'Actions')}><MoreHorizontal className="w-4 h-4 text-gray-400" /></button></td>
                           </tr>
                         );
                       });
@@ -1465,6 +1556,9 @@ const DashboardContent = () => {
                   ]}
                   icon={<Filter className="w-4 h-4 text-gray-500" />}
                 />
+                {(search || platform !== "all") && filteredCampaigns.length !== campaigns.length && (
+                  <span className="text-xs text-gray-400">{filteredCampaigns.length} / {campaigns.length}</span>
+                )}
                 <div className="flex-1" />
                 <button onClick={handleCreateCampaign} className="px-4 py-2 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 flex items-center gap-2"><Zap className="w-4 h-4" />{tx("Neue Kampagne", "New Campaign")}</button>
                 <button onClick={handleExport} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-2"><Download className="w-4 h-4" />Export</button>
@@ -1518,7 +1612,7 @@ const DashboardContent = () => {
                   ]}
                   icon={<Users className="w-4 h-4 text-gray-500" />}
                 />
-                <span className="text-sm text-gray-500">{filteredLeads.length} Leads</span>
+                <span className="text-sm text-gray-500">{filteredLeads.length} Leads{(search || platform !== "all" || leadStatusFilter !== "all") && filteredLeads.length !== leads.length ? <span className="text-xs text-gray-400 ml-1">/ {leads.length}</span> : null}</span>
               </div>
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
                 <table className="w-full">
