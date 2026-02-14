@@ -23,6 +23,7 @@ export interface NodeConnection {
   to: string;
   fromPort?: PortDirection;
   toPort?: PortDirection;
+  label?: string;
 }
 
 export type ArtifactSourceType = 'file' | 'text' | 'url' | 'website' | 'image';
@@ -40,6 +41,7 @@ export interface SystemOutput {
 export interface CanvasGroup {
   id: string;
   label: string;
+  description?: string;
   x: number;
   y: number;
   width: number;
@@ -111,6 +113,24 @@ export interface OnboardingFormData {
   specialRequirements: string;
 }
 
+export interface ExecutionLogEntry {
+  id: string;
+  timestamp: string;
+  status: 'success' | 'error' | 'warning' | 'running';
+  message: string;
+  nodeId?: string;
+  duration?: number; // ms
+}
+
+export interface WorkflowVersion {
+  id: string;
+  timestamp: string;
+  label?: string;
+  nodeCount: number;
+  connectionCount: number;
+  snapshot: string; // JSON stringified nodes + connections
+}
+
 export interface AutomationSystem {
   id: string;
   name: string;
@@ -126,4 +146,30 @@ export interface AutomationSystem {
   outputs: SystemOutput[];
   lastExecuted?: string;
   executionCount: number;
+  canvasZoom?: number;
+  canvasPan?: { x: number; y: number };
+  executionLog?: ExecutionLogEntry[];
+  versions?: WorkflowVersion[];
+}
+
+// ── Advanced Output Viewer Types ──────────────────────────────
+/** Extended output type for advanced viewers (json, table, csv) */
+export type AdvancedOutputType = OutputType | 'json' | 'table' | 'csv';
+
+/** Structured data for advanced output rendering */
+export interface AdvancedOutputData {
+  /** For json outputs: the JSON data to render in tree view */
+  jsonData?: unknown;
+  /** For table/csv outputs: header row */
+  tableHeaders?: string[];
+  /** For table/csv outputs: data rows */
+  tableRows?: string[][];
+  /** For image outputs: image URL for thumbnail / lightbox */
+  imageUrl?: string;
+}
+
+/** Extended SystemOutput with advanced viewer data */
+export interface AdvancedSystemOutput extends SystemOutput {
+  advancedType?: AdvancedOutputType;
+  advancedData?: AdvancedOutputData;
 }

@@ -59,6 +59,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Menu,
+  LayoutDashboard,
+  Cpu,
 } from "lucide-react";
 import { LanguageProvider, useLanguage } from '../i18n/LanguageContext';
 import ConfirmDialog, { useModalEsc } from '../components/ui/ConfirmDialog';
@@ -392,6 +394,8 @@ const CustomDropdown = <T extends string>({
 
 // Interactive Area Chart with Tooltips
 const AreaChart = ({ data, height = 300 }: { data: { date: string; value: number; value2: number }[]; height?: number }) => {
+  const { lang } = useLanguage();
+  const tx = (de: string, en: string) => lang === 'de' ? de : en;
   const [hovered, setHovered] = useState<number | null>(null);
   if (data.length === 0) return null;
 
@@ -537,12 +541,12 @@ const AreaChart = ({ data, height = 300 }: { data: { date: string; value: number
           <p className="text-gray-400 text-xs mb-3 font-medium">{data[hovered].date}</p>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-3 h-3 rounded-full bg-purple-500" />
-            <span className="text-gray-300">Spend</span>
+            <span className="text-gray-300">{tx("Ausgaben", "Spend")}</span>
             <span className="font-bold ml-auto">€{formatCurrency(data[hovered].value)}</span>
           </div>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-3 h-3 rounded-full bg-emerald-500" />
-            <span className="text-gray-300">Revenue</span>
+            <span className="text-gray-300">{tx("Umsatz", "Revenue")}</span>
             <span className="font-bold ml-auto">€{formatCurrency(data[hovered].value2)}</span>
           </div>
           <div className="pt-3 border-t border-gray-700 flex justify-between items-center">
@@ -608,7 +612,7 @@ const LeadDetailModal = ({ lead, onClose, onStatusChange, onEmail, onCall }: { l
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-lg w-full mx-4 shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className={`w-14 h-14 rounded-full ${colors.solid} flex items-center justify-center text-white text-xl font-bold`}>{lead.name.charAt(0)}</div>
@@ -748,7 +752,7 @@ const CampaignDetailModal = ({ campaign, onClose }: { campaign: CampaignData | n
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className={`w-3 h-3 rounded-full ${campaign.status === "active" ? "bg-emerald-500" : "bg-yellow-500"}`} />
@@ -791,7 +795,7 @@ const ConnectionModal = ({ isOpen, onClose, connection }: { isOpen: boolean; onC
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
         {step === "intro" && (
           <>
@@ -1007,7 +1011,7 @@ const GoalEditModal = ({ goal, onClose, onSave }: { goal: Goal | null; onClose: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-md w-full mx-4 shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className={`w-14 h-14 rounded-xl ${goal.color} flex items-center justify-center`}>{goal.icon}</div>
@@ -1405,7 +1409,7 @@ const DashboardContent = () => {
 
       {/* Toast Notifications */}
       {toasts.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-[110] flex flex-col gap-2">
+        <div className="fixed bottom-20 md:bottom-6 right-6 z-[110] flex flex-col gap-2">
           {toasts.map(t => (
             <div key={t.id} className={`px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white animate-in slide-in-from-bottom-2 fade-in duration-200 ${t.type === 'success' ? 'bg-emerald-500' : t.type === 'error' ? 'bg-red-500' : 'bg-gray-800'}`}>
               {t.msg}
@@ -1451,8 +1455,8 @@ const DashboardContent = () => {
           ))}
           <p className="text-xs text-gray-400 uppercase font-medium px-4 mt-6 mb-2">{tx("System", "System")}</p>
           {([
-            { icon: <PieChart className="w-5 h-5" />, label: "Reports", key: "reports" },
-            { icon: <Activity className="w-5 h-5" />, label: "Live Monitor", key: "monitor" },
+            { icon: <PieChart className="w-5 h-5" />, label: tx("Reports", "Reports"), key: "reports" },
+            { icon: <Activity className="w-5 h-5" />, label: tx("Live Monitor", "Live Monitor"), key: "monitor" },
             { icon: <Settings className="w-5 h-5" />, label: tx("Einstellungen", "Settings"), key: "settings" },
           ] as const).map(i => (
             <button key={i.key} onClick={() => { setSection(i.key); setPage(1); setMobileSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${section === i.key ? "bg-purple-50 dark:bg-purple-500/10 text-purple-600 font-medium" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"}`}>{i.icon}{i.label}</button>
@@ -1468,30 +1472,30 @@ const DashboardContent = () => {
       </aside>
 
       {/* Main */}
-      <main className={`transition-all duration-300 ${sidebarCollapsed ? '' : 'lg:ml-64'}`}>
+      <main className={`transition-all duration-300 pb-20 md:pb-0 ${sidebarCollapsed ? '' : 'lg:ml-64'}`}>
         {/* Header */}
         <header className="sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-30">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4">
             <div className="flex items-center gap-2">
               <button onClick={() => setMobileSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Menü öffnen', 'Open menu')}><Menu className="w-5 h-5 text-gray-500" /></button>
               {sidebarCollapsed && <button onClick={() => setSidebarCollapsed(false)} className="hidden lg:flex p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Sidebar ausklappen', 'Expand sidebar')}><ChevronRight className="w-5 h-5 text-gray-500" /></button>}
               <div>
-              <h1 className="text-2xl font-bold">{{ dashboard: "Dashboard", campaigns: tx("Kampagnen", "Campaigns"), leads: "Leads", funnel: tx("Funnel-Analyse", "Funnel Analysis"), goals: tx("Ziele & Tracking", "Goals & Tracking"), budget: "Budget Pacing", compare: tx("Zeitraum-Vergleich", "Period Comparison"), revenue: tx("Umsatz & Sales", "Revenue & Sales"), reports: "Reports", monitor: "Live Monitor", settings: tx("Einstellungen", "Settings") }[section]}</h1>
-              <p className="text-sm text-gray-500">{section === "dashboard" ? `${dateLabels[dateRange]} · ${platform === "all" ? tx("Alle Plattformen", "All platforms") : platform}` : `${section === "campaigns" ? filteredCampaigns.length + tx(" Kampagnen", " campaigns") : section === "leads" ? filteredLeads.length + " Leads" : ""}`}</p>
+              <h1 className="text-xl sm:text-2xl font-bold">{{ dashboard: "Dashboard", campaigns: tx("Kampagnen", "Campaigns"), leads: "Leads", funnel: tx("Funnel-Analyse", "Funnel Analysis"), goals: tx("Ziele & Tracking", "Goals & Tracking"), budget: tx("Budget Pacing", "Budget Pacing"), compare: tx("Zeitraum-Vergleich", "Period Comparison"), revenue: tx("Umsatz & Sales", "Revenue & Sales"), reports: tx("Reports", "Reports"), monitor: tx("Live Monitor", "Live Monitor"), settings: tx("Einstellungen", "Settings") }[section]}</h1>
+              <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">{section === "dashboard" ? `${dateLabels[dateRange]} · ${platform === "all" ? tx("Alle Plattformen", "All platforms") : platform}` : `${section === "campaigns" ? filteredCampaigns.length + tx(" Kampagnen", " campaigns") : section === "leads" ? filteredLeads.length + " Leads" : ""}`}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <div className="relative hidden md:block"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /><input type="text" placeholder={tx("Suchen...", "Search...")} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm w-64 focus:ring-2 focus:ring-purple-500 outline-none" /></div>
               <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-0.5">
                 <button onClick={() => setLang('de')} className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${lang === 'de' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>DE</button>
                 <button onClick={() => setLang('en')} className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${lang === 'en' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>EN</button>
               </div>
               <NotificationDropdown notifications={notifications} onMarkRead={handleMarkRead} onClear={handleClearNotifications} />
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">K</div>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold hidden sm:flex">K</div>
             </div>
           </div>
           {section === "dashboard" && (
-            <div className="flex items-center gap-4 px-6 py-3 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 border-t border-gray-100 dark:border-gray-800">
               <CustomDropdown
                 value={dateRange}
                 onChange={setDateRange}
@@ -1526,13 +1530,13 @@ const DashboardContent = () => {
                 icon={<Filter className="w-4 h-4 text-gray-500" />}
               />
               <div className="flex-1" />
-              <button onClick={handleRefresh} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />{tx("Aktualisieren", "Refresh")}</button>
-              <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white text-sm font-medium rounded-xl hover:bg-purple-600"><Download className="w-4 h-4" />Export</button>
+              <button onClick={handleRefresh} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} /><span className="hidden sm:inline">{tx("Aktualisieren", "Refresh")}</span></button>
+              <button onClick={handleExport} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-500 text-white text-sm font-medium rounded-xl hover:bg-purple-600"><Download className="w-4 h-4" /><span className="hidden sm:inline">{tx("Exportieren", "Export")}</span></button>
             </div>
           )}
         </header>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           {/* DASHBOARD */}
           {section === "dashboard" && (
             <>
@@ -1651,7 +1655,7 @@ const DashboardContent = () => {
                 )}
                 <div className="flex-1" />
                 <button onClick={handleCreateCampaign} className="px-4 py-2 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 flex items-center gap-2"><Zap className="w-4 h-4" />{tx("Neue Kampagne", "New Campaign")}</button>
-                <button onClick={handleExport} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-2"><Download className="w-4 h-4" />Export</button>
+                <button onClick={handleExport} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-2"><Download className="w-4 h-4" />{tx("Exportieren", "Export")}</button>
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredCampaigns.map(c => {
@@ -1671,7 +1675,7 @@ const DashboardContent = () => {
           {/* LEADS */}
           {section === "leads" && (
             <div className="space-y-6">
-              <div className="grid md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[{ l: tx("Gesamt", "Total"), v: filteredLeads.length }, { l: tx("Neu", "New"), v: filteredLeads.filter(l => l.status === "new").length, c: "text-purple-500" }, { l: tx("Qualifiziert", "Qualified"), v: filteredLeads.filter(l => l.status === "qualified").length, c: "text-emerald-500" }, { l: tx("Konvertiert", "Converted"), v: filteredLeads.filter(l => l.status === "converted").length, c: "text-blue-500" }].map((s, i) => (
                   <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-500 mb-1">{s.l}</p><p className={`text-3xl font-bold ${s.c || ""}`}>{s.v}</p></div>
                 ))}
@@ -1704,8 +1708,8 @@ const DashboardContent = () => {
                 />
                 <span className="text-sm text-gray-500">{filteredLeads.length} Leads{(search || platform !== "all" || leadStatusFilter !== "all") && filteredLeads.length !== leads.length ? <span className="text-xs text-gray-400 ml-1">/ {leads.length}</span> : null}</span>
               </div>
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-                <table className="w-full">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-x-auto">
+                <table className="w-full min-w-[640px]">
                   <thead><tr className="border-b border-gray-100 dark:border-gray-800 text-left text-sm text-gray-500"><th className="py-3 px-4 font-medium">{tx("Name", "Name")}</th><th className="py-3 px-4 font-medium">{tx("E-Mail", "Email")}</th><th className="py-3 px-4 font-medium">{tx("Quelle", "Source")}</th><th className="py-3 px-4 font-medium">{tx("Kampagne", "Campaign")}</th><th className="py-3 px-4 font-medium">{tx("Status", "Status")}</th><th className="py-3 px-4 font-medium">{tx("Wert", "Value")}</th><th className="py-3 px-4 font-medium">{tx("Datum", "Date")}</th></tr></thead>
                   <tbody>{filteredLeads.length === 0 ? (
                     <tr><td colSpan={7} className="py-8 text-center text-gray-400">{tx("Keine Leads gefunden.", "No leads found.")}</td></tr>
@@ -1832,7 +1836,7 @@ const DashboardContent = () => {
           {/* BUDGET */}
           {section === "budget" && (
             <div className="space-y-6">
-              <div className="grid md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
                   <p className="text-sm text-gray-500 mb-1">{tx("Gesamt-Budget", "Total Budget")}</p>
                   <p className="text-3xl font-bold">€{formatCurrency(budgetData.reduce((s, b) => s + b.budget, 0))}</p>
@@ -1968,7 +1972,7 @@ const DashboardContent = () => {
               </div>
 
               {/* KPI Cards */}
-              <div className="grid md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: tx("Gesamtumsatz", "Total Revenue"), value: `€${formatCurrency(revenueTotalCurrent)}`, icon: <DollarSign className="w-5 h-5" />, change: "+12.4%", up: true, color: "bg-emerald-500" },
                   { label: tx("Abschlüsse", "Deals Closed"), value: revenueTotalDeals.toString(), icon: <Briefcase className="w-5 h-5" />, change: "+8.2%", up: true, color: "bg-purple-500" },
@@ -2095,7 +2099,7 @@ const DashboardContent = () => {
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
                 <h3 className="font-semibold mb-2">{tx("Dauer: Marketing-Kontakt → Sale", "Duration: Marketing Contact → Sale")}</h3>
                 <p className="text-sm text-gray-500 mb-6">{tx("Wie lange ein Kunde vom ersten Marketing-Kontakt bis zum Abschluss braucht", "How long a customer takes from first marketing contact to close")}</p>
-                <div className="grid md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   {[
                     { range: "0–7 " + tx("Tage", "days"), count: 8, pct: 16.3, color: "bg-emerald-500" },
                     { range: "8–14 " + tx("Tage", "days"), count: 14, pct: 28.6, color: "bg-blue-500" },
@@ -2223,7 +2227,7 @@ const DashboardContent = () => {
           {section === "monitor" && (
             <div className="space-y-6">
               <div className="flex items-center gap-3"><div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" /><span className="text-sm text-gray-500">{tx("Live – Updates alle 30s", "Live – Updates every 30s")}</span></div>
-              <div className="grid md:grid-cols-4 gap-4">{[{ l: tx("Aktive Nutzer", "Active users"), v: "247", t: "+12" }, { l: tx("Klicks/Std", "Clicks/hr"), v: "1,842", t: "+89" }, { l: tx("Conv. heute", "Conv. today"), v: "23", t: "+5" }, { l: tx("Ausgaben heute", "Spend today"), v: `€${formatCurrency(Math.round(metrics.totalSpend * 0.15))}`, t: "" }].map((s, i) => (<div key={i} className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-500 mb-1">{s.l}</p><div className="flex items-end gap-2"><p className="text-3xl font-bold">{s.v}</p>{s.t && <span className="text-sm text-emerald-500 mb-1">{s.t}</span>}</div></div>))}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[{ l: tx("Aktive Nutzer", "Active users"), v: "247", t: "+12" }, { l: tx("Klicks/Std", "Clicks/hr"), v: "1,842", t: "+89" }, { l: tx("Conv. heute", "Conv. today"), v: "23", t: "+5" }, { l: tx("Ausgaben heute", "Spend today"), v: `€${formatCurrency(Math.round(metrics.totalSpend * 0.15))}`, t: "" }].map((s, i) => (<div key={i} className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800"><p className="text-sm text-gray-500 mb-1">{s.l}</p><div className="flex items-end gap-2"><p className="text-3xl font-bold">{s.v}</p>{s.t && <span className="text-sm text-emerald-500 mb-1">{s.t}</span>}</div></div>))}</div>
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800"><h3 className="font-semibold mb-6">{tx("Live Activity", "Live Activity")}</h3><div className="space-y-2">{[{ t: tx("Gerade", "Just now"), e: tx("Neuer Lead", "New lead"), d: "Google Search", c: "bg-emerald-500", nav: "leads" as ActiveSection }, { t: tx("Vor 2 Min", "2 min ago"), e: tx("Conversion", "Conversion"), d: tx("Meta Retargeting – €2.500", "Meta Retargeting – €2,500"), c: "bg-purple-500", nav: "revenue" as ActiveSection }, { t: tx("Vor 5 Min", "5 min ago"), e: tx("Neuer Lead", "New lead"), d: "Meta Awareness", c: "bg-emerald-500", nav: "leads" as ActiveSection }, { t: tx("Vor 8 Min", "8 min ago"), e: tx("Klick-Spike", "Click spike"), d: "+45% in 10 Min", c: "bg-blue-500", nav: "campaigns" as ActiveSection }, { t: tx("Vor 12 Min", "12 min ago"), e: tx("Neuer Lead", "New lead"), d: "LinkedIn B2B", c: "bg-emerald-500", nav: "leads" as ActiveSection }].map((a, i) => (<div key={i} onClick={() => { setHighlightedMonitorItem(i); setTimeout(() => { setSection(a.nav); setHighlightedMonitorItem(null); }, 600); }} className={`flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${highlightedMonitorItem === i ? "bg-purple-50 dark:bg-purple-500/10 ring-1 ring-purple-300 dark:ring-purple-500/30 scale-[1.01]" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}><div className={`w-2 h-2 rounded-full ${a.c} ${i === 0 ? "animate-pulse" : ""}`} /><span className="text-sm text-gray-400 w-24">{a.t}</span><span className="font-medium">{a.e}</span><span className="text-sm text-gray-500 flex-1">{a.d}</span><ChevronRight className="w-4 h-4 text-gray-300" /></div>))}</div></div>
             </div>
           )}
@@ -2241,7 +2245,7 @@ const DashboardContent = () => {
                         <div className={`w-3 h-3 rounded-full ${c.connected ? "bg-emerald-500" : "bg-gray-300"}`} />
                       </div>
                       {c.connected ? (
-                        <div className="flex gap-2"><button onClick={handleRefresh} className="flex-1 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center gap-2"><RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />Sync</button><button onClick={() => handleDisconnect(c.id)} className="flex-1 py-2 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl">{tx("Trennen", "Disconnect")}</button></div>
+                        <div className="flex gap-2"><button onClick={handleRefresh} className="flex-1 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center gap-2"><RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />{tx("Sync", "Sync")}</button><button onClick={() => handleDisconnect(c.id)} className="flex-1 py-2 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl">{tx("Trennen", "Disconnect")}</button></div>
                       ) : (
                         <button onClick={() => setConnectionModal(c)} className="w-full py-3 bg-purple-500 text-white font-medium rounded-xl hover:bg-purple-600 flex items-center justify-center gap-2">{tx("Verbinden", "Connect")}<ExternalLink className="w-4 h-4" /></button>
                       )}
@@ -2264,6 +2268,22 @@ const DashboardContent = () => {
           )}
         </div>
       </main>
+
+      {/* ─── Mobile Bottom Navigation ─── */}
+      <nav className="bottom-nav md:hidden">
+        {[
+          { icon: LayoutDashboard, label: tx('Übersicht', 'Overview'), href: '/dashboard', active: true },
+          { icon: Calendar, label: 'Hub', href: '/hub', active: false },
+          { icon: FileText, label: 'Content', href: '/content', active: false },
+          { icon: Cpu, label: lang === 'de' ? 'Systeme' : 'Systems', href: '/system', active: false },
+          { icon: Mail, label: 'Cold Mail', href: '/cold-mail', active: false },
+        ].map(item => (
+          <a key={item.href} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 transition-colors text-[10px] font-medium ${item.active ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400 dark:text-zinc-500'}`}>
+            <item.icon className="w-5 h-5" />
+            <span>{item.label}</span>
+          </a>
+        ))}
+      </nav>
     </div>
   );
 };

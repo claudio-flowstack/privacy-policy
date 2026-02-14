@@ -17,7 +17,7 @@ import {
   Maximize2, Minimize2, ZoomIn, ZoomOut, Crosshair, ChevronDown,
   Undo2, Redo2, Magnet, HelpCircle, Copy, Scissors,
   Download, GitBranch, StickyNote as StickyNoteIcon,
-  X, Bold, Italic, Paperclip,
+  X, Bold, Italic, Paperclip, Link2,
   Bot, Brain, Workflow, Filter, Timer, ShieldCheck,
   Bell, LayoutDashboard, Webhook, Split, Repeat, FileSearch,
   MessageSquare, Gauge, Lock, Cpu, Layers, Settings,
@@ -74,12 +74,12 @@ const NODE_STYLES: Record<NodeType, { bg: string; border: string; accent: string
 };
 
 const GROUP_COLORS: Record<string, { bg: string; border: string; text: string; name: string }> = {
-  blue:   { bg: 'rgba(59,130,246,0.05)',  border: 'rgba(59,130,246,0.18)',  text: 'rgba(59,130,246,0.55)',  name: 'Blau' },
-  green:  { bg: 'rgba(16,185,129,0.05)',  border: 'rgba(16,185,129,0.18)',  text: 'rgba(16,185,129,0.55)',  name: 'Grün' },
-  purple: { bg: 'rgba(139,92,246,0.05)',  border: 'rgba(139,92,246,0.18)',  text: 'rgba(139,92,246,0.55)',  name: 'Lila' },
-  orange: { bg: 'rgba(245,158,11,0.05)',  border: 'rgba(245,158,11,0.18)',  text: 'rgba(245,158,11,0.55)',  name: 'Orange' },
-  red:    { bg: 'rgba(239,68,68,0.05)',   border: 'rgba(239,68,68,0.18)',   text: 'rgba(239,68,68,0.55)',   name: 'Rot' },
-  gray:   { bg: 'rgba(107,114,128,0.04)', border: 'rgba(107,114,128,0.15)', text: 'rgba(107,114,128,0.45)', name: 'Grau' },
+  blue:   { bg: 'rgba(59,130,246,0.10)',  border: 'rgba(59,130,246,0.30)',  text: 'rgba(59,130,246,0.70)',  name: 'Blau' },
+  green:  { bg: 'rgba(16,185,129,0.10)',  border: 'rgba(16,185,129,0.30)',  text: 'rgba(16,185,129,0.70)',  name: 'Grün' },
+  purple: { bg: 'rgba(139,92,246,0.10)',  border: 'rgba(139,92,246,0.30)',  text: 'rgba(139,92,246,0.70)',  name: 'Lila' },
+  orange: { bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.30)',  text: 'rgba(245,158,11,0.70)',  name: 'Orange' },
+  red:    { bg: 'rgba(239,68,68,0.10)',   border: 'rgba(239,68,68,0.30)',   text: 'rgba(239,68,68,0.70)',   name: 'Rot' },
+  gray:   { bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', text: 'rgba(107,114,128,0.60)', name: 'Grau' },
 };
 
 const STICKY_COLORS: Record<StickyNoteColor, { bg: string; border: string; text: string; name: string; shadow: string }> = {
@@ -344,49 +344,12 @@ interface CanvasSnapshot {
   connections: NodeConnection[];
   groups: CanvasGroup[];
   stickyNotes: StickyNote[];
+  stickyConnections?: Array<{ stickyId: string; nodeId: string }>;
 }
 
-// ─── Palette Templates ───────────────────────────────────────────────────────
-
-interface PaletteItem {
-  icon: string;
-  tKey: string;        // Translation key for the label
-  label?: string;      // Direct label (fallback for tool logos)
-  type: NodeType;
-}
-
-const PALETTE_ITEMS: PaletteItem[] = [
-  // ── Trigger ──
-  { icon: 'logo-zapier', tKey: 'palette.trigger', type: 'trigger' },
-  { icon: 'webhook', tKey: 'palette.webhook', type: 'trigger' },
-  // ── KI / AI ──
-  { icon: 'logo-openai', tKey: 'palette.aiStep', type: 'ai' },
-  { icon: 'logo-claude', tKey: 'palette.aiAgent', type: 'ai' },
-  { icon: 'logo-openai', tKey: 'palette.aiAnalysis', type: 'ai' },
-  // ── Process ──
-  { icon: 'logo-google-sheets', tKey: 'palette.data', type: 'process' },
-  { icon: 'filter', tKey: 'palette.filter', type: 'process' },
-  { icon: 'split', tKey: 'palette.split', type: 'process' },
-  { icon: 'repeat', tKey: 'palette.loop', type: 'process' },
-  { icon: 'timer', tKey: 'palette.timer', type: 'process' },
-  { icon: 'shield-check', tKey: 'palette.approval', type: 'process' },
-  { icon: 'file-search', tKey: 'palette.search', type: 'process' },
-  { icon: 'logo-make', tKey: 'palette.processor', type: 'process' },
-  { icon: 'layers', tKey: 'palette.multiStep', type: 'process' },
-  { icon: 'settings', tKey: 'palette.config', type: 'process' },
-  { icon: 'logo-n8n', tKey: 'palette.workflow', type: 'process' },
-  // ── Output ──
-  { icon: 'logo-wordpress', tKey: 'palette.website', type: 'output' },
-  { icon: 'logo-google-docs', tKey: 'palette.document', type: 'output' },
-  { icon: 'logo-gmail', tKey: 'palette.email', type: 'output' },
-  { icon: 'logo-slack', tKey: 'palette.send', type: 'output' },
-  { icon: 'logo-google-ads', tKey: 'palette.ads', type: 'output' },
-  { icon: 'bell', tKey: 'palette.notification', type: 'output' },
-  { icon: 'logo-google-analytics', tKey: 'palette.dashboard', type: 'output' },
-  { icon: 'logo-whatsapp', tKey: 'palette.chat', type: 'output' },
-  { icon: 'gauge', tKey: 'palette.monitoring', type: 'output' },
-  { icon: 'lock', tKey: 'palette.auth', type: 'output' },
-];
+// ─── Palette Templates (shared) ──────────────────────────────────────────────
+import { PALETTE_ITEMS } from '@/data/paletteItems';
+import type { PaletteItem } from '@/data/paletteItems';
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
@@ -437,6 +400,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(!readOnly && !initialSystem);
   const [paletteTab, setPaletteTab] = useState<'generic' | 'tools' | 'groups'>('generic');
+  const [paletteSearch, setPaletteSearch] = useState('');
   const [scrollSpeed, setScrollSpeed] = useState(3); // 1-5, default 3
   const [phaseDropdownOpen, setPhaseDropdownOpen] = useState(false);
   const [showCanvasSettings, setShowCanvasSettings] = useState(false);
@@ -464,6 +428,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   // Presentation mode
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [presBarVisible, setPresBarVisible] = useState(true);
+  const [presEditEnabled, setPresEditEnabled] = useState(false);
 
   // Auto-fade presentation bar after 3 seconds
   useEffect(() => {
@@ -483,9 +448,39 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   const [editLinkedPage, setEditLinkedPage] = useState<string>('');
   const [editGroupId, setEditGroupId] = useState<string | null>(null);
   const [editGroupLabel, setEditGroupLabel] = useState('');
+  const [editGroupDesc, setEditGroupDesc] = useState('');
 
   const [systemName, setSystemName] = useState(initialSystem?.name || '');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // Sync state when switching between systems (initialSystem changes)
+  const prevSystemIdRef = useRef(initialSystem?.id);
+  useEffect(() => {
+    if (initialSystem && initialSystem.id !== prevSystemIdRef.current) {
+      prevSystemIdRef.current = initialSystem.id;
+      setNodes(initialSystem.nodes || []);
+      setConnections(initialSystem.connections || []);
+      setGroups(initialSystem.groups || []);
+      setStickyNotes(initialSystem.stickyNotes || []);
+      setSystemName(initialSystem.name || '');
+      setSelectedNodeId(null);
+      setSelectedConnId(null);
+      setSelectedGroupId(null);
+      setMultiSelectedIds(new Set());
+      setSaveState('idle');
+      // Restore saved zoom/pan if available
+      if (initialSystem.canvasZoom != null) setZoom(initialSystem.canvasZoom);
+      if (initialSystem.canvasPan) setPan(initialSystem.canvasPan);
+      // Reset last-saved snapshot for discard tracking
+      lastSavedStateRef.current = {
+        nodes: initialSystem.nodes || [],
+        connections: initialSystem.connections || [],
+        groups: initialSystem.groups || [],
+        stickyNotes: initialSystem.stickyNotes || [],
+      };
+      setHasUnsavedChanges(false);
+    }
+  }, [initialSystem]);
 
   // #13 – Snap toggle
   const [snapEnabled, setSnapEnabled] = useState(true);
@@ -498,6 +493,13 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   const [executionDone, setExecutionDone] = useState(false);
   // #3 – refs for timeout cleanup
   const executionTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const handleSaveRef = useRef<(() => void) | null>(null);
+
+  // Clipboard for copy/paste
+  const [clipboard, setClipboard] = useState<{ nodes: SystemNode[]; connections: NodeConnection[] } | null>(null);
+
+  // Rubber-band selection box
+  const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
 
   // Derived execution state: prefer external event-system states when available
   const externalRunning = useMemo(() => {
@@ -524,11 +526,13 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   // #21 – Context menu
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string; groupId?: string; connIdx?: number; stickyId?: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string; groupId?: string; connIdx?: number; stickyId?: string; canvasPos?: { x: number; y: number } } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'node' | 'nodes' | 'connection' | 'group' | 'sticky'; ids?: string[]; connIdx?: number } | null>(null);
 
   // #10 – Connection hover
   const [hoveredConnId, setHoveredConnId] = useState<number | null>(null);
+  // Connection label editing
+  const [editingConnLabel, setEditingConnLabel] = useState<{ connIdx: number; label: string } | null>(null);
   // Node hover (for showing ports)
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
@@ -548,6 +552,26 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   const [editStickyTextColor, setEditStickyTextColor] = useState('');
   const [editStickyFontSize, setEditStickyFontSize] = useState(12);
 
+  // ─── Sticky-to-Node Connections (#40) ─────────────────────────────────────
+  const [stickyConnections, setStickyConnections] = useState<Array<{ stickyId: string; nodeId: string }>>([]);
+  const [connectingStickyId, setConnectingStickyId] = useState<string | null>(null);
+  const [stickyConnMousePos, setStickyConnMousePos] = useState<{ x: number; y: number } | null>(null);
+
+  // ─── Touch state for pinch-to-zoom & touch interactions ──────────────────
+  const touchStateRef = useRef<{
+    lastDistance: number;
+    lastCenter: { x: number; y: number };
+    isTouchPanning: boolean;
+    touchNodeId: string | null;
+    touchNodeOffset: { x: number; y: number };
+  }>({
+    lastDistance: 0,
+    lastCenter: { x: 0, y: 0 },
+    isTouchPanning: false,
+    touchNodeId: null,
+    touchNodeOffset: { x: 0, y: 0 },
+  });
+
   // Drag & drop from palette
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -557,38 +581,56 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
+  // ── Discard changes: track last saved state ──
+  const lastSavedStateRef = useRef<CanvasSnapshot>({
+    nodes: initialSystem?.nodes || [],
+    connections: initialSystem?.connections || [],
+    groups: initialSystem?.groups || [],
+    stickyNotes: initialSystem?.stickyNotes || [],
+  });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
   const pushHistory = useCallback(() => {
-    undoStackRef.current = [...undoStackRef.current.slice(-40), { nodes, connections, groups, stickyNotes }];
+    undoStackRef.current = [...undoStackRef.current.slice(-40), { nodes, connections, groups, stickyNotes, stickyConnections }];
     redoStackRef.current = [];
     setCanUndo(true);
     setCanRedo(false);
-  }, [nodes, connections, groups, stickyNotes]);
+  }, [nodes, connections, groups, stickyNotes, stickyConnections]);
 
   const historyUndo = useCallback(() => {
     if (undoStackRef.current.length === 0) return;
     const prev = undoStackRef.current[undoStackRef.current.length - 1];
     undoStackRef.current = undoStackRef.current.slice(0, -1);
-    redoStackRef.current = [{ nodes, connections, groups, stickyNotes }, ...redoStackRef.current];
+    redoStackRef.current = [{ nodes, connections, groups, stickyNotes, stickyConnections }, ...redoStackRef.current];
     setNodes(prev.nodes);
     setConnections(prev.connections);
     setGroups(prev.groups);
     setStickyNotes(prev.stickyNotes);
+    setStickyConnections(prev.stickyConnections || []);
     setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(true);
-  }, [nodes, connections, groups, stickyNotes]);
+  }, [nodes, connections, groups, stickyNotes, stickyConnections]);
 
   const historyRedo = useCallback(() => {
     if (redoStackRef.current.length === 0) return;
     const next = redoStackRef.current[0];
     redoStackRef.current = redoStackRef.current.slice(1);
-    undoStackRef.current = [...undoStackRef.current, { nodes, connections, groups, stickyNotes }];
+    undoStackRef.current = [...undoStackRef.current, { nodes, connections, groups, stickyNotes, stickyConnections }];
     setNodes(next.nodes);
     setConnections(next.connections);
     setGroups(next.groups);
     setStickyNotes(next.stickyNotes);
+    setStickyConnections(next.stickyConnections || []);
     setCanUndo(true);
     setCanRedo(redoStackRef.current.length > 0);
-  }, [nodes, connections, groups, stickyNotes]);
+  }, [nodes, connections, groups, stickyNotes, stickyConnections]);
+
+  // ── Track unsaved changes by comparing to lastSavedState ──
+  useEffect(() => {
+    const saved = lastSavedStateRef.current;
+    const changed = JSON.stringify({ nodes, connections, groups, stickyNotes, stickyConnections }) !== JSON.stringify({ nodes: saved.nodes, connections: saved.connections, groups: saved.groups, stickyNotes: saved.stickyNotes, stickyConnections: saved.stickyConnections || [] });
+    setHasUnsavedChanges(changed);
+  }, [nodes, connections, groups, stickyNotes, stickyConnections]);
 
   // Refs for wheel handler (avoid stale closures)
   const zoomRef = useRef(zoom);
@@ -831,11 +873,13 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
         if (contextMenu) { setContextMenu(null); return; }
         if (searchOpen) { setSearchOpen(false); setSearchQuery(''); return; }
         if (showShortcuts) { setShowShortcuts(false); return; }
+        if (connectingStickyId) { setConnectingStickyId(null); setStickyConnMousePos(null); return; }
         if (connectState) { setConnectState(null); return; }
         // #6 – reset icon picker
         if (editNode) { setEditNode(null); setShowIconPicker(false); return; }
         if (editGroupId) { setEditGroupId(null); return; }
         if (editStickyId) { setEditStickyId(null); return; }
+        if (editingConnLabel) { setEditingConnLabel(null); return; }
         // #7 – clear snap lines
         setSnapLines({ x: [], y: [] });
         setEqualSpacingGuides([]);
@@ -853,6 +897,40 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
         historyRedo();
       }
 
+      // Copy (Ctrl+C)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c' && !editNode && !editGroupId && !editStickyId && !readOnly) {
+        const ids = multiSelectedIds.size > 0 ? multiSelectedIds : (selectedNodeId ? new Set([selectedNodeId]) : new Set<string>());
+        if (ids.size > 0) {
+          e.preventDefault();
+          const copiedNodes = nodes.filter(n => ids.has(n.id));
+          const copiedConns = connections.filter(c => ids.has(c.from) && ids.has(c.to));
+          setClipboard({ nodes: copiedNodes, connections: copiedConns });
+          showToast(lang === 'en' ? `${copiedNodes.length} node(s) copied` : `${copiedNodes.length} Node(s) kopiert`);
+        }
+      }
+
+      // Paste (Ctrl+V)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'v' && !editNode && !editGroupId && !editStickyId && !readOnly && clipboard) {
+        e.preventDefault();
+        pushHistory();
+        const idMap = new Map<string, string>();
+        const newNodes: SystemNode[] = clipboard.nodes.map(n => {
+          const newId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          idMap.set(n.id, newId);
+          return { ...n, id: newId, x: n.x + 40, y: n.y + 40 };
+        });
+        const newConns = clipboard.connections
+          .filter(c => idMap.has(c.from) && idMap.has(c.to))
+          .map(c => ({ ...c, from: idMap.get(c.from)!, to: idMap.get(c.to)! }));
+        setNodes(prev => [...prev, ...newNodes]);
+        setConnections(prev => [...prev, ...newConns]);
+        setMultiSelectedIds(new Set(newNodes.map(n => n.id)));
+        setSelectedNodeId(null);
+        // Update clipboard offset for subsequent pastes
+        setClipboard({ nodes: newNodes, connections: newConns });
+        showToast(lang === 'en' ? `${newNodes.length} node(s) pasted` : `${newNodes.length} Node(s) eingefügt`);
+      }
+
       // #23 – Search shortcut
       if ((e.metaKey || e.ctrlKey) && e.key === 'f' && !readOnly) {
         e.preventDefault();
@@ -865,23 +943,56 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       }
 
       if ((e.key === 'Delete' || e.key === 'Backspace') && !editNode && !editGroupId && !editStickyId && !readOnly && !searchOpen) {
-        // Multi-select delete
+        // Direct delete with undo support (no confirmation dialog)
         if (multiSelectedIds.size > 0) {
-          setDeleteConfirm({ type: 'nodes', ids: Array.from(multiSelectedIds) });
+          pushHistory();
+          const idSet = new Set(multiSelectedIds);
+          setNodes(prev => prev.filter(n => !idSet.has(n.id)));
+          setConnections(prev => prev.filter(c => !idSet.has(c.from) && !idSet.has(c.to)));
+          setStickyConnections(prev => prev.filter(sc => !idSet.has(sc.nodeId)));
+          setMultiSelectedIds(new Set());
           return;
         }
         if (selectedNodeId) {
-          setDeleteConfirm({ type: 'node', ids: [selectedNodeId] });
+          pushHistory();
+          setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
+          setConnections(prev => prev.filter(c => c.from !== selectedNodeId && c.to !== selectedNodeId));
+          setStickyConnections(prev => prev.filter(sc => sc.nodeId !== selectedNodeId));
+          setSelectedNodeId(null);
+          return;
         }
         if (selectedConnId !== null) {
-          setDeleteConfirm({ type: 'connection', connIdx: selectedConnId });
+          pushHistory();
+          setConnections(prev => prev.filter((_, i) => i !== selectedConnId));
+          setSelectedConnId(null);
+          return;
         }
         if (selectedGroupId) {
-          setDeleteConfirm({ type: 'group', ids: [selectedGroupId] });
+          pushHistory();
+          setGroups(prev => prev.filter(g => g.id !== selectedGroupId));
+          setSelectedGroupId(null);
+          return;
         }
         if (selectedStickyId) {
-          setDeleteConfirm({ type: 'sticky', ids: [selectedStickyId] });
+          pushHistory();
+          setStickyNotes(prev => prev.filter(s => s.id !== selectedStickyId));
+          setStickyConnections(prev => prev.filter(sc => sc.stickyId !== selectedStickyId));
+          setSelectedStickyId(null);
+          return;
         }
+      }
+
+      // Select All (Ctrl+A)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a' && !editNode && !editGroupId && !editStickyId && !readOnly) {
+        e.preventDefault();
+        setMultiSelectedIds(new Set(nodes.map(n => n.id)));
+        setSelectedNodeId(null);
+      }
+
+      // Save (Ctrl+S) — uses ref to avoid block-scoped order issue
+      if ((e.metaKey || e.ctrlKey) && e.key === 's' && !readOnly) {
+        e.preventDefault();
+        handleSaveRef.current?.();
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -893,7 +1004,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [selectedNodeId, selectedConnId, selectedGroupId, editNode, editGroupId, connectState, isFullscreen, readOnly, multiSelectedIds, contextMenu, searchOpen, showShortcuts, historyUndo, historyRedo, pushHistory]);
+  }, [selectedNodeId, selectedConnId, selectedGroupId, selectedStickyId, editNode, editGroupId, editStickyId, editingConnLabel, connectState, connectingStickyId, isFullscreen, readOnly, multiSelectedIds, contextMenu, searchOpen, showShortcuts, historyUndo, historyRedo, pushHistory, clipboard, nodes, connections, groups, stickyNotes, lang]);
 
   // ─── Viewport Mouse Handlers ───────────────────────────────────────────────
 
@@ -911,24 +1022,29 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       setPanThresholdMet(true); // Space/middle always immediate
       return;
     }
-    // Left-click on empty canvas area: start pan + deselect
+    // Left-click on empty canvas area: start selection box + deselect
     if (e.button === 0) {
       const target = e.target as HTMLElement;
       const isEmptyArea = target === viewportRef.current || target.classList.contains('canvas-inner');
       if (isEmptyArea) {
-        setIsPanning(true);
-        setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-        // #31 – threshold for left-click pan
-        setPanStartMouse({ x: e.clientX, y: e.clientY });
-        setPanThresholdMet(false);
-        setSelectedNodeId(null);
-        setSelectedConnId(null);
-        setSelectedGroupId(null);
-        setMultiSelectedIds(new Set());
+        // Auto-close edit panels on canvas click
+        if (editNode) { setEditNode(null); setShowIconPicker(false); }
+        if (editGroupId) setEditGroupId(null);
+        if (editStickyId) setEditStickyId(null);
         if (connectState) setConnectState(null);
+        if (connectingStickyId) { setConnectingStickyId(null); setStickyConnMousePos(null); }
+        // Start selection box (rubber-band)
+        const canvasPos = screenToCanvas(e.clientX, e.clientY);
+        setSelectionBox({ startX: canvasPos.x, startY: canvasPos.y, currentX: canvasPos.x, currentY: canvasPos.y });
+        if (!e.shiftKey) {
+          setSelectedNodeId(null);
+          setSelectedConnId(null);
+          setSelectedGroupId(null);
+          setMultiSelectedIds(new Set());
+        }
       }
     }
-  }, [spaceHeld, pan, connectState, contextMenu]);
+  }, [spaceHeld, pan, connectState, contextMenu, editNode, editGroupId, editStickyId, screenToCanvas]);
 
   const handleViewportMouseMove = useCallback((e: React.MouseEvent) => {
     if (isPanning) {
@@ -940,6 +1056,13 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
         setPanThresholdMet(true);
       }
       setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+      return;
+    }
+
+    // Rubber-band selection box update
+    if (selectionBox) {
+      const canvasPos2 = screenToCanvas(e.clientX, e.clientY);
+      setSelectionBox(prev => prev ? { ...prev, currentX: canvasPos2.x, currentY: canvasPos2.y } : null);
       return;
     }
 
@@ -1115,7 +1238,12 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     if (connectState) {
       setConnectState(prev => prev ? { ...prev, canvasX: canvasPos.x, canvasY: canvasPos.y } : null);
     }
-  }, [isPanning, panStart, panStartMouse, panThresholdMet, dragState, dragGroupState, resizeState, connectState, dragStickyState, resizeStickyState, screenToCanvas, snapEnabled, nodes, groups, stickyNotes]);
+
+    // Sticky-to-node connection drawing: track mouse position
+    if (connectingStickyId) {
+      setStickyConnMousePos({ x: canvasPos.x, y: canvasPos.y });
+    }
+  }, [isPanning, panStart, panStartMouse, panThresholdMet, dragState, dragGroupState, resizeState, connectState, connectingStickyId, dragStickyState, resizeStickyState, screenToCanvas, snapEnabled, nodes, groups, stickyNotes, selectionBox]);
 
   const handleViewportMouseUp = useCallback(() => {
     // Push history after drag operations
@@ -1131,7 +1259,33 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     setResizeStickyState(null);
     setSnapLines({ x: [], y: [] });
     setEqualSpacingGuides([]);
-  }, [dragState, dragGroupState, resizeState, dragStickyState, resizeStickyState, pushHistory]);
+
+    // Finalize rubber-band selection
+    if (selectionBox) {
+      const minX = Math.min(selectionBox.startX, selectionBox.currentX);
+      const maxX = Math.max(selectionBox.startX, selectionBox.currentX);
+      const minY = Math.min(selectionBox.startY, selectionBox.currentY);
+      const maxY = Math.max(selectionBox.startY, selectionBox.currentY);
+      const boxW = maxX - minX;
+      const boxH = maxY - minY;
+      // Only select if box is large enough (prevent accidental selections from clicks)
+      if (boxW > 5 || boxH > 5) {
+        const selected = new Set<string>();
+        for (const node of nodes) {
+          const nodeCX = node.x + NODE_W / 2;
+          const nodeCY = node.y + NODE_H / 2;
+          if (nodeCX >= minX && nodeCX <= maxX && nodeCY >= minY && nodeCY <= maxY) {
+            selected.add(node.id);
+          }
+        }
+        if (selected.size > 0) {
+          setMultiSelectedIds(selected);
+          setSelectedNodeId(null);
+        }
+      }
+      setSelectionBox(null);
+    }
+  }, [dragState, dragGroupState, resizeState, dragStickyState, resizeStickyState, pushHistory, selectionBox, nodes]);
 
   // #21 – Context menu handler
   const handleContextMenu = useCallback((e: React.MouseEvent, nodeId?: string, groupId?: string, connIdx?: number) => {
@@ -1145,6 +1299,21 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
 
   const handleNodeMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
     if (e.button !== 0 || readOnly || spaceHeld) return;
+
+    // If in sticky-connection mode, complete the connection
+    if (connectingStickyId) {
+      e.stopPropagation();
+      // Check if this connection already exists
+      const exists = stickyConnections.some(sc => sc.stickyId === connectingStickyId && sc.nodeId === nodeId);
+      if (!exists) {
+        pushHistory();
+        setStickyConnections(prev => [...prev, { stickyId: connectingStickyId, nodeId }]);
+      }
+      setConnectingStickyId(null);
+      setStickyConnMousePos(null);
+      return;
+    }
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
     e.stopPropagation();
@@ -1167,7 +1336,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       setSelectedConnId(null);
       setSelectedGroupId(null);
     }
-  }, [nodes, readOnly, spaceHeld, screenToCanvas, multiSelectedIds]);
+  }, [nodes, readOnly, spaceHeld, screenToCanvas, multiSelectedIds, connectingStickyId, stickyConnections, pushHistory]);
 
   const handlePortClick = useCallback((e: React.MouseEvent, nodeId: string, port: PortDirection) => {
     if (readOnly) return;
@@ -1323,6 +1492,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
 
   const handleExportPNG = useCallback(() => {
     if (nodes.length === 0) return;
+    showToast(lang === 'en' ? 'Exporting PNG...' : 'PNG wird exportiert...');
 
     const PAD = 40;
     const allItems = [
@@ -1374,6 +1544,17 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       const pathD = connCurveStyle === 'straight' ? getStraightPath(fromNode, toNode, fp, tp) : connCurveStyle === 'elbow' ? getElbowPath(fromNode, toNode, fp, tp) : getConnectionPath(fromNode, toNode, fp, tp);
       if (connGlow) svg += `<path d="${pathD}" stroke="${ecc.selected}" stroke-width="${connStrokeWidth * 4}" fill="none" opacity="0.1" />`;
       svg += `<path d="${pathD}" stroke="${ecc.default}" stroke-width="${connStrokeWidth}" fill="none"${expDash ? ` stroke-dasharray="${expDash}"` : ''}${expMarker} />`;
+      // Connection label in export
+      if (conn.label) {
+        const mid = getPathMidpoint(fromNode, toNode, fp, tp, connCurveStyle);
+        const labelBg = isDark ? 'rgba(39,39,42,0.95)' : 'rgba(255,255,255,0.95)';
+        const labelBorder = isDark ? 'rgba(63,63,70,0.6)' : 'rgba(209,213,219,0.8)';
+        const labelColor = isDark ? '#d4d4d8' : '#374151';
+        const labelText = conn.label.length > 18 ? conn.label.substring(0, 16) + '...' : conn.label;
+        const labelW = Math.min(labelText.length * 6.5 + 16, 120);
+        svg += `<rect x="${mid.x - labelW / 2}" y="${mid.y - 10}" width="${labelW}" height="18" rx="9" fill="${labelBg}" stroke="${labelBorder}" stroke-width="1" />`;
+        svg += `<text x="${mid.x}" y="${mid.y + 3}" font-family="sans-serif" font-size="10" fill="${labelColor}" text-anchor="middle">${labelText}</text>`;
+      }
     }
 
     // Nodes
@@ -1412,9 +1593,155 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      showToast(lang === 'en' ? 'PNG exported successfully' : 'PNG erfolgreich exportiert');
     };
     img.src = url;
-  }, [nodes, connections, groups, stickyNotes, isDark, initialSystem, connLineStyle, connArrowHead, connColorTheme, connCurveStyle, connGlow, connStrokeWidth]);
+  }, [nodes, connections, groups, stickyNotes, isDark, initialSystem, connLineStyle, connArrowHead, connColorTheme, connCurveStyle, connGlow, connStrokeWidth, showToast, lang]);
+
+  // ─── Touch Event Handlers (Pinch-to-zoom, touch pan, touch node drag) ────
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const ts = touchStateRef.current;
+
+    if (e.touches.length === 2) {
+      // Pinch gesture start: calculate initial distance & center
+      e.preventDefault();
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      ts.lastDistance = Math.sqrt(dx * dx + dy * dy);
+      ts.lastCenter = {
+        x: (t1.clientX + t2.clientX) / 2,
+        y: (t1.clientY + t2.clientY) / 2,
+      };
+      ts.isTouchPanning = false;
+      ts.touchNodeId = null;
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const target = touch.target as HTMLElement;
+
+      // Check if the touch hit a node
+      const nodeEl = target.closest('[data-node-id]') as HTMLElement | null;
+      if (nodeEl && !readOnly) {
+        const nodeId = nodeEl.getAttribute('data-node-id');
+        const node = nodes.find(n => n.id === nodeId);
+        if (node) {
+          e.preventDefault();
+          const canvasPos = screenToCanvas(touch.clientX, touch.clientY);
+          ts.touchNodeId = nodeId;
+          ts.touchNodeOffset = { x: canvasPos.x - node.x, y: canvasPos.y - node.y };
+          ts.isTouchPanning = false;
+          setSelectedNodeId(nodeId);
+          setSelectedConnId(null);
+          setSelectedGroupId(null);
+          setMultiSelectedIds(new Set());
+          return;
+        }
+      }
+
+      // Single-finger pan on empty canvas
+      ts.isTouchPanning = true;
+      ts.touchNodeId = null;
+      ts.lastCenter = { x: touch.clientX, y: touch.clientY };
+    }
+  }, [readOnly, nodes, screenToCanvas]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const ts = touchStateRef.current;
+
+    if (e.touches.length === 2) {
+      // Pinch-to-zoom
+      e.preventDefault();
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      const newDistance = Math.sqrt(dx * dx + dy * dy);
+      const newCenter = {
+        x: (t1.clientX + t2.clientX) / 2,
+        y: (t1.clientY + t2.clientY) / 2,
+      };
+
+      if (ts.lastDistance > 0) {
+        const scale = newDistance / ts.lastDistance;
+        const rect = viewportRef.current?.getBoundingClientRect();
+        if (rect) {
+          const newZoom = Math.min(5, Math.max(0.1, zoomRef.current * scale));
+          const ratio = newZoom / zoomRef.current;
+          const cx = newCenter.x - rect.left;
+          const cy = newCenter.y - rect.top;
+
+          // Simultaneously handle zoom and pan delta from center movement
+          const panDx = newCenter.x - ts.lastCenter.x;
+          const panDy = newCenter.y - ts.lastCenter.y;
+
+          setZoom(newZoom);
+          setPan(prev => ({
+            x: cx - (cx - prev.x) * ratio + panDx,
+            y: cy - (cy - prev.y) * ratio + panDy,
+          }));
+        }
+      }
+
+      ts.lastDistance = newDistance;
+      ts.lastCenter = newCenter;
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+
+      // Touch node drag
+      if (ts.touchNodeId && !readOnly) {
+        e.preventDefault();
+        const canvasPos = screenToCanvas(touch.clientX, touch.clientY);
+        const sx = canvasPos.x - ts.touchNodeOffset.x;
+        const sy = canvasPos.y - ts.touchNodeOffset.y;
+        setNodes(prev => prev.map(n =>
+          n.id === ts.touchNodeId ? { ...n, x: sx, y: sy } : n
+        ));
+        return;
+      }
+
+      // Touch pan
+      if (ts.isTouchPanning) {
+        e.preventDefault();
+        const dx = touch.clientX - ts.lastCenter.x;
+        const dy = touch.clientY - ts.lastCenter.y;
+        setPan(prev => ({
+          x: prev.x + dx,
+          y: prev.y + dy,
+        }));
+        ts.lastCenter = { x: touch.clientX, y: touch.clientY };
+      }
+    }
+  }, [readOnly, screenToCanvas]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const ts = touchStateRef.current;
+
+    // If we were dragging a node, push undo history
+    if (ts.touchNodeId) {
+      pushHistory();
+    }
+
+    if (e.touches.length === 0) {
+      ts.lastDistance = 0;
+      ts.isTouchPanning = false;
+      ts.touchNodeId = null;
+    } else if (e.touches.length === 1) {
+      // Went from 2 fingers to 1: reset to single-touch pan
+      ts.lastDistance = 0;
+      const touch = e.touches[0];
+      ts.lastCenter = { x: touch.clientX, y: touch.clientY };
+      ts.isTouchPanning = true;
+      ts.touchNodeId = null;
+    }
+  }, [pushHistory]);
 
   // ─── Drag & Drop from Palette ─────────────────────────────────────────────
 
@@ -1450,17 +1777,24 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
 
   // ─── Add Operations ────────────────────────────────────────────────────────
 
-  const addNode = useCallback((item: PaletteItem) => {
+  const addNode = useCallback((item: PaletteItem, atPosition?: { x: number; y: number }) => {
     pushHistory();
-    const rect = viewportRef.current?.getBoundingClientRect();
-    const centerX = rect ? (rect.width / 2 - pan.x) / zoom : 300;
-    const centerY = rect ? (rect.height / 2 - pan.y) / zoom : 200;
     const id = `node-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const label = item.tKey ? t(item.tKey) : item.label || '';
+    let cx: number, cy: number;
+    if (atPosition) {
+      cx = atPosition.x;
+      cy = atPosition.y;
+    } else {
+      const rect = viewportRef.current?.getBoundingClientRect();
+      cx = rect ? (rect.width / 2 - pan.x) / zoom : 300;
+      cy = rect ? (rect.height / 2 - pan.y) / zoom : 200;
+      cx += (Math.random() - 0.5) * 80;
+      cy += (Math.random() - 0.5) * 60;
+    }
     const newNode: SystemNode = {
       id, label, description: '', icon: item.icon, type: item.type,
-      x: centerX - NODE_W / 2 + (Math.random() - 0.5) * 80,
-      y: centerY - NODE_H / 2 + (Math.random() - 0.5) * 60,
+      x: cx - NODE_W / 2, y: cy - NODE_H / 2,
     };
     setNodes(prev => [...prev, newNode]);
     setSelectedNodeId(id);
@@ -1528,9 +1862,9 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     const mid = getPathMidpoint(fromNode, toNode, fp, tp, connCurveStyle);
     pushHistory();
     const id = `node-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    // Place below the midpoint to avoid overlapping the connection line + existing nodes
-    let newY = mid.y + 15;
+    // Place at the midpoint between the two connected nodes
     const newX = mid.x - NODE_W / 2;
+    let newY = mid.y - NODE_H / 2;
     // Check overlap with existing nodes and push further down
     const hasOverlap = () => nodes.some(n => Math.abs(n.x - newX) < NODE_W && Math.abs(n.y - newY) < NODE_H);
     let attempts = 0;
@@ -1539,13 +1873,18 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     const type = item?.type || 'process';
     const label = item?.tKey ? t(item.tKey) : item?.label || '';
     const newNode: SystemNode = { id, label, description: '', icon, type, x: newX, y: newY };
+    // Use from/to IDs to match the connection reliably (not index which can be stale)
+    const connFrom = conn.from;
+    const connTo = conn.to;
+    const connFromPort = conn.fromPort;
+    const connToPort = conn.toPort;
     setNodes(prev => [...prev, newNode]);
     setConnections(prev => {
-      const without = prev.filter((_, i) => i !== connIdx);
+      const without = prev.filter(c => !(c.from === connFrom && c.to === connTo && c.fromPort === connFromPort && c.toPort === connToPort));
       return [
         ...without,
-        { ...conn, from: conn.from, to: id, toPort: 'left' as PortDirection },
-        { ...conn, from: id, to: conn.to, fromPort: 'right' as PortDirection },
+        { from: connFrom, to: id, fromPort: connFromPort, toPort: 'left' as PortDirection, label: conn.label },
+        { from: id, to: connTo, fromPort: 'right' as PortDirection, toPort: connToPort },
       ];
     });
     setSelectedNodeId(id);
@@ -1555,18 +1894,35 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     setTimeout(() => startNodeEdit(id), 50);
   }, [connections, nodes, connCurveStyle, pushHistory, startNodeEdit, t]);
 
+  // ─── Connection Label Edit ──────────────────────────────────────────────────
+  const startConnLabelEdit = useCallback((connIdx: number) => {
+    if (readOnly) return;
+    const conn = connections[connIdx];
+    if (!conn) return;
+    setEditingConnLabel({ connIdx, label: conn.label || '' });
+  }, [readOnly, connections]);
+
+  const saveConnLabel = useCallback(() => {
+    if (editingConnLabel === null) return;
+    const { connIdx, label } = editingConnLabel;
+    pushHistory();
+    setConnections(prev => prev.map((c, i) => i === connIdx ? { ...c, label: label.trim() || undefined } : c));
+    setEditingConnLabel(null);
+  }, [editingConnLabel, pushHistory]);
+
   const startGroupEdit = useCallback((groupId: string) => {
     if (readOnly) return;
     const group = groups.find(g => g.id === groupId);
     if (!group) return;
     setEditGroupId(groupId);
     setEditGroupLabel(group.label);
+    setEditGroupDesc(group.description || '');
   }, [readOnly, groups]);
 
   const saveGroupEdit = () => {
     if (editGroupId) {
       pushHistory();
-      setGroups(prev => prev.map(g => g.id === editGroupId ? { ...g, label: editGroupLabel } : g));
+      setGroups(prev => prev.map(g => g.id === editGroupId ? { ...g, label: editGroupLabel, description: editGroupDesc || undefined } : g));
       setEditGroupId(null);
     }
   };
@@ -1615,11 +1971,28 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
         nodes, connections, groups: groups.length > 0 ? groups : undefined,
         stickyNotes: stickyNotes.length > 0 ? stickyNotes : undefined,
         outputs: [], executionCount: 0,
+        canvasZoom: zoom,
+        canvasPan: pan,
       };
       onSave?.(system);
+      lastSavedStateRef.current = { nodes, connections, groups, stickyNotes, stickyConnections };
+      setHasUnsavedChanges(false);
       setSaveState('saved');
       setTimeout(() => setSaveState('idle'), 2000);
     }, 500);
+  };
+  handleSaveRef.current = handleSave;
+
+  // ─── Discard Changes ──────────────────────────────────────────────────────
+  const handleDiscard = () => {
+    const saved = lastSavedStateRef.current;
+    setNodes(saved.nodes);
+    setConnections(saved.connections);
+    setGroups(saved.groups);
+    setStickyNotes(saved.stickyNotes);
+    setStickyConnections(saved.stickyConnections || []);
+    setHasUnsavedChanges(false);
+    showToast(lang === 'en' ? 'Changes discarded' : 'Änderungen verworfen');
   };
 
   // ─── Execute Animation ──────────────────────────────────────────────────────
@@ -1697,10 +2070,12 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       const idSet = new Set(ids);
       setNodes(prev => prev.filter(n => !idSet.has(n.id)));
       setConnections(prev => prev.filter(c => !idSet.has(c.from) && !idSet.has(c.to)));
+      setStickyConnections(prev => prev.filter(sc => !idSet.has(sc.nodeId)));
       setMultiSelectedIds(new Set());
     } else if (type === 'node' && ids?.[0]) {
       setNodes(prev => prev.filter(n => n.id !== ids[0]));
       setConnections(prev => prev.filter(c => c.from !== ids[0] && c.to !== ids[0]));
+      setStickyConnections(prev => prev.filter(sc => sc.nodeId !== ids[0]));
       setSelectedNodeId(null);
     } else if (type === 'connection' && connIdx !== undefined) {
       setConnections(prev => prev.filter((_, i) => i !== connIdx));
@@ -1710,6 +2085,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       setSelectedGroupId(null);
     } else if (type === 'sticky' && ids?.[0]) {
       setStickyNotes(prev => prev.filter(s => s.id !== ids[0]));
+      setStickyConnections(prev => prev.filter(sc => sc.stickyId !== ids[0]));
       setSelectedStickyId(null);
     }
     setDeleteConfirm(null);
@@ -1722,10 +2098,23 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     const { nodeId, groupId, connIdx, stickyId } = contextMenu;
 
     if (action === 'delete') {
-      if (nodeId) setDeleteConfirm({ type: 'node', ids: [nodeId] });
-      else if (groupId) setDeleteConfirm({ type: 'group', ids: [groupId] });
-      else if (stickyId) setDeleteConfirm({ type: 'sticky', ids: [stickyId] });
-      else if (connIdx !== undefined) setDeleteConfirm({ type: 'connection', connIdx });
+      pushHistory();
+      if (nodeId) {
+        setNodes(prev => prev.filter(n => n.id !== nodeId));
+        setConnections(prev => prev.filter(c => c.from !== nodeId && c.to !== nodeId));
+        setStickyConnections(prev => prev.filter(sc => sc.nodeId !== nodeId));
+        setSelectedNodeId(null);
+      } else if (groupId) {
+        setGroups(prev => prev.filter(g => g.id !== groupId));
+        setSelectedGroupId(null);
+      } else if (stickyId) {
+        setStickyNotes(prev => prev.filter(s => s.id !== stickyId));
+        setStickyConnections(prev => prev.filter(sc => sc.stickyId !== stickyId));
+        setSelectedStickyId(null);
+      } else if (connIdx !== undefined) {
+        setConnections(prev => prev.filter((_, i) => i !== connIdx));
+        setSelectedConnId(null);
+      }
     }
     if (action === 'edit' && nodeId) startNodeEdit(nodeId);
     if (action === 'edit' && groupId) startGroupEdit(groupId);
@@ -1736,12 +2125,12 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
     }
 
     setContextMenu(null);
-  }, [contextMenu, duplicateSelection, startNodeEdit, startGroupEdit]);
+  }, [contextMenu, duplicateSelection, startNodeEdit, startGroupEdit, pushHistory]);
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
   const zoomPct = Math.round(zoom * 100);
-  const showPalette = !readOnly && paletteOpen && !isPresentationMode;
+  const showPalette = !readOnly && paletteOpen && (!isPresentationMode || presEditEnabled);
   // Container height: style.height > className > built-in default
   const containerHeight = (style?.height || className) ? '' : (readOnly && !isFullscreen ? 'h-[500px]' : 'h-[calc(100vh-120px)] min-h-[400px]');
 
@@ -1772,8 +2161,27 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
             </div>
           </div>
 
+          {/* Palette search */}
+          <div className="px-3 py-2 border-b border-gray-200 dark:border-zinc-800">
+            <div className="relative">
+              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-600" />
+              <input
+                type="text"
+                value={paletteSearch}
+                onChange={e => setPaletteSearch(e.target.value)}
+                placeholder={lang === 'en' ? 'Search nodes...' : 'Nodes suchen...'}
+                className="w-full pl-7 pr-7 py-1.5 text-xs rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white border border-gray-200 dark:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              {paletteSearch && (
+                <button onClick={() => setPaletteSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {paletteTab === 'generic' && PALETTE_ITEMS.map(item => {
+            {paletteTab === 'generic' && PALETTE_ITEMS.filter(item => !paletteSearch || t(item.tKey).toLowerCase().includes(paletteSearch.toLowerCase())).map(item => {
               const isLogo = item.icon.startsWith('logo-');
               const Icon = !isLogo ? (ICONS[item.icon] || Zap) : null;
               const style = NODE_STYLES[item.type];
@@ -1793,10 +2201,13 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
 
             {paletteTab === 'tools' && (() => {
               const categories = getToolLogosByCategory();
-              return Object.entries(categories).map(([cat, logos]) => (
+              return Object.entries(categories).map(([cat, logos]) => {
+                const filtered = paletteSearch ? logos.filter(l => l.name.toLowerCase().includes(paletteSearch.toLowerCase())) : logos;
+                if (filtered.length === 0) return null;
+                return (
                 <div key={cat}>
                   <div className="text-[10px] font-semibold text-gray-400 dark:text-zinc-600 uppercase tracking-wider px-3 pt-2 pb-1">{cat}</div>
-                  {logos.map(logo => (
+                  {filtered.map(logo => (
                     <button key={logo.id} onClick={() => addNode({ icon: logo.id, tKey: '', label: logo.name, type: 'process' })} draggable onDragStart={e => { e.dataTransfer.setData('application/json', JSON.stringify({ icon: logo.id, tKey: '', label: logo.name, type: 'process' })); e.dataTransfer.effectAllowed = 'copy'; }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors group cursor-grab active:cursor-grabbing" aria-label={t('palette.addNode', { label: logo.name })}>
                       <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-gray-50 dark:bg-zinc-800">
                         {renderNodeIcon(logo.id, undefined, <Zap size={14} />, 16)}
@@ -1806,7 +2217,8 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                     </button>
                   ))}
                 </div>
-              ));
+              );
+              });
             })()}
 
             {paletteTab === 'groups' && (
@@ -1839,7 +2251,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Toolbar */}
-        {!isPresentationMode && <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 z-10 shrink-0" role="toolbar" aria-label="Canvas-Toolbar">
+        {(!isPresentationMode || presEditEnabled) && <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 z-10 shrink-0" role="toolbar" aria-label="Canvas-Toolbar">
           {!readOnly && (
             <button onClick={() => setPaletteOpen(!paletteOpen)} className={`p-1.5 rounded-lg transition-colors ${paletteOpen ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800'}`} title={t('toolbar.palette')} aria-label={t('toolbar.paletteToggle')}>
               <Plus size={16} />
@@ -2237,9 +2649,9 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
               <button
                 onClick={handleExecute}
                 disabled={effectiveIsExecuting}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
                   effectiveExecutionDone
-                    ? 'bg-emerald-600 text-white'
+                    ? 'bg-emerald-600 text-white shadow-[0_0_12px_4px_rgba(16,185,129,0.25)]'
                     : effectiveIsExecuting
                     ? 'bg-purple-600/80 text-white cursor-wait'
                     : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white'
@@ -2263,14 +2675,25 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
               {(selectedNodeId || selectedGroupId || selectedStickyId || multiSelectedIds.size > 0) && (
                 <button
                   onClick={() => {
+                    pushHistory();
                     if (multiSelectedIds.size > 0) {
-                      setDeleteConfirm({ type: 'nodes', ids: Array.from(multiSelectedIds) });
+                      const idSet = new Set(multiSelectedIds);
+                      setNodes(prev => prev.filter(n => !idSet.has(n.id)));
+                      setConnections(prev => prev.filter(c => !idSet.has(c.from) && !idSet.has(c.to)));
+                      setStickyConnections(prev => prev.filter(sc => !idSet.has(sc.nodeId)));
+                      setMultiSelectedIds(new Set());
                     } else if (selectedNodeId) {
-                      setDeleteConfirm({ type: 'node', ids: [selectedNodeId] });
+                      setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
+                      setConnections(prev => prev.filter(c => c.from !== selectedNodeId && c.to !== selectedNodeId));
+                      setStickyConnections(prev => prev.filter(sc => sc.nodeId !== selectedNodeId));
+                      setSelectedNodeId(null);
                     } else if (selectedGroupId) {
-                      setDeleteConfirm({ type: 'group', ids: [selectedGroupId] });
+                      setGroups(prev => prev.filter(g => g.id !== selectedGroupId));
+                      setSelectedGroupId(null);
                     } else if (selectedStickyId) {
-                      setDeleteConfirm({ type: 'sticky', ids: [selectedStickyId] });
+                      setStickyNotes(prev => prev.filter(s => s.id !== selectedStickyId));
+                      setStickyConnections(prev => prev.filter(sc => sc.stickyId !== selectedStickyId));
+                      setSelectedStickyId(null);
                     }
                   }}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
@@ -2287,7 +2710,13 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                 </button>
               )}
 
-              <button onClick={handleSave} disabled={!systemName.trim() || nodes.length === 0 || saveState === 'saving'} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all" aria-label={t('toolbar.saveSystem')}>
+              {hasUnsavedChanges && (
+                <button onClick={handleDiscard} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors" title={lang === 'en' ? 'Discard changes' : 'Änderungen verwerfen'} aria-label={lang === 'en' ? 'Discard changes' : 'Änderungen verwerfen'}>
+                  <Undo2 size={13} />
+                </button>
+              )}
+
+              <button onClick={handleSave} disabled={!systemName.trim() || nodes.length === 0 || saveState === 'saving'} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 ${saveState === 'saved' ? 'bg-emerald-600 shadow-[0_0_12px_4px_rgba(16,185,129,0.25)]' : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400'}`} aria-label={t('toolbar.saveSystem')}>
                 {saveState === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveState === 'saved' ? <Check size={14} /> : <Save size={14} />}
                 {saveState === 'saving' ? t('toolbar.saving') : saveState === 'saved' ? t('toolbar.saved') : t('toolbar.save')}
               </button>
@@ -2339,13 +2768,27 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
         {/* ─── Viewport ─── */}
         <div
           ref={viewportRef}
-          className={`flex-1 overflow-hidden relative ${isDragOver ? 'ring-2 ring-inset ring-purple-500/30 bg-purple-500/5' : ''}`}
-          style={{ cursor: isPanning && panThresholdMet ? 'grabbing' : (spaceHeld ? 'grab' : 'default') }}
+          className={`flex-1 overflow-hidden relative select-none ${isDragOver ? 'ring-2 ring-inset ring-purple-500/30 bg-purple-500/5' : ''}`}
+          style={{ cursor: isPanning && panThresholdMet ? 'grabbing' : (spaceHeld ? 'grab' : connectingStickyId ? 'crosshair' : 'default'), touchAction: 'none' }}
           onMouseDown={handleViewportMouseDown}
           onMouseMove={handleViewportMouseMove}
           onMouseUp={handleViewportMouseUp}
           onMouseLeave={handleViewportMouseUp}
-          onContextMenu={e => handleContextMenu(e)}
+          onContextMenu={e => {
+            // Only show canvas context menu if right-clicking empty area
+            const target = e.target as HTMLElement;
+            const isEmptyArea = target === viewportRef.current || target.classList.contains('canvas-inner') || target.tagName === 'svg' || target.closest('.canvas-inner');
+            if (isEmptyArea && !e.defaultPrevented) {
+              e.preventDefault();
+              e.stopPropagation();
+              if (readOnly) return;
+              const cPos = screenToCanvas(e.clientX, e.clientY);
+              setContextMenu({ x: e.clientX, y: e.clientY, canvasPos: { x: cPos.x, y: cPos.y } });
+            }
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -2419,11 +2862,20 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                   dotColor = '#3b82f6'; dotSpeed = 1.8; dotR = 3.5;
                 }
 
+                // Compute midpoint once for label + insert button
+                const connMid = (() => {
+                  const fp2 = conn.fromPort || 'right';
+                  const tp2 = conn.toPort || 'left';
+                  return getPathMidpoint(fromNode, toNode, fp2, tp2, connCurveStyle);
+                })();
+                const isEditingThisLabel = editingConnLabel !== null && editingConnLabel.connIdx === i;
+
                 return (
                   <g
                     key={i}
                     style={{ pointerEvents: 'stroke' }}
                     onClick={(e) => { if (readOnly) return; e.stopPropagation(); setSelectedConnId(i); setSelectedNodeId(null); setSelectedGroupId(null); }}
+                    onDoubleClick={(e) => { if (readOnly) return; e.stopPropagation(); startConnLabelEdit(i); }}
                     onMouseEnter={() => !readOnly && setHoveredConnId(i)}
                     onMouseLeave={() => setHoveredConnId(null)}
                     onContextMenu={e => handleContextMenu(e, undefined, undefined, i)}
@@ -2443,12 +2895,90 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                     <circle r={dotR} fill={dotColor} opacity={0.8}>
                       <animateMotion dur={`${dotSpeed}s`} repeatCount="indefinite" path={pathD} />
                     </circle>
-                    {isHovered && !readOnly && (() => {
-                      const fp2 = conn.fromPort || 'right';
-                      const tp2 = conn.toPort || 'left';
-                      const mid = getPathMidpoint(fromNode, toNode, fp2, tp2, connCurveStyle);
-                      return (
-                        <foreignObject x={mid.x - 12} y={mid.y - 12} width={24} height={24} style={{ pointerEvents: 'all', overflow: 'visible' }}>
+
+                    {/* Connection label (pill at midpoint) */}
+                    {conn.label && !isEditingThisLabel && (
+                      <foreignObject
+                        x={connMid.x - 60}
+                        y={connMid.y - 22}
+                        width={120}
+                        height={24}
+                        style={{ pointerEvents: 'all', overflow: 'visible' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                          <div
+                            onDoubleClick={(e) => { if (readOnly) return; e.stopPropagation(); startConnLabelEdit(i); }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '1px 8px',
+                              fontSize: 10,
+                              fontFamily: 'system-ui, sans-serif',
+                              lineHeight: '16px',
+                              whiteSpace: 'nowrap',
+                              borderRadius: 9999,
+                              background: isDark ? 'rgba(39,39,42,0.95)' : 'rgba(255,255,255,0.95)',
+                              border: `1px solid ${isDark ? 'rgba(63,63,70,0.6)' : 'rgba(209,213,219,0.8)'}`,
+                              color: isDark ? '#d4d4d8' : '#374151',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                              cursor: readOnly ? 'default' : 'pointer',
+                              maxWidth: 120,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                            title={conn.label}
+                          >
+                            {conn.label}
+                          </div>
+                        </div>
+                      </foreignObject>
+                    )}
+
+                    {/* Inline label editing input */}
+                    {isEditingThisLabel && (
+                      <foreignObject
+                        x={connMid.x - 70}
+                        y={connMid.y - 16}
+                        width={140}
+                        height={32}
+                        style={{ pointerEvents: 'all', overflow: 'visible' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editingConnLabel.label}
+                            onChange={e => setEditingConnLabel(prev => prev ? { ...prev, label: e.target.value } : prev)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') { e.preventDefault(); saveConnLabel(); }
+                              if (e.key === 'Escape') { e.preventDefault(); setEditingConnLabel(null); }
+                              e.stopPropagation();
+                            }}
+                            onBlur={() => saveConnLabel()}
+                            onClick={e => e.stopPropagation()}
+                            placeholder={lang === 'en' ? 'Label...' : 'Label...'}
+                            style={{
+                              width: 130,
+                              height: 24,
+                              padding: '2px 8px',
+                              fontSize: 10,
+                              fontFamily: 'system-ui, sans-serif',
+                              borderRadius: 9999,
+                              border: `1.5px solid ${isDark ? 'rgba(139,92,246,0.6)' : 'rgba(139,92,246,0.5)'}`,
+                              background: isDark ? 'rgba(39,39,42,0.98)' : 'rgba(255,255,255,0.98)',
+                              color: isDark ? '#e4e4e7' : '#1f2937',
+                              outline: 'none',
+                              textAlign: 'center',
+                              boxShadow: '0 0 0 2px rgba(139,92,246,0.15), 0 2px 6px rgba(0,0,0,0.1)',
+                            }}
+                          />
+                        </div>
+                      </foreignObject>
+                    )}
+
+                    {isHovered && !readOnly && !isEditingThisLabel && (
+                      <foreignObject x={connMid.x - 12} y={conn.label ? connMid.y - 38 : connMid.y - 12} width={24} height={24} style={{ pointerEvents: 'all', overflow: 'visible' }}>
                           <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <button
                               onClick={(e) => { e.stopPropagation(); showInsertPopover(i); }}
@@ -2460,11 +2990,56 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                             </button>
                           </div>
                         </foreignObject>
-                      );
-                    })()}
+                    )}
                   </g>
                 );
               })}
+
+              {/* ─── Sticky-to-Node Connection Lines (#40) ─── */}
+              {stickyConnections.map((sc, i) => {
+                const sticky = stickyNotes.find(s => s.id === sc.stickyId);
+                const node = nodes.find(n => n.id === sc.nodeId);
+                if (!sticky || !node) return null;
+                const sx = sticky.x + sticky.width / 2;
+                const sy = sticky.y + sticky.height / 2;
+                const nx = node.x + NODE_W / 2;
+                const ny = node.y + NODE_H / 2;
+                return (
+                  <line
+                    key={`sc-${i}`}
+                    x1={sx} y1={sy} x2={nx} y2={ny}
+                    stroke={isDark ? 'rgba(161,161,170,0.35)' : 'rgba(107,114,128,0.35)'}
+                    strokeWidth={1.5}
+                    strokeDasharray="6,4"
+                    style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                    onContextMenu={(e) => {
+                      if (readOnly) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      pushHistory();
+                      setStickyConnections(prev => prev.filter((_, idx) => idx !== i));
+                    }}
+                  />
+                );
+              })}
+
+              {/* Temp sticky connection line (during drawing) */}
+              {connectingStickyId && stickyConnMousePos && (() => {
+                const sticky = stickyNotes.find(s => s.id === connectingStickyId);
+                if (!sticky) return null;
+                const sx = sticky.x + sticky.width / 2;
+                const sy = sticky.y + sticky.height / 2;
+                return (
+                  <line
+                    x1={sx} y1={sy}
+                    x2={stickyConnMousePos.x} y2={stickyConnMousePos.y}
+                    stroke="#a855f7"
+                    strokeWidth={1.5}
+                    strokeDasharray="6,4"
+                    opacity={0.6}
+                  />
+                );
+              })()}
 
               {/* Temp connection line */}
               {connectState && (() => {
@@ -2517,6 +3092,21 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                   );
                 }
               })}
+
+              {/* Rubber-band selection box */}
+              {selectionBox && (
+                <rect
+                  x={Math.min(selectionBox.startX, selectionBox.currentX)}
+                  y={Math.min(selectionBox.startY, selectionBox.currentY)}
+                  width={Math.abs(selectionBox.currentX - selectionBox.startX)}
+                  height={Math.abs(selectionBox.currentY - selectionBox.startY)}
+                  fill="rgba(168,85,247,0.08)"
+                  stroke="#a855f7"
+                  strokeWidth={1}
+                  strokeDasharray="4,3"
+                  rx={4}
+                />
+              )}
             </svg>
 
             {/* ─── Groups ─── */}
@@ -2545,6 +3135,11 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                     <span className="text-xs font-bold uppercase tracking-widest" style={{ color: colors.text }}>
                       {group.label}
                     </span>
+                    {group.description && (
+                      <p className="text-[10px] mt-0.5 opacity-70 leading-tight" style={{ color: colors.text }}>
+                        {group.description}
+                      </p>
+                    )}
                   </div>
 
                   {isSelected && !readOnly && (
@@ -2588,10 +3183,29 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                       fontStyle: sticky.fontStyle === 'italic' ? 'italic' : 'normal',
                     }}>{sticky.text}</p>
                   </div>
+                  {/* Link port for sticky-to-node connection (#40) */}
+                  {!readOnly && (isSelected || selectedStickyId === sticky.id) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConnectingStickyId(sticky.id);
+                        setStickyConnMousePos(null);
+                      }}
+                      className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full border flex items-center justify-center z-30 transition-all hover:scale-110 ${
+                        connectingStickyId === sticky.id
+                          ? 'bg-purple-500 border-purple-400 text-white'
+                          : 'bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 text-gray-400 hover:text-purple-500 hover:border-purple-400'
+                      }`}
+                      title={lang === 'en' ? 'Connect to node' : 'Mit Node verbinden'}
+                      aria-label={lang === 'en' ? 'Connect sticky to node' : 'Notiz mit Node verbinden'}
+                    >
+                      <Link2 size={10} strokeWidth={2.5} />
+                    </button>
+                  )}
                   {isSelected && !readOnly && (
                     <>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'sticky', ids: [sticky.id] }); }}
+                        onClick={(e) => { e.stopPropagation(); pushHistory(); setStickyNotes(prev => prev.filter(s => s.id !== sticky.id)); setStickyConnections(prev => prev.filter(sc => sc.stickyId !== sticky.id)); setSelectedStickyId(null); }}
                         className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] hover:bg-red-600 z-30"
                         aria-label="Notiz löschen"
                       >
@@ -2695,6 +3309,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
               return (
                 <div
                   key={node.id}
+                  data-node-id={node.id}
                   className={`${themeClass} ${dragState?.nodeId === node.id ? '' : 'transition-[box-shadow,border-color,background-color] duration-500'} ${(isSelected || isMultiSelected) && !readOnly && !isNodeActive ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-500/10' : ''} ${isConnecting ? 'ring-2 ring-purple-400 ring-dashed' : ''} ${isNodeActive ? `${ss.ring} ${ss.shadow}` : ''}`}
                   style={{
                     left: node.x, top: node.y, width: NODE_W, height: NODE_H,
@@ -2782,46 +3397,64 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                     </div>
                   )}
 
-                  {/* 4-Directional Hover Ports */}
+                  {/* 4-Directional Hover Ports — larger hit area for easier clicking */}
                   {!readOnly && (hoveredNodeId === node.id || connectState) && (
                     <>
                       {/* Top */}
                       <div
-                        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full border bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 flex items-center justify-center hover:bg-purple-50 dark:hover:bg-purple-500/20 hover:border-purple-400 hover:scale-110 transition-all cursor-crosshair z-30 text-gray-400 hover:text-purple-500 animate-in fade-in duration-150"
-                        onClick={e => handlePortClick(e, node.id, 'top')}
+                        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-2 bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-500/20 hover:border-purple-400 hover:scale-125 transition-all cursor-crosshair z-30 text-gray-400 hover:text-purple-500 animate-in fade-in duration-150"
+                        onMouseDown={e => { e.stopPropagation(); handlePortClick(e, node.id, 'top'); }}
+                        onClick={e => e.stopPropagation()}
                         role="button"
                         aria-label={`${node.label} Top-Port`}
                       >
-                        <Plus size={10} strokeWidth={2.5} />
+                        <Plus size={12} strokeWidth={2.5} />
                       </div>
                       {/* Right */}
                       <div
-                        className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full border bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 flex items-center justify-center hover:bg-purple-50 dark:hover:bg-purple-500/20 hover:border-purple-400 hover:scale-110 transition-all cursor-crosshair z-30 text-gray-400 hover:text-purple-500 animate-in fade-in duration-150"
-                        onClick={e => handlePortClick(e, node.id, 'right')}
+                        className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-2 bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-500/20 hover:border-purple-400 hover:scale-125 transition-all cursor-crosshair z-30 text-gray-400 hover:text-purple-500 animate-in fade-in duration-150"
+                        onMouseDown={e => { e.stopPropagation(); handlePortClick(e, node.id, 'right'); }}
+                        onClick={e => e.stopPropagation()}
                         role="button"
                         aria-label={`${node.label} Right-Port`}
                       >
-                        <Plus size={10} strokeWidth={2.5} />
+                        <Plus size={12} strokeWidth={2.5} />
                       </div>
                       {/* Bottom */}
                       <div
-                        className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-5 h-5 rounded-full border bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 flex items-center justify-center hover:bg-purple-50 dark:hover:bg-purple-500/20 hover:border-purple-400 hover:scale-110 transition-all cursor-crosshair z-30 text-gray-400 hover:text-purple-500 animate-in fade-in duration-150"
-                        onClick={e => handlePortClick(e, node.id, 'bottom')}
+                        className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-7 h-7 rounded-full border-2 bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-500/20 hover:border-purple-400 hover:scale-125 transition-all cursor-crosshair z-30 text-gray-400 hover:text-purple-500 animate-in fade-in duration-150"
+                        onMouseDown={e => { e.stopPropagation(); handlePortClick(e, node.id, 'bottom'); }}
+                        onClick={e => e.stopPropagation()}
                         role="button"
                         aria-label={`${node.label} Bottom-Port`}
                       >
-                        <Plus size={10} strokeWidth={2.5} />
+                        <Plus size={12} strokeWidth={2.5} />
                       </div>
                       {/* Left */}
                       <div
-                        className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full border bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 flex items-center justify-center hover:bg-purple-50 dark:hover:bg-purple-500/20 hover:border-purple-400 hover:scale-110 transition-all cursor-crosshair z-30 text-gray-400 hover:text-purple-500 animate-in fade-in duration-150"
-                        onClick={e => handlePortClick(e, node.id, 'left')}
+                        className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-2 bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-500/20 hover:border-purple-400 hover:scale-125 transition-all cursor-crosshair z-30 text-gray-400 hover:text-purple-500 animate-in fade-in duration-150"
+                        onMouseDown={e => { e.stopPropagation(); handlePortClick(e, node.id, 'left'); }}
+                        onClick={e => e.stopPropagation()}
                         role="button"
                         aria-label={`${node.label} Left-Port`}
                       >
-                        <Plus size={10} strokeWidth={2.5} />
+                        <Plus size={12} strokeWidth={2.5} />
                       </div>
                     </>
+                  )}
+
+                  {/* ─── Tooltip on Hover ─── */}
+                  {hoveredNodeId === node.id && node.description && (
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-50"
+                      style={{ bottom: NODE_H + 8 }}
+                    >
+                      <div className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg px-2.5 py-1.5 shadow-lg"
+                        style={{ fontSize: 11, maxWidth: 250, lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                      >
+                        {node.description}
+                      </div>
+                    </div>
                   )}
                 </div>
               );
@@ -2876,15 +3509,41 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
               ...Object.keys(ICONS).map(k => ({ id: k, type: 'lucide' as const })),
               ...Object.keys(TOOL_LOGOS).map(k => ({ id: k, type: 'logo' as const })),
             ];
-            const panelW = NODE_W + 60;
-            const screenX = node.x * zoom + pan.x;
-            const screenY = (node.y + NODE_H + 10) * zoom + pan.y;
+            const panelW = 320;
+            const panelMaxH = 380;
+            const arrowGap = 10;
             const vpRect = viewportRef.current?.getBoundingClientRect();
+            const vpW = vpRect?.width || 800;
             const vpH = vpRect?.height || 600;
-            const fitsBelow = screenY + 380 < vpH;
-            const finalY = fitsBelow ? screenY : Math.max(8, (node.y * zoom + pan.y) - 380);
+            // Node center screen position
+            const nodeCenterScreenX = (node.x + NODE_W / 2) * zoom + pan.x;
+            const nodeBottomScreenY = (node.y + NODE_H) * zoom + pan.y;
+            const nodeTopScreenY = node.y * zoom + pan.y;
+            // Position panel centered horizontally on the node
+            let panelX = nodeCenterScreenX - panelW / 2;
+            // Clamp horizontally within viewport
+            panelX = Math.max(8, Math.min(panelX, vpW - panelW - 8));
+            // Check if there's room below the node
+            const fitsBelow = nodeBottomScreenY + arrowGap + panelMaxH < vpH;
+            const panelY = fitsBelow
+              ? nodeBottomScreenY + arrowGap
+              : Math.max(8, nodeTopScreenY - arrowGap - panelMaxH);
+            // Arrow position: center of arrow relative to panel left
+            const arrowLeftInPanel = Math.max(16, Math.min(nodeCenterScreenX - panelX, panelW - 16));
             return (
-              <div className="absolute bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-xl p-4 z-50 max-h-[380px] overflow-y-auto" style={{ left: screenX, top: finalY, width: panelW }} onClick={e => e.stopPropagation()} role="dialog" aria-label="Node bearbeiten">
+              <div className="absolute z-50" style={{ left: panelX, top: panelY, width: panelW }} onClick={e => e.stopPropagation()} role="dialog" aria-label="Node bearbeiten">
+                {/* Arrow pointer */}
+                <div className="absolute" style={{
+                  left: arrowLeftInPanel - 7,
+                  [fitsBelow ? 'top' : 'bottom']: -7,
+                }}>
+                  <svg width="14" height="8" viewBox="0 0 14 8" style={{ display: 'block', transform: fitsBelow ? undefined : 'rotate(180deg)' }}>
+                    <path d="M0 8 L7 0 L14 8 Z" fill={isDark ? '#18181b' : '#fff'} stroke={isDark ? 'rgba(63,63,70,0.6)' : 'rgba(229,231,235,1)'} strokeWidth="1" />
+                    {/* Cover the bottom border of the arrow so it merges with the panel */}
+                    <line x1="0" y1="8" x2="14" y2="8" stroke={isDark ? '#18181b' : '#fff'} strokeWidth="2" />
+                  </svg>
+                </div>
+                <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-xl p-4 max-h-[380px] overflow-y-auto">
                   <div className="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-2">Node bearbeiten</div>
                   {/* #12 – maxLength on inputs */}
                   <input type="text" value={editLabel} onChange={e => setEditLabel(e.target.value.slice(0, MAX_LABEL_LENGTH))} className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white mb-2 focus:outline-none focus:border-purple-500 transition-colors" placeholder="Label" maxLength={MAX_LABEL_LENGTH} autoFocus />
@@ -3006,6 +3665,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                     <button onClick={saveNodeEdit} className="flex-1 py-1.5 rounded-xl text-xs bg-purple-600 text-white hover:bg-purple-500 transition-colors">{t('edit.save')}</button>
                   </div>
                 </div>
+              </div>
               );
             })()}
 
@@ -3018,6 +3678,7 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
               <div className="absolute bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-xl p-4 z-50" style={{ left: gScreenX, top: gScreenY, width: 260 }} onClick={e => e.stopPropagation()} role="dialog" aria-label={t('edit.editGroupAria')}>
                   <div className="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-2">{t('edit.editGroup')}</div>
                   <input type="text" value={editGroupLabel} onChange={e => setEditGroupLabel(e.target.value.slice(0, MAX_LABEL_LENGTH))} className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white mb-3 focus:outline-none focus:border-purple-500 transition-colors" placeholder={t('edit.groupPlaceholder')} maxLength={MAX_LABEL_LENGTH} autoFocus />
+                  <textarea value={editGroupDesc} onChange={e => setEditGroupDesc(e.target.value.slice(0, 200))} className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 mb-3 focus:outline-none focus:border-purple-500 transition-colors resize-none h-16" placeholder={lang === 'en' ? 'Description (optional)' : 'Beschreibung (optional)'} maxLength={200} />
                 <div className="flex gap-2">
                   <button onClick={() => setEditGroupId(null)} className="flex-1 py-1.5 rounded-xl text-xs border border-gray-200 dark:border-zinc-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">{t('edit.cancel')}</button>
                   <button onClick={saveGroupEdit} className="flex-1 py-1.5 rounded-xl text-xs bg-purple-600 text-white hover:bg-purple-500 transition-colors">{t('edit.save')}</button>
@@ -3194,10 +3855,11 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
           {/* #21 – Context Menu */}
           {contextMenu && (
             <div
-              className="fixed z-[100] bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-xl py-1 min-w-[160px]"
+              className="fixed z-[100] bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-xl py-1 min-w-[180px] max-h-[400px] overflow-y-auto"
               style={{ left: contextMenu.x, top: contextMenu.y }}
               onClick={e => e.stopPropagation()}
             >
+              {/* Node context menu */}
               {contextMenu.nodeId && (
                 <>
                   <button onClick={() => handleContextAction('edit')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
@@ -3214,49 +3876,131 @@ export default function WorkflowCanvas({ onSave, onExecute, initialSystem, readO
                 </button>
               )}
               {contextMenu.stickyId && (
-                <button onClick={() => { startStickyEdit(contextMenu.stickyId!); setContextMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
-                  <Eye size={13} /> {t('contextMenu.edit')}
-                </button>
+                <>
+                  <button onClick={() => { startStickyEdit(contextMenu.stickyId!); setContextMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
+                    <Eye size={13} /> {t('contextMenu.edit')}
+                  </button>
+                  <button onClick={() => { setConnectingStickyId(contextMenu.stickyId!); setStickyConnMousePos(null); setContextMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
+                    <Link2 size={13} /> {lang === 'en' ? 'Connect to Node' : 'Mit Node verbinden'}
+                  </button>
+                  {stickyConnections.some(sc => sc.stickyId === contextMenu.stickyId) && (
+                    <button onClick={() => { pushHistory(); setStickyConnections(prev => prev.filter(sc => sc.stickyId !== contextMenu.stickyId)); setContextMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10">
+                      <X size={13} /> {lang === 'en' ? 'Remove All Connections' : 'Alle Verbindungen entfernen'}
+                    </button>
+                  )}
+                </>
               )}
               {contextMenu.connIdx !== undefined && (
-                <button onClick={() => { showInsertPopover(contextMenu.connIdx!); setContextMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
-                  <Plus size={13} /> {t('contextMenu.insertNode')}
+                <>
+                  <button onClick={() => { showInsertPopover(contextMenu.connIdx!); setContextMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
+                    <Plus size={13} /> {t('contextMenu.insertNode')}
+                  </button>
+                  <button onClick={() => { startConnLabelEdit(contextMenu.connIdx!); setContextMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
+                    <Type size={13} /> {lang === 'en' ? 'Edit Label' : 'Label bearbeiten'}
+                  </button>
+                </>
+              )}
+
+              {/* Canvas (empty area) context menu — add nodes/groups/sticky */}
+              {contextMenu.canvasPos && !contextMenu.nodeId && !contextMenu.groupId && !contextMenu.stickyId && contextMenu.connIdx === undefined && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">{lang === 'en' ? 'Add Node' : 'Node hinzufügen'}</div>
+                  {(['trigger', 'ai', 'process', 'output'] as const).map(type => {
+                    const items = PALETTE_ITEMS.filter(i => i.type === type);
+                    const typeLabel = type === 'trigger' ? 'Trigger' : type === 'ai' ? 'AI / KI' : type === 'process' ? 'Process' : 'Output';
+                    return (
+                      <div key={type}>
+                        <div className="px-3 py-1 text-[9px] font-medium text-gray-400 dark:text-zinc-600 uppercase">{typeLabel}</div>
+                        {items.slice(0, 4).map(item => (
+                          <button
+                            key={item.icon + item.tKey}
+                            onClick={() => { addNode(item, contextMenu.canvasPos!); setContextMenu(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                          >
+                            <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: NODE_STYLES[item.type].accent + '20' }}>
+                              <span className="text-[8px]" style={{ color: NODE_STYLES[item.type].accent }}>●</span>
+                            </div>
+                            {t(item.tKey)}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })}
+                  <div className="border-t border-gray-100 dark:border-zinc-800 my-1" />
+                  <button
+                    onClick={() => { addGroup('purple'); setContextMenu(null); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                  >
+                    <Layers size={13} /> {lang === 'en' ? 'Add Group' : 'Gruppe hinzufügen'}
+                  </button>
+                  <button
+                    onClick={() => { addStickyNote('yellow'); setContextMenu(null); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                  >
+                    <StickyNoteIcon size={13} /> {lang === 'en' ? 'Add Sticky Note' : 'Sticky Note hinzufügen'}
+                  </button>
+                  <button
+                    onClick={() => { setPaletteOpen(true); setContextMenu(null); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                  >
+                    <Plus size={13} /> {lang === 'en' ? 'Open Full Palette' : 'Komplette Palette öffnen'}
+                  </button>
+                </>
+              )}
+
+              {/* Delete (for node/group/sticky/connection) */}
+              {(contextMenu.nodeId || contextMenu.groupId || contextMenu.stickyId || contextMenu.connIdx !== undefined) && (
+                <button onClick={() => handleContextAction('delete')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
+                  <Trash2 size={13} /> {t('contextMenu.delete')}
                 </button>
               )}
-              <button onClick={() => handleContextAction('delete')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
-                <Trash2 size={13} /> {t('contextMenu.delete')}
-              </button>
             </div>
           )}
 
           {/* Presentation Mode floating bar – auto-fades, reappears on hover */}
           {isPresentationMode && (
-            <div
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 p-2"
-              onMouseEnter={() => setPresBarVisible(true)}
-              onMouseLeave={() => setPresBarVisible(false)}
-            >
-              <div
-                className="flex items-center gap-3 px-5 py-2.5 bg-black/70 backdrop-blur-xl rounded-full shadow-2xl border border-white/10"
-                style={{ opacity: presBarVisible ? 1 : 0, transition: 'opacity 0.6s ease' }}
-              >
-                <span className="text-xs text-white/60 font-medium">{lang === 'en' ? 'Presentation Mode' : 'Präsentationsmodus'}</span>
-                <div className="w-px h-4 bg-white/20" />
-                <button
-                  onClick={() => fitToScreen()}
-                  className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                  title={t('toolbar.fitScreen')}
-                >
-                  <Crosshair size={14} />
-                </button>
-                <button
-                  onClick={() => { setIsPresentationMode(false); setIsFullscreen(false); }}
-                  className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors"
-                >
-                  {lang === 'en' ? 'Exit' : 'Beenden'}
-                </button>
+            <>
+              {/* Edit toggle — top-left corner */}
+              <div className="absolute top-3 left-3 z-50">
+                <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-xl border border-white/10 cursor-pointer select-none">
+                  <span className="text-[10px] text-white/60 font-medium">{lang === 'en' ? 'Edit' : 'Bearbeiten'}</span>
+                  <button
+                    onClick={() => setPresEditEnabled(!presEditEnabled)}
+                    className={`relative w-8 h-4 rounded-full transition-colors ${presEditEnabled ? 'bg-purple-500' : 'bg-white/20'}`}
+                  >
+                    <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${presEditEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  </button>
+                </label>
               </div>
-            </div>
+
+              {/* Bottom floating bar */}
+              <div
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 p-2"
+                onMouseEnter={() => setPresBarVisible(true)}
+                onMouseLeave={() => setPresBarVisible(false)}
+              >
+                <div
+                  className="flex items-center gap-3 px-5 py-2.5 bg-black/70 backdrop-blur-xl rounded-full shadow-2xl border border-white/10"
+                  style={{ opacity: presBarVisible ? 1 : 0, transition: 'opacity 0.6s ease' }}
+                >
+                  <span className="text-xs text-white/60 font-medium">{lang === 'en' ? 'Presentation Mode' : 'Präsentationsmodus'}</span>
+                  <div className="w-px h-4 bg-white/20" />
+                  <button
+                    onClick={() => fitToScreen()}
+                    className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    title={t('toolbar.fitScreen')}
+                  >
+                    <Crosshair size={14} />
+                  </button>
+                  <button
+                    onClick={() => { setIsPresentationMode(false); setIsFullscreen(false); setPresEditEnabled(false); }}
+                    className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors"
+                  >
+                    {lang === 'en' ? 'Exit' : 'Beenden'}
+                  </button>
+                </div>
+              </div>
+            </>
           )}
 
           {/* #24 – Keyboard Shortcuts Overlay */}

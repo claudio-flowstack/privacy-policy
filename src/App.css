@@ -196,3 +196,154 @@ input[type="datetime-local"] {
 [class*="bg-\[#0a0a0e\]"] input[type="time"] {
   color-scheme: dark;
 }
+
+/* ─── Loading & Skeleton Animations ──────────────────────────────────────────
+   Shimmer, fade-in, pulse-glow, and spin animations for polished loading states.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  50% { box-shadow: 0 0 12px 4px rgba(139, 92, 246, 0.15); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Skeleton base – shimmer gradient */
+.skeleton {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+  background-size: 200% 100%;
+}
+
+.skeleton-text {
+  height: 0.75rem;
+  border-radius: 0.25rem;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.dark .skeleton-text {
+  background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+  background-size: 200% 100%;
+}
+
+.skeleton-circle {
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.dark .skeleton-circle {
+  background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+  background-size: 200% 100%;
+}
+
+.skeleton-card {
+  border-radius: 1rem;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.dark .skeleton-card {
+  background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+  background-size: 200% 100%;
+}
+
+/* Fade-in-up for content appearing after loading */
+.fade-in-up {
+  animation: fadeInUp 0.35s ease-out both;
+}
+
+/* ─── Bottom Navigation (Mobile) ──────────────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 60px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.dark .bottom-nav {
+  background: #18181b;
+  border-top-color: #27272a;
+}
+
+/* ─── JSON Viewer ─────────────────────────────────────────────────────────── */
+.json-viewer-key {
+  color: #7c3aed;
+}
+
+.dark .json-viewer-key {
+  color: #a78bfa;
+}
+
+.json-viewer-string {
+  color: #16a34a;
+}
+
+.dark .json-viewer-string {
+  color: #4ade80;
+}
+
+.json-viewer-number {
+  color: #2563eb;
+}
+
+.dark .json-viewer-number {
+  color: #60a5fa;
+}
+
+.json-viewer-boolean {
+  color: #ea580c;
+}
+
+.dark .json-viewer-boolean {
+  color: #fb923c;
+}
+
+.json-viewer-null {
+  color: #9ca3af;
+}
+
+.dark .json-viewer-null {
+  color: #6b7280;
+}
+
+/* ─── Image Lightbox ──────────────────────────────────────────────────────── */
+@keyframes lightboxFadeIn {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.lightbox-enter {
+  animation: lightboxFadeIn 0.2s ease-out both;
+}

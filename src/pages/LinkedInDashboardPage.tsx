@@ -63,6 +63,9 @@ import {
   Globe,
   Layers,
   Menu,
+  LayoutDashboard,
+  Cpu,
+  Linkedin,
 } from "lucide-react";
 import { LanguageProvider, useLanguage } from '../i18n/LanguageContext';
 import ConfirmDialog, { useModalEsc } from '../components/ui/ConfirmDialog';
@@ -589,7 +592,7 @@ const CampaignModal = ({ campaign, templates, onClose, onAction }: { campaign: O
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className={`w-4 h-4 rounded-full ${campaign.status === "active" ? "bg-emerald-500" : campaign.status === "paused" ? "bg-yellow-500" : "bg-gray-400"}`} />
@@ -686,7 +689,7 @@ const LeadModal = ({ lead, onClose, onStatusChange, onSaveNotes, onSendMessage, 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl font-bold">{lead.name.charAt(0)}</div>
@@ -814,7 +817,7 @@ const TemplateModal = ({ template, onClose, onSave, onDelete }: { template: Mess
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-3 mb-6">
           <GitBranch className="w-6 h-6 text-sky-500" />
@@ -952,7 +955,7 @@ const PostModal = ({ post, onClose, onAction }: { post: LinkedInPost | null; onC
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-2xl w-full mx-4 shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">{postTypeIcons[post.type]}</div>
@@ -965,7 +968,7 @@ const PostModal = ({ post, onClose, onAction }: { post: LinkedInPost | null; onC
         </div>
         <p className="text-lg mb-6">{post.content}</p>
         {post.status === "published" && (
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center"><p className="text-2xl font-bold">{formatNumber(post.impressions)}</p><p className="text-xs text-gray-500">{tx("Impressionen", "Impressions")}</p></div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center"><p className="text-2xl font-bold">{formatNumber(post.likes)}</p><p className="text-xs text-gray-500">{tx("Likes", "Likes")}</p></div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center"><p className="text-2xl font-bold">{post.comments}</p><p className="text-xs text-gray-500">{tx("Kommentare", "Comments")}</p></div>
@@ -1014,7 +1017,7 @@ const NewCampaignModal = ({ isOpen, templates, onClose, onCreate }: { isOpen: bo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-lg w-full mx-4 shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <h2 className="text-2xl font-bold mb-6">{tx("Neue Kampagne erstellen", "Create new campaign")}</h2>
         <div className="space-y-4">
@@ -1063,7 +1066,7 @@ const NewTemplateModal = ({ isOpen, onClose, onCreate }: { isOpen: boolean; onCl
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-lg w-full mx-4 shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <h2 className="text-2xl font-bold mb-6">{tx("Neues Template erstellen", "Create new template")}</h2>
         <div className="space-y-4">
@@ -1207,7 +1210,7 @@ const PostEditorModal = ({ post, isOpen, onClose, onSave }: { post: LinkedInPost
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <h2 className="text-2xl font-bold mb-6">{post ? tx("Post bearbeiten", "Edit post") : tx("Neuer Post", "New post")}</h2>
         <div className="space-y-4">
@@ -1260,7 +1263,7 @@ const PostEditorModal = ({ post, isOpen, onClose, onSave }: { post: LinkedInPost
 
               {/* Media Preview */}
               {mediaFiles.length > 0 && (
-                <div className={`mt-4 ${type === "carousel" ? "grid grid-cols-4 gap-2" : ""}`}>
+                <div className={`mt-4 ${type === "carousel" ? "grid grid-cols-2 sm:grid-cols-4 gap-2" : ""}`}>
                   {mediaFiles.map((media, index) => (
                     <div key={index} className="relative group">
                       {(type === "image" || type === "carousel") && (
@@ -1344,7 +1347,7 @@ const MessageModal = ({ data, onClose, onSend }: { data: { lead: OutreachLead; m
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-lg w-full mx-4 shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center text-white text-xl font-bold">{data.lead.name.charAt(0)}</div>
@@ -1705,7 +1708,7 @@ const LinkedInDashboardContent = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-black">
       {/* Toast Notifications */}
       {toasts.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-[110] flex flex-col gap-2">
+        <div className="fixed bottom-20 md:bottom-6 right-6 z-[110] flex flex-col gap-2">
           {toasts.map(t => (
             <div key={t.id} className={`px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-in slide-in-from-right fade-in duration-200 ${t.type === 'success' ? 'bg-emerald-500 text-white' : t.type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'}`}>
               {t.msg}
@@ -1786,17 +1789,17 @@ const LinkedInDashboardContent = () => {
       </aside>
 
       {/* Main */}
-      <main className={`transition-all duration-300 ${sidebarCollapsed ? '' : 'lg:ml-64'}`}>
+      <main className={`transition-all duration-300 pb-20 md:pb-0 ${sidebarCollapsed ? '' : 'lg:ml-64'}`}>
         {/* Header */}
         <header className="sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-30">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4">
             <div className="flex items-center gap-2">
             <button onClick={() => setMobileSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Menü öffnen', 'Open menu')}><Menu className="w-5 h-5 text-gray-500" /></button>
             {sidebarCollapsed && <button onClick={() => setSidebarCollapsed(false)} className="hidden lg:flex p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx("Sidebar ausklappen", "Expand sidebar")}><ChevronRight className="w-5 h-5 text-gray-500" /></button>}
-            </div>
             <div>
-              <h1 className="text-2xl font-bold">{{ dashboard: "Dashboard", outreach: tx("Kampagnen", "Campaigns"), messages: tx("Nachrichten-Templates", "Message Templates"), posts: "Posts", leads: "Leads", analytics: "Analytics", scheduler: "Scheduler", settings: tx("Einstellungen", "Settings"), sequences: tx("Sequenzen", "Sequences"), inbox: "Smart Inbox", import: tx("Lead Import", "Lead Import") }[section]}</h1>
-              <p className="text-sm text-gray-500">{dateLabels[dateRange]}</p>
+              <h1 className="text-xl sm:text-2xl font-bold">{{ dashboard: "Dashboard", outreach: tx("Kampagnen", "Campaigns"), messages: tx("Nachrichten-Templates", "Message Templates"), posts: "Posts", leads: "Leads", analytics: "Analytics", scheduler: "Scheduler", settings: tx("Einstellungen", "Settings"), sequences: tx("Sequenzen", "Sequences"), inbox: "Smart Inbox", import: tx("Lead Import", "Lead Import") }[section]}</h1>
+              <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">{dateLabels[dateRange]}</p>
+            </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="relative hidden md:block">
@@ -1812,7 +1815,7 @@ const LinkedInDashboardContent = () => {
             </div>
           </div>
           {(section === "dashboard" || section === "outreach" || section === "posts") && (
-            <div className="flex items-center gap-4 px-6 py-3 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 border-t border-gray-100 dark:border-gray-800">
               <CustomDropdown value={dateRange} onChange={setDateRange} options={[{ value: "today", label: tx("Heute", "Today") }, { value: "7d", label: tx("Letzte 7 Tage", "Last 7 days") }, { value: "30d", label: tx("Letzte 30 Tage", "Last 30 days") }, { value: "90d", label: tx("Letzte 90 Tage", "Last 90 days") }, { value: "6m", label: tx("Letzte 6 Monate", "Last 6 months") }, { value: "12m", label: tx("Letzte 12 Monate", "Last 12 months") }, { value: "custom", label: tx("Benutzerdefiniert", "Custom") }]} icon={<Calendar className="w-4 h-4 text-gray-500" />} />
               {dateRange === "custom" && (
                 <div className="flex items-center gap-2">
@@ -1825,13 +1828,13 @@ const LinkedInDashboardContent = () => {
                 <CustomDropdown value={postFilter} onChange={setPostFilter} options={[{ value: "all", label: tx("Alle", "All") }, { value: "published", label: tx("Veröffentlicht", "Published") }, { value: "scheduled", label: tx("Geplant", "Scheduled") }, { value: "draft", label: tx("Entwürfe", "Drafts") }]} icon={<Filter className="w-4 h-4 text-gray-500" />} />
               )}
               <div className="flex-1" />
-              <button onClick={handleRefresh} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />{tx("Aktualisieren", "Refresh")}</button>
-              <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white text-sm font-medium rounded-xl hover:bg-sky-600"><Download className="w-4 h-4" />Export</button>
+              <button onClick={handleRefresh} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} /><span className="hidden sm:inline">{tx("Aktualisieren", "Refresh")}</span></button>
+              <button onClick={handleExport} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-sky-500 text-white text-sm font-medium rounded-xl hover:bg-sky-600"><Download className="w-4 h-4" /><span className="hidden sm:inline">Export</span></button>
             </div>
           )}
         </header>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           {/* DASHBOARD */}
           {section === "dashboard" && (
             <>
@@ -2040,7 +2043,7 @@ const LinkedInDashboardContent = () => {
                     <p className="font-medium mb-3 line-clamp-2">{post.content}</p>
                     <p className="text-xs text-gray-400 mb-4">{formatDate(post.publishedAt, lang)}</p>
                     {post.status === "published" && (
-                      <div className="grid grid-cols-4 gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
                         <div className="text-center"><p className="text-lg font-bold">{formatNumber(Math.round(post.impressions * dateMultiplier))}</p><p className="text-xs text-gray-500">{tx("Aufrufe", "Views")}</p></div>
                         <div className="text-center"><p className="text-lg font-bold">{formatNumber(Math.round(post.likes * dateMultiplier))}</p><p className="text-xs text-gray-500">{tx("Likes", "Likes")}</p></div>
                         <div className="text-center"><p className="text-lg font-bold">{Math.round(post.comments * dateMultiplier)}</p><p className="text-xs text-gray-500">{tx("Kommentare", "Comments")}</p></div>
@@ -2056,7 +2059,7 @@ const LinkedInDashboardContent = () => {
           {/* LEADS */}
           {section === "leads" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 {(Object.entries(statusLabels) as [string, string][]).map(([key, label]) => {
                   const count = leads.filter(l => l.status === key).length;
                   const sc = statusColors[key];
@@ -2188,7 +2191,7 @@ const LinkedInDashboardContent = () => {
                 <button onClick={() => setShowNewPostModal(true)} className="px-4 py-2 bg-sky-500 text-white rounded-xl font-medium hover:bg-sky-600 flex items-center gap-2"><Edit3 className="w-4 h-4" />{tx("Post planen", "Schedule Post")}</button>
               </div>
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
-                <div className="grid grid-cols-7 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-4">
                   {(lang === 'de' ? ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]).map((day, di) => {
                     const scheduledPosts = posts.filter(p => p.status === "scheduled");
                     const dayPosts = scheduledPosts.filter((_, index) => index % 7 === di);
@@ -2352,7 +2355,7 @@ const LinkedInDashboardContent = () => {
                   return (
                     <div className="fixed inset-0 z-50 flex items-center justify-center">
                       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedSequence(null)} />
-                      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-3xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+                      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-3xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <button onClick={() => setSelectedSequence(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
                         {/* Editable Name */}
                         <div className="flex items-center gap-4 mb-6">
@@ -2469,7 +2472,7 @@ const LinkedInDashboardContent = () => {
               {showNewSequenceModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowNewSequenceModal(false)} />
-                  <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+                  <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-lg w-full mx-4 shadow-2xl">
                     <button onClick={() => setShowNewSequenceModal(false)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
                     <h2 className="text-2xl font-bold mb-6">{tx("Neue Sequenz erstellen", "Create new sequence")}</h2>
                     <p className="text-gray-500 mb-6">{tx("Wähle eine Vorlage oder starte von Grund auf.", "Choose a template or start from scratch.")}</p>
@@ -2849,7 +2852,7 @@ const LinkedInDashboardContent = () => {
               {showBlacklistModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowBlacklistModal(false)} />
-                  <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+                  <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-8 max-w-md w-full mx-4 shadow-2xl">
                     <button onClick={() => setShowBlacklistModal(false)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx("Schließen", "Close")}><X className="w-5 h-5 text-gray-400" /></button>
                     <h2 className="text-xl font-bold mb-6">{tx("Zur Blacklist hinzufügen", "Add to Blacklist")}</h2>
                     <div className="space-y-4">
@@ -3310,6 +3313,22 @@ const LinkedInDashboardContent = () => {
         }}
         onCancel={() => setPendingInlineDelete(null)}
       />
+
+      {/* ─── Mobile Bottom Navigation ─── */}
+      <nav className="bottom-nav md:hidden">
+        {[
+          { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', active: false },
+          { icon: Linkedin, label: 'LinkedIn', href: '/linkedin', active: true },
+          { icon: FileText, label: 'Content', href: '/content', active: false },
+          { icon: Cpu, label: lang === 'de' ? 'Systeme' : 'Systems', href: '/system', active: false },
+          { icon: Mail, label: 'Cold Mail', href: '/cold-mail', active: false },
+        ].map(item => (
+          <a key={item.href} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 transition-colors text-[10px] font-medium ${item.active ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400 dark:text-zinc-500'}`}>
+            <item.icon className="w-5 h-5" />
+            <span>{item.label}</span>
+          </a>
+        ))}
+      </nav>
     </div>
   );
 };

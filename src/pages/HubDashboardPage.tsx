@@ -11,7 +11,8 @@ import {
   ChevronLeft, ChevronRight, ArrowRight,
   FileText, Activity, Sparkles, Save,
   ChevronDown, ChevronUp, DollarSign,
-  TrendingUp, Layers, MessageSquare
+  TrendingUp, Layers, MessageSquare,
+  LayoutDashboard, Cpu, Linkedin
 } from "lucide-react";
 import { useTheme } from '@/components/theme-provider';
 import { LanguageProvider, useLanguage } from '../i18n/LanguageContext';
@@ -770,7 +771,7 @@ function HubDashboardContent() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-10 pb-20 md:pb-0">
 
         {/* ── 0. Welcome Banner ── */}
         <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-6 sm:p-8 text-white">
@@ -1051,7 +1052,7 @@ function HubDashboardContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
                 {weekDays.map((day, idx) => {
                   const dayStr = day.toISOString().split('T')[0];
                   const isToday = dayStr === todayStr;
@@ -1060,7 +1061,7 @@ function HubDashboardContent() {
                   return (
                     <div
                       key={idx}
-                      className={`rounded-xl border p-2.5 min-h-[140px] transition-all ${
+                      className={`rounded-xl border p-2.5 min-h-[100px] sm:min-h-[140px] transition-all ${
                         isToday
                           ? 'border-indigo-400 dark:border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-sm shadow-indigo-200/30 dark:shadow-indigo-900/20'
                           : 'border-gray-200/60 dark:border-gray-800/60 bg-white dark:bg-gray-900'
@@ -1252,6 +1253,22 @@ function HubDashboardContent() {
         </div>
 
       </main>
+
+      {/* ─── Mobile Bottom Navigation ─── */}
+      <nav className="bottom-nav md:hidden">
+        {[
+          { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', active: false },
+          { icon: Calendar, label: 'Hub', href: '/hub', active: true },
+          { icon: FileText, label: 'Content', href: '/content', active: false },
+          { icon: Cpu, label: lang === 'de' ? 'Systeme' : 'Systems', href: '/system', active: false },
+          { icon: Linkedin, label: 'LinkedIn', href: '/linkedin', active: false },
+        ].map(item => (
+          <a key={item.href} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 transition-colors text-[10px] font-medium ${item.active ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400 dark:text-zinc-500'}`}>
+            <item.icon className="w-5 h-5" />
+            <span>{item.label}</span>
+          </a>
+        ))}
+      </nav>
     </div>
   );
 }

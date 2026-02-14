@@ -3,7 +3,7 @@
  * Ideen sammeln, Drafts erstellen, Content-Pipeline verwalten
  */
 
-import { useState, useEffect, useMemo, useCallback, ReactNode } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, ReactNode } from "react";
 import {
   BarChart3, Video, Camera, Calendar, Search, Settings,
   Lightbulb, Plus, X, Edit3, Trash2, Copy, Download, Upload,
@@ -15,7 +15,8 @@ import {
   Columns3, Bell, Menu, CheckSquare, Users,
   Eye, Hash, Percent, AlertCircle, Bookmark,
   FolderOpen, ClipboardList, Code, DollarSign,
-  ChevronUp, RefreshCw, GitBranch, List, Maximize2, ArrowLeft, Link2
+  ChevronUp, RefreshCw, GitBranch, List, Maximize2, Minimize2, ArrowLeft, Link2,
+  Archive, Bold, Italic, ListOrdered, Heading2, Save
 } from "lucide-react";
 import { useTheme } from '@/components/theme-provider';
 import { LanguageProvider, useLanguage } from '../i18n/LanguageContext';
@@ -146,6 +147,7 @@ interface ResearchNote {
   links: string[];
   tags: string[];
   platform: Platform | 'general';
+  linkedContentId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -326,11 +328,49 @@ const calcContentScore = (item: ContentItem): number => {
 
 const TEAM_MEMBERS = ['Claudio', 'Anna', 'Max', 'Lisa', 'Tom'];
 
-const DEFAULT_CHECKLIST: Record<Platform, string[]> = {
-  youtube: ['Script schreiben', 'Aufnahme machen', 'Schnitt', 'Thumbnail erstellen', 'SEO optimieren', 'Upload & Beschreibung'],
-  instagram: ['Konzept/Storyboard', 'Aufnahme/Design', 'Beitragstext schreiben', 'Hashtags recherchieren', 'Audio wählen', 'Veröffentlichen'],
-  'facebook-linkedin': ['Text schreiben', 'Bild/Visual erstellen', 'Hashtags setzen', 'Link einfügen', 'Veröffentlichen'],
+const DEFAULT_CHECKLIST_BILINGUAL: Record<Platform, { de: string; en: string }[]> = {
+  youtube: [
+    { de: 'Thumbnail erstellt', en: 'Thumbnail created' },
+    { de: 'SEO-Tags hinzugefügt', en: 'SEO tags added' },
+    { de: 'Beschreibung geschrieben', en: 'Description written' },
+    { de: 'Endscreen eingerichtet', en: 'End screen set up' },
+    { de: 'Untertitel geprüft', en: 'Subtitles checked' },
+  ],
+  instagram: [
+    { de: 'Caption geschrieben', en: 'Caption written' },
+    { de: 'Hashtags recherchiert', en: 'Hashtags researched' },
+    { de: 'Cover-Bild erstellt', en: 'Cover image created' },
+    { de: 'Audio ausgewählt', en: 'Audio selected' },
+    { de: 'Story-Teaser geplant', en: 'Story teaser planned' },
+  ],
+  'facebook-linkedin': [
+    { de: 'Post-Text geschrieben', en: 'Post text written' },
+    { de: 'Bild/Grafik erstellt', en: 'Image/graphic created' },
+    { de: 'Hashtags ausgewählt', en: 'Hashtags selected' },
+    { de: 'Veröffentlichungszeit geplant', en: 'Publication time planned' },
+    { de: 'Engagement-Plan', en: 'Engagement plan' },
+  ],
 };
+
+const getDefaultChecklist = (platform: Platform, lang: string): string[] =>
+  DEFAULT_CHECKLIST_BILINGUAL[platform].map(item => lang === 'de' ? item.de : item.en);
+
+// ---- Saved Templates (user-created from content items) ----
+interface SavedTemplate {
+  id: string;
+  name: string;
+  platform: Platform;
+  concept: string;
+  tags: string[];
+  checklist: string[];
+  createdAt: string;
+}
+
+const loadSavedTemplates = (): SavedTemplate[] => {
+  try { const raw = localStorage.getItem('flowstack-content-templates'); return raw ? JSON.parse(raw) : []; }
+  catch { return []; }
+};
+const persistSavedTemplates = (templates: SavedTemplate[]) => localStorage.setItem('flowstack-content-templates', JSON.stringify(templates));
 
 // ============================================
 // COLOR MAPS
@@ -1064,12 +1104,72 @@ const getContentPrefix = (platform: Platform, postType?: string): string => {
 };
 
 // ============================================
+// RICH TEXT TOOLBAR + EDITABLE
+// ============================================
+const RichTextToolbar = ({ editorRef }: { editorRef: React.RefObject<HTMLDivElement | null> }) => {
+  const exec = (cmd: string, value?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(cmd, false, value);
+  };
+  const btnCls = "p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-gray-600 dark:text-gray-300";
+  return (
+    <div className="flex items-center gap-0.5 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-t-xl border border-b-0 border-gray-200 dark:border-gray-600">
+      <button type="button" onClick={() => exec('bold')} className={btnCls} title="Bold"><Bold className="w-3.5 h-3.5" /></button>
+      <button type="button" onClick={() => exec('italic')} className={btnCls} title="Italic"><Italic className="w-3.5 h-3.5" /></button>
+      <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5" />
+      <button type="button" onClick={() => exec('insertUnorderedList')} className={btnCls} title="Bullet List"><List className="w-3.5 h-3.5" /></button>
+      <button type="button" onClick={() => exec('insertOrderedList')} className={btnCls} title="Numbered List"><ListOrdered className="w-3.5 h-3.5" /></button>
+      <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5" />
+      <button type="button" onClick={() => exec('formatBlock', 'h2')} className={btnCls} title="Heading"><Heading2 className="w-3.5 h-3.5" /></button>
+    </div>
+  );
+};
+
+const RichTextEditor = ({ value, onChange, className, placeholder }: { value: string; onChange: (v: string) => void; className?: string; placeholder?: string }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInternalChange = useRef(false);
+
+  // Sync external value on mount or when value changes from outside
+  useEffect(() => {
+    if (ref.current && !isInternalChange.current) {
+      if (ref.current.innerHTML !== value) {
+        ref.current.innerHTML = value || '';
+      }
+    }
+    isInternalChange.current = false;
+  }, [value]);
+
+  const handleInput = () => {
+    if (ref.current) {
+      isInternalChange.current = true;
+      onChange(ref.current.innerHTML);
+    }
+  };
+
+  return (
+    <div>
+      <RichTextToolbar editorRef={ref} />
+      <div
+        ref={ref}
+        contentEditable
+        onInput={handleInput}
+        onBlur={handleInput}
+        data-placeholder={placeholder}
+        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-b-xl text-sm dark:text-white focus:ring-2 focus:ring-sky-500 outline-none min-h-[6rem] border border-gray-200 dark:border-gray-600 border-t-0 [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-400 [&:empty]:before:pointer-events-none ${className || ''}`}
+        style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+      />
+    </div>
+  );
+};
+
+// ============================================
 // CONTENT ITEM MODAL (Detail-Editor)
 // ============================================
-const ContentItemModal = ({ item, lang, onClose, onSave, onDelete, onDuplicate, addToast }: {
+const ContentItemModal = ({ item, lang, onClose, onSave, onDelete, onDuplicate, addToast, onSaveAsTemplate }: {
   item: ContentItem | null; lang: string; onClose: () => void;
   onSave: (item: ContentItem) => void; onDelete: (id: string) => void; onDuplicate: (id: string) => void;
   addToast: (msg: string, type?: Toast['type']) => void;
+  onSaveAsTemplate?: (item: ContentItem) => void;
 }) => {
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
   const [tab, setTab] = useState<'details' | 'preview' | 'versions' | 'thumbnails'>('details');
@@ -1083,6 +1183,7 @@ const ContentItemModal = ({ item, lang, onClose, onSave, onDelete, onDuplicate, 
   const [versionLabel, setVersionLabel] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isFullscreenModal, setIsFullscreenModal] = useState(false);
 
   useModalEsc(!!item, onClose);
   useEffect(() => { if (item) setEditItem(JSON.parse(JSON.stringify(item))); }, [item]);
@@ -1227,14 +1328,30 @@ const ContentItemModal = ({ item, lang, onClose, onSave, onDelete, onDuplicate, 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-3xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
+      <div className={`relative bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto ${isFullscreenModal ? 'fixed inset-0 z-50 rounded-none p-8' : 'rounded-3xl p-8 max-w-3xl w-full mx-4 max-h-[90vh]'}`}>
+        <div className="absolute top-4 right-4 flex items-center gap-1">
+          <button onClick={() => setIsFullscreenModal(f => !f)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={isFullscreenModal ? tx('Verkleinern', 'Exit fullscreen') : tx('Vollbild', 'Fullscreen')}>
+            {isFullscreenModal ? <Minimize2 className="w-5 h-5 text-gray-400" /> : <Maximize2 className="w-5 h-5 text-gray-400" />}
+          </button>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl" title={tx('Schließen', 'Close')}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <PlatformBadge platform={editItem.platform} />
           <StatusBadge status={editItem.status} lang={lang} />
           <PriorityBadge priority={editItem.priority} lang={lang} />
+          <div className="flex-1" />
+          {onSaveAsTemplate && (
+            <button
+              onClick={() => { onSaveAsTemplate(editItem); addToast(tx('Als Template gespeichert!', 'Saved as template!')); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-medium hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors mr-8"
+              title={tx('Als Template speichern', 'Save as Template')}
+            >
+              <Save className="w-3.5 h-3.5" />
+              {tx('Als Template', 'Save as Template')}
+            </button>
+          )}
         </div>
 
         {/* Tabs */}
@@ -1255,7 +1372,7 @@ const ContentItemModal = ({ item, lang, onClose, onSave, onDelete, onDuplicate, 
             </div>
             <div>
               <label className="text-sm text-gray-500 block mb-2">{tx('Konzept / Idee', 'Concept / Idea')}</label>
-              <textarea value={editItem.concept} onChange={e => updateField('concept', e.target.value)} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-sky-500 outline-none resize-none h-24" />
+              <RichTextEditor value={editItem.concept} onChange={v => updateField('concept', v)} placeholder={tx('Konzept beschreiben...', 'Describe concept...')} />
             </div>
             <div>
               <label className="text-sm text-gray-500 block mb-2">{tx('Angle / Hook', 'Angle / Hook')}</label>
@@ -1359,7 +1476,7 @@ const ContentItemModal = ({ item, lang, onClose, onSave, onDelete, onDuplicate, 
                 </div>
                 <div>
                   <label className="text-sm text-gray-500 block mb-2">{tx('Video-Beschreibung', 'Video Description')}</label>
-                  <textarea value={editItem.yt.videoDescription} onChange={e => updateYt('videoDescription', e.target.value)} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-sky-500 outline-none resize-y min-h-[8rem]" />
+                  <RichTextEditor value={editItem.yt.videoDescription} onChange={v => updateYt('videoDescription', v)} placeholder={tx('Video-Beschreibung schreiben...', 'Write video description...')} />
                 </div>
                 <div>
                   <label className="text-sm text-gray-500 block mb-2">Keywords</label>
@@ -1529,7 +1646,7 @@ const ContentItemModal = ({ item, lang, onClose, onSave, onDelete, onDuplicate, 
             {/* Notes */}
             <div>
               <label className="text-sm text-gray-500 block mb-2">{tx('Notizen', 'Notes')}</label>
-              <textarea value={editItem.notes} onChange={e => updateField('notes', e.target.value)} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-sky-500 outline-none resize-none h-20" />
+              <RichTextEditor value={editItem.notes} onChange={v => updateField('notes', v)} placeholder={tx('Notizen hinzufügen...', 'Add notes...')} />
             </div>
           </div>
         )}
@@ -1717,30 +1834,59 @@ const ContentItemModal = ({ item, lang, onClose, onSave, onDelete, onDuplicate, 
                 </div>
               )}
 
-              {/* Instagram Preview */}
+              {/* Instagram Preview — Phone Frame */}
               {editItem.platform === 'instagram' && editItem.ig && (
-                <div className="bg-white dark:bg-gray-950 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 max-w-sm mx-auto">
-                  <div className="flex items-center gap-3 p-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400 flex items-center justify-center text-white font-bold text-xs">FS</div>
-                    <p className="font-semibold text-sm flex-1">flowstack.systems</p>
-                    <span className="text-gray-400">···</span>
-                  </div>
-                  <div className="relative">
-                    <MediaBlock aspect="aspect-square" />
-                    {editItem.ig.postType !== 'post' && <span className="absolute top-3 right-3 px-2 py-0.5 bg-black/60 text-white rounded text-xs font-medium">{editItem.ig.postType === 'reel' ? 'Reel' : editItem.ig.postType === 'carousel' ? 'Carousel' : 'Story'}</span>}
-                  </div>
-                  <div className="px-3 pt-3 flex items-center gap-4">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                    <div className="flex-1" />
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
-                  </div>
-                  <div className="px-3 py-2 pb-4">
-                    {previewEditing ? <EditableTextArea /> : <CollapsibleText text={editItem.ig.caption} bold="flowstack.systems" onEdit={() => { setPreviewTextExpanded(true); setPreviewEditing(true); }} />}
-                    {(previewTextExpanded || editItem.ig.caption.length <= TRUNC) && editItem.ig.hashtags.length > 0 && (
-                      <p className="text-sm text-blue-500 mt-1">{editItem.ig.hashtags.map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}</p>
-                    )}
+                <div className="flex justify-center">
+                  <div className="max-w-[320px] w-full bg-black rounded-[2.5rem] p-2 shadow-2xl">
+                    {/* Notch */}
+                    <div className="flex justify-center pt-1 pb-2">
+                      <div className="w-24 h-5 bg-black rounded-full border border-gray-800 flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full bg-gray-900 border border-gray-700" />
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-950 rounded-[2rem] overflow-hidden">
+                      {/* Header */}
+                      <div className="flex items-center gap-3 p-3 border-b border-gray-100 dark:border-gray-800">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400 p-[2px]">
+                          <div className="w-full h-full rounded-full bg-white dark:bg-gray-950 flex items-center justify-center text-[10px] font-bold text-gray-800 dark:text-white">FS</div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs">flowstack</p>
+                          <p className="text-[10px] text-gray-400 truncate">{tx('Originalton', 'Original audio')}</p>
+                        </div>
+                        <span className="text-gray-400 text-lg font-bold tracking-widest">...</span>
+                      </div>
+                      {/* Image */}
+                      <div className="relative">
+                        <MediaBlock aspect="aspect-square" />
+                        {editItem.ig.postType !== 'post' && <span className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 text-white rounded text-[10px] font-medium">{editItem.ig.postType === 'reel' ? 'Reel' : editItem.ig.postType === 'carousel' ? 'Carousel' : 'Story'}</span>}
+                      </div>
+                      {/* Action icons */}
+                      <div className="px-3 pt-2.5 flex items-center gap-4">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                        <div className="flex-1" />
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+                      </div>
+                      {/* Likes */}
+                      <p className="px-3 pt-1.5 text-xs font-semibold">{tx('Gefaellt 847 Personen', '847 likes')}</p>
+                      {/* Caption */}
+                      <div className="px-3 py-1.5">
+                        {previewEditing ? <EditableTextArea /> : <CollapsibleText text={editItem.ig.caption} bold="flowstack" onEdit={() => { setPreviewTextExpanded(true); setPreviewEditing(true); }} />}
+                        {(previewTextExpanded || editItem.ig.caption.length <= TRUNC) && editItem.ig.hashtags.length > 0 && (
+                          <p className="text-xs text-blue-500 mt-1 leading-relaxed">{editItem.ig.hashtags.map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}</p>
+                        )}
+                      </div>
+                      {/* View comments */}
+                      <p className="px-3 text-[11px] text-gray-400 pb-1">{tx('Alle 24 Kommentare ansehen', 'View all 24 comments')}</p>
+                      {/* Timestamp */}
+                      <p className="px-3 pb-3 text-[10px] text-gray-400 uppercase">{tx('Vor 2 Stunden', '2 hours ago')}</p>
+                    </div>
+                    {/* Home bar */}
+                    <div className="flex justify-center py-2">
+                      <div className="w-28 h-1 bg-gray-600 rounded-full" />
+                    </div>
                   </div>
                 </div>
               )}
@@ -1789,9 +1935,49 @@ const ContentItemModal = ({ item, lang, onClose, onSave, onDelete, onDuplicate, 
                 </div>
               )}
 
-              {/* Empty state */}
+              {/* Generic Preview (fallback when no platform-specific data) */}
               {!editItem.yt && !editItem.ig && !editItem.fb && (
-                <div className="text-center py-12 text-gray-400"><Eye className="w-12 h-12 mx-auto mb-3 opacity-50" /><p>{tx('Keine Plattform-Daten', 'No platform data')}</p></div>
+                <div className="bg-white dark:bg-gray-950 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 max-w-md mx-auto">
+                  {/* Generic card header */}
+                  <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-800">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">FS</div>
+                    <div>
+                      <p className="font-semibold text-sm">Flowstack</p>
+                      <p className="text-xs text-gray-400">{tx('Gerade eben', 'Just now')}</p>
+                    </div>
+                  </div>
+                  {/* Title */}
+                  <div className="p-4">
+                    <h3 className="font-bold text-base mb-2">{editItem.title || tx('Ohne Titel', 'Untitled')}</h3>
+                    {editItem.concept && <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{editItem.concept}</p>}
+                    {editItem.angle && <p className="text-xs text-gray-500 italic mb-3">{editItem.angle}</p>}
+                  </div>
+                  {/* Placeholder image */}
+                  <MediaBlock />
+                  {/* Tags */}
+                  {editItem.tags.length > 0 && (
+                    <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800">
+                      <div className="flex flex-wrap gap-1.5">
+                        {editItem.tags.map(t => <span key={t} className="text-xs text-blue-500">#{t}</span>)}
+                      </div>
+                    </div>
+                  )}
+                  {/* Generic action bar */}
+                  <div className="flex border-t border-gray-100 dark:border-gray-800">
+                    <button className="flex-1 py-2.5 text-sm text-gray-500 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1.5">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>
+                      {tx('Gefaellt mir', 'Like')}
+                    </button>
+                    <button className="flex-1 py-2.5 text-sm text-gray-500 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1.5">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                      {tx('Kommentar', 'Comment')}
+                    </button>
+                    <button className="flex-1 py-2.5 text-sm text-gray-500 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1.5">
+                      <Share2 className="w-5 h-5" />
+                      {tx('Teilen', 'Share')}
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           );
@@ -1931,10 +2117,11 @@ const NewContentModal = ({ isOpen, lang, onClose, onCreate }: {
 // ============================================
 // RESEARCH NOTE MODAL
 // ============================================
-const ResearchNoteModal = ({ note, lang, onClose, onSave, onDelete, addToast }: {
+const ResearchNoteModal = ({ note, lang, onClose, onSave, onDelete, addToast, contentItems }: {
   note: ResearchNote | null; lang: string; onClose: () => void;
   onSave: (note: ResearchNote) => void; onDelete: (id: string) => void;
   addToast: (msg: string, type?: Toast['type']) => void;
+  contentItems: ContentItem[];
 }) => {
   const tx = (de: string, en: string) => lang === 'de' ? de : en;
   const [editNote, setEditNote] = useState<ResearchNote | null>(null);
@@ -2022,6 +2209,19 @@ const ResearchNoteModal = ({ note, lang, onClose, onSave, onDelete, addToast }: 
               <button onClick={() => { if (newTag.trim()) { setEditNote(prev => prev && !prev.tags.includes(newTag.trim()) ? { ...prev, tags: [...prev.tags, newTag.trim()] } : prev); setNewTag(''); }}} className="px-3 py-2 bg-purple-500 text-white rounded-xl text-sm hover:bg-purple-600"><Plus className="w-4 h-4" /></button>
             </div>
           </div>
+          <div>
+            <label className="text-sm text-gray-500 block mb-2">{tx('Verknüpfter Content', 'Linked Content')}</label>
+            <select
+              value={editNote.linkedContentId || ''}
+              onChange={e => setEditNote(prev => prev ? { ...prev, linkedContentId: e.target.value || undefined } : prev)}
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
+            >
+              <option value="">{tx('-- Kein Content verknüpft --', '-- No content linked --')}</option>
+              {contentItems.map(ci => (
+                <option key={ci.id} value={ci.id}>{ci.title} ({ci.platform})</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="flex items-center gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
           <button onClick={handleSave} className="flex-1 py-3 bg-sky-500 text-white font-medium rounded-xl hover:bg-sky-600">{tx('Speichern', 'Save')}</button>
@@ -2052,7 +2252,13 @@ const ContentDashboardContent = () => {
   // UI
   const { theme, setTheme } = useTheme();
   const darkMode = theme === 'dark';
-  const [section, setSection] = useState<ActiveSection>('overview');
+  const [section, setSectionRaw] = useState<ActiveSection>('overview');
+  const [tabVisible, setTabVisible] = useState(true);
+  const [pipelineLoading, setPipelineLoading] = useState(true);
+  const setSection = useCallback((s: ActiveSection) => {
+    setTabVisible(false);
+    setTimeout(() => { setSectionRaw(s); setTabVisible(true); }, 150);
+  }, []);
   const [search, setSearch] = useState('');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -2063,9 +2269,17 @@ const ContentDashboardContent = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<ContentStatus | null>(null);
   const [series] = useState<ContentSeries[]>(DEMO_SERIES);
   const [templates] = useState<ContentTemplate[]>(DEMO_TEMPLATES);
   const [previewTemplate, setPreviewTemplate] = useState<ContentTemplate | null>(null);
+
+  // Saved templates (user-created from content items)
+  const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>(() => loadSavedTemplates());
+  useEffect(() => { persistSavedTemplates(savedTemplates); }, [savedTemplates]);
+
+  // Archive toggle
+  const [showArchive, setShowArchive] = useState(false);
 
   // Inline delete confirmation (replaces window.confirm)
   const [pendingDelete, setPendingDelete] = useState<{ action: () => void; message: string } | null>(null);
@@ -2099,6 +2313,7 @@ const ContentDashboardContent = () => {
   const [editingFile, setEditingFile] = useState<FileLink | null>(null);
   const [showNewFileModal, setShowNewFileModal] = useState(false);
   const [deleteFileId, setDeleteFileId] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<FileLink | null>(null);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
   const [modalLabels, setModalLabels] = useState<string[]>([]);
@@ -2183,12 +2398,23 @@ const ContentDashboardContent = () => {
     d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
     d.setHours(0, 0, 0, 0); return d;
   });
+  const [calendarView, setCalendarView] = useState<'week' | 'month'>('week');
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
 
   // Toast
   const { toasts, addToast, dismissToast } = useToast();
 
   // Close mobile sidebar on section change
   useEffect(() => { setMobileSidebarOpen(false); }, [section]);
+
+  // Simulated pipeline loading delay for polish
+  useEffect(() => {
+    if (section === 'pipeline') {
+      setPipelineLoading(true);
+      const timer = setTimeout(() => setPipelineLoading(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [section]);
 
   // Persistence (load happens via lazy useState init above)
   useEffect(() => { saveContentItems(contentItems); }, [contentItems]);
@@ -2206,6 +2432,8 @@ const ContentDashboardContent = () => {
   useModalEsc(showPlanBuilder, closePlanBuilder);
   useModalEsc(showNotifications, closeNotifications);
   useModalEsc(mobileSidebarOpen, () => setMobileSidebarOpen(false));
+  const closeFilePreview = useCallback(() => setPreviewFile(null), []);
+  useModalEsc(!!previewFile, closeFilePreview);
 
   // Keyboard shortcuts for planning
   useEffect(() => {
@@ -2244,9 +2472,56 @@ const ContentDashboardContent = () => {
   // Active plan
   const activePlan = useMemo(() => plans.find(p => p.id === activePlanId) || plans[0], [plans, activePlanId]);
 
+  // Duplicate a plan (deep copy with new IDs, task statuses reset to 'todo')
+  const duplicatePlan = useCallback((planId: string) => {
+    const source = plans.find(p => p.id === planId);
+    if (!source) return;
+    const now = new Date().toISOString();
+    const rid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const deepCopySubtasks = (subs?: PlanSubtask[]): PlanSubtask[] | undefined => {
+      if (!subs || subs.length === 0) return undefined;
+      return subs.map(st => ({ ...st, id: rid(), done: false, subtasks: deepCopySubtasks(st.subtasks) }));
+    };
+    const newSections: PlanSection[] = source.sections.map(sec => ({
+      ...sec,
+      id: rid(),
+      tasks: sec.tasks.map(t => ({
+        ...t,
+        id: rid(),
+        done: false,
+        status: 'todo' as TaskStatus,
+        subtasks: deepCopySubtasks(t.subtasks),
+        dependsOn: undefined,
+        linkedItemId: t.linkedItemId,
+        linkedItemTitle: t.linkedItemTitle,
+        linkedFiles: t.linkedFiles ? [...t.linkedFiles] : undefined,
+        linkedContentIds: t.linkedContentIds ? [...t.linkedContentIds] : undefined,
+      })),
+    }));
+    const newPlan: MarketingPlan = {
+      ...source,
+      id: rid(),
+      name: `${source.name} (Kopie)`,
+      createdAt: now,
+      updatedAt: now,
+      sections: newSections,
+      channels: source.channels ? [...source.channels] : undefined,
+      channelConfig: source.channelConfig ? JSON.parse(JSON.stringify(source.channelConfig)) : undefined,
+      teamMembers: source.teamMembers ? source.teamMembers.map(tm => ({ ...tm, id: rid() })) : undefined,
+    };
+    setPlans(prev => [...prev, newPlan]);
+    addToast(tx('Plan dupliziert!', 'Plan duplicated!'));
+  }, [plans, addToast, tx]);
+
   // Filtered items
+  // Archive count
+  const archivedCount = useMemo(() => contentItems.filter(i => i.status === 'archived').length, [contentItems]);
+
   const filteredItems = useMemo(() => {
     let items = contentItems.filter(item => {
+      // Archive filter: when showArchive is active, show ONLY archived; otherwise HIDE archived
+      if (showArchive) { if (item.status !== 'archived') return false; }
+      else { if (item.status === 'archived') return false; }
       if (statusFilter !== 'all' && item.status !== statusFilter) return false;
       if (platformFilter !== 'all' && item.platform !== platformFilter) return false;
       if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
@@ -2271,7 +2546,7 @@ const ContentDashboardContent = () => {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return items;
-  }, [contentItems, statusFilter, platformFilter, priorityFilter, search, section, sortField, sortDir]);
+  }, [contentItems, statusFilter, platformFilter, priorityFilter, search, section, sortField, sortDir, showArchive]);
 
   // Stats
   const stats = useMemo(() => ({
@@ -2300,7 +2575,7 @@ const ContentDashboardContent = () => {
       ...(platform === 'youtube' ? { yt: { videoTitle: '', videoDescription: '', keywords: [], thumbnails: [], category: 'Business', targetAudience: '' } } : {}),
       ...(platform === 'instagram' ? { ig: { caption: '', hashtags: [], postType: 'reel' as InstagramPostType, audioReference: '' } } : {}),
       ...(platform === 'facebook-linkedin' ? { fb: { caption: '', hashtags: [], postType: 'post' as FBPostType, linkUrl: '', coverImage: undefined } } : {}),
-      checklist: DEFAULT_CHECKLIST[platform].map((label, i) => ({ id: `c${i}`, label, done: false })),
+      checklist: getDefaultChecklist(platform, lang).map((label, i) => ({ id: `c${i}`, label, done: false })),
       versions: [],
     };
     setContentItems(prev => [...prev, newItem]);
@@ -2330,26 +2605,51 @@ const ContentDashboardContent = () => {
   const handleSaveNote = (note: ResearchNote) => setResearchNotes(prev => prev.map(n => n.id === note.id ? note : n));
   const handleDeleteNote = (id: string) => { setResearchNotes(prev => prev.filter(n => n.id !== id)); addToast(tx('Notiz gelöscht!', 'Note deleted!')); };
 
-  // Export
+  // Export CSV – proper escaping for commas/quotes in fields
   const handleExportCSV = () => {
-    const headers = ['ID', 'Platform', 'Status', 'Priority', 'Title', 'Concept', 'Angle', 'Tags', 'Created', 'Updated'];
-    const rows = contentItems.map(i => [i.id, i.platform, i.status, i.priority, `"${i.title}"`, `"${i.concept}"`, `"${i.angle}"`, `"${i.tags.join(', ')}"`, i.createdAt, i.updatedAt]);
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const headers = ['Title', 'Platform', 'Status', 'Priority', 'Concept', 'Tags', 'Scheduled', 'Created'];
+    const escape = (s: string) => `"${(s || '').replace(/"/g, '""')}"`;
+    const rows = contentItems.map(item => [
+      escape(item.title), escape(item.platform), escape(item.status),
+      escape(item.priority), escape(item.concept || ''),
+      escape((item.tags || []).join('; ')), escape(item.scheduledDate || ''),
+      escape(item.createdAt || '')
+    ].join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'content-items.csv'; a.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `flowstack-content-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
     addToast(tx('CSV exportiert!', 'CSV exported!'));
   };
 
+  // Export JSON – complete backup including all data
   const handleExportJSON = () => {
-    const data = { contentItems, researchNotes, exportedAt: new Date().toISOString() };
+    const data = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      contentItems,
+      researchNotes,
+      fileLinks,
+      plans,
+      savedTemplates,
+    };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'content-dashboard-backup.json'; a.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `flowstack-content-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
     URL.revokeObjectURL(url);
-    addToast(tx('JSON exportiert!', 'JSON exported!'));
+    addToast(tx('JSON Backup exportiert!', 'JSON backup exported!'));
   };
+
+  // Import JSON – with confirmation dialog
+  const [pendingImportData, setPendingImportData] = useState<string | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2357,18 +2657,54 @@ const ContentDashboardContent = () => {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = JSON.parse(reader.result as string);
-        if (data.contentItems) setContentItems(data.contentItems);
-        if (data.researchNotes) setResearchNotes(data.researchNotes);
-        addToast(tx('Daten importiert!', 'Data imported!'));
-      } catch { addToast(tx('Fehler beim Import', 'Import error'), 'error'); }
+        const raw = reader.result as string;
+        const data = JSON.parse(raw);
+        // Validate structure
+        if (!data.contentItems || !Array.isArray(data.contentItems)) {
+          addToast(tx('Ungültiges Dateiformat: contentItems fehlt.', 'Invalid file format: contentItems missing.'), 'error');
+          return;
+        }
+        // Store pending and show confirmation
+        setPendingImportData(raw);
+      } catch {
+        addToast(tx('Fehler beim Lesen der Datei.', 'Error reading file.'), 'error');
+      }
     };
     reader.readAsText(file);
+    // Reset input so same file can be selected again
+    e.target.value = '';
   };
 
+  const confirmImport = () => {
+    if (!pendingImportData) return;
+    try {
+      const data = JSON.parse(pendingImportData);
+      if (data.contentItems) setContentItems(data.contentItems);
+      if (data.researchNotes) setResearchNotes(data.researchNotes);
+      if (data.fileLinks) setFileLinks(data.fileLinks);
+      if (data.plans) setPlans(data.plans);
+      if (data.savedTemplates) setSavedTemplates(data.savedTemplates);
+      addToast(tx('Daten erfolgreich importiert!', 'Data imported successfully!'));
+    } catch {
+      addToast(tx('Fehler beim Import.', 'Import error.'), 'error');
+    }
+    setPendingImportData(null);
+  };
+
+  // Reset to demo data
   const handleResetAll = () => {
+    // Clear all localStorage keys for content data
+    localStorage.removeItem('flowstack-content-items');
+    localStorage.removeItem('flowstack-content-notes');
+    localStorage.removeItem('flowstack-content-files');
+    localStorage.removeItem('flowstack-content-plans');
+    localStorage.removeItem('flowstack-content-templates');
+    // Restore demo data in state
     setContentItems(DEMO_CONTENT);
     setResearchNotes(DEMO_RESEARCH);
+    setFileLinks(DEMO_FILES);
+    setPlans(DEMO_PLANS);
+    setSavedTemplates([]);
     setShowResetConfirm(false);
     setResetSuccess(true);
     setTimeout(() => setResetSuccess(false), 3000);
@@ -2394,6 +2730,36 @@ const ContentDashboardContent = () => {
 
   const weekDays = getWeekDays();
   const weekLabel = `KW ${Math.ceil(((calendarWeek.getTime() - new Date(calendarWeek.getFullYear(), 0, 1).getTime()) / 86400000 + 1) / 7)} – ${weekDays[0].toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} - ${weekDays[6].toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+
+  // Month calendar helpers
+  const getMonthDays = () => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    // Monday-start: getDay() returns 0=Sun, we want Mon=0
+    const startOffset = (firstDay.getDay() + 6) % 7;
+    const days: (Date | null)[] = [];
+    // Leading empty cells
+    for (let i = 0; i < startOffset; i++) {
+      const d = new Date(year, month, 1 - startOffset + i);
+      days.push(d);
+    }
+    // Days of the month
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      days.push(new Date(year, month, d));
+    }
+    // Trailing days to fill to 6 rows (42 cells) or 5 rows (35 cells)
+    const targetCells = days.length > 35 ? 42 : 35;
+    while (days.length < targetCells) {
+      const nextDay = days.length - startOffset - lastDay.getDate() + 1;
+      days.push(new Date(year, month + 1, nextDay));
+    }
+    return days;
+  };
+
+  const monthDays = getMonthDays();
+  const monthLabel = calendarMonth.toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-US', { month: 'long', year: 'numeric' });
 
   const sectionTitles: Record<ActiveSection, string> = {
     overview: 'Dashboard',
@@ -2484,9 +2850,20 @@ const ContentDashboardContent = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black">
       {/* Modals */}
-      <ContentItemModal item={selectedItem} lang={lang} onClose={() => setSelectedItem(null)} onSave={handleSaveItem} onDelete={handleDeleteItem} onDuplicate={handleDuplicateItem} addToast={addToast} />
+      <ContentItemModal item={selectedItem} lang={lang} onClose={() => setSelectedItem(null)} onSave={handleSaveItem} onDelete={handleDeleteItem} onDuplicate={handleDuplicateItem} addToast={addToast} onSaveAsTemplate={(ci) => {
+        const tpl: SavedTemplate = {
+          id: Date.now().toString(),
+          name: ci.title.replace(/^(Video|Reel|Beitrag|Post|Carousel|Story|Artikel):\s*/i, ''),
+          platform: ci.platform,
+          concept: ci.concept,
+          tags: [...ci.tags],
+          checklist: ci.checklist ? ci.checklist.map(c => c.label) : [],
+          createdAt: new Date().toISOString(),
+        };
+        setSavedTemplates(prev => [...prev, tpl]);
+      }} />
       <NewContentModal isOpen={showNewModal} lang={lang} onClose={() => setShowNewModal(false)} onCreate={handleCreateContent} />
-      <ResearchNoteModal note={selectedNote} lang={lang} onClose={() => setSelectedNote(null)} onSave={handleSaveNote} onDelete={handleDeleteNote} addToast={addToast} />
+      <ResearchNoteModal note={selectedNote} lang={lang} onClose={() => setSelectedNote(null)} onSave={handleSaveNote} onDelete={handleDeleteNote} addToast={addToast} contentItems={contentItems} />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
       {/* Mobile sidebar overlay */}
@@ -2616,6 +2993,12 @@ const ContentDashboardContent = () => {
               )}
               <CustomDropdown value={statusFilter} onChange={setStatusFilter} options={[{ value: 'all', label: tx('Alle Status', 'All Status') }, ...statusOrder.map(s => ({ value: s, label: lang === 'de' ? statusConfig[s].de : statusConfig[s].en }))]} icon={<Filter className="w-4 h-4 text-gray-500" />} />
               <CustomDropdown value={priorityFilter} onChange={setPriorityFilter} options={[{ value: 'all', label: tx('Alle Prioritäten', 'All Priorities') }, { value: 'high', label: tx('Hoch', 'High') }, { value: 'medium', label: tx('Mittel', 'Medium') }, { value: 'low', label: tx('Niedrig', 'Low') }]} icon={<Target className="w-4 h-4 text-gray-500" />} />
+              {/* Archive toggle */}
+              <button onClick={() => setShowArchive(!showArchive)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${showArchive ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`} title={tx('Archiv anzeigen', 'Show archive')}>
+                <Archive className="w-4 h-4" />
+                <span className="hidden sm:inline">{tx('Archiv', 'Archive')}</span>
+                {archivedCount > 0 && <span className="ml-0.5 px-1.5 py-0.5 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-full text-xs">{archivedCount}</span>}
+              </button>
               {(search || statusFilter !== 'all' || platformFilter !== 'all' || priorityFilter !== 'all') && (
                 <span className="text-xs text-gray-400">{filteredItems.length} / {contentItems.length}</span>
               )}
@@ -2653,7 +3036,7 @@ const ContentDashboardContent = () => {
           )}
         </header>
 
-        <div className="p-6 space-y-6">
+        <div className={`p-6 space-y-6 transition-opacity duration-200 ${tabVisible ? 'opacity-100' : 'opacity-0'}`}>
           {/* OVERVIEW */}
           {section === 'overview' && (
             <>
@@ -2760,17 +3143,51 @@ const ContentDashboardContent = () => {
                 addToast(tx(`Status → ${statusConfig[status].de}`, `Status → ${statusConfig[status].en}`));
                 setDraggedItemId(null);
               }
+              setDragOverColumn(null);
             };
+
+            if (pipelineLoading) {
+              return (
+                <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
+                  {pipelineStatuses.map(status => (
+                    <div key={status} className="flex-shrink-0 w-72 rounded-2xl p-3 bg-gray-50 dark:bg-gray-900/50">
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                          <div className="w-16 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        </div>
+                        <div className="w-6 h-4 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+                      </div>
+                      <div className="space-y-2">
+                        {Array.from({ length: status === 'idea' ? 3 : status === 'draft' ? 2 : 2 }).map((_, i) => (
+                          <div key={i} className="animate-pulse bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-14 h-4 bg-gray-200 dark:bg-gray-700 rounded" />
+                              <div className="w-10 h-4 bg-gray-200 dark:bg-gray-700 rounded" />
+                            </div>
+                            <div className="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded mb-1" />
+                            <div className="w-2/3 h-3 bg-gray-200 dark:bg-gray-700 rounded" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
             return (
-              <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
+              <div className="fade-in-up flex gap-4 overflow-x-auto pb-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
                 {pipelineStatuses.map(status => {
                   const colItems = contentItems.filter(i => i.status === status);
                   const statusColor = status === 'idea' ? 'blue' : status === 'draft' ? 'purple' : status === 'ready' ? 'amber' : status === 'scheduled' ? 'orange' : 'emerald';
+                  const isDragOver = dragOverColumn === status && draggedItemId !== null;
                   return (
                     <div key={status}
-                      onDragOver={e => e.preventDefault()}
+                      onDragOver={e => { e.preventDefault(); setDragOverColumn(status); }}
+                      onDragLeave={() => setDragOverColumn(null)}
                       onDrop={e => handlePipelineDrop(status, e)}
-                      className="flex-shrink-0 w-72 bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-3"
+                      className={`flex-shrink-0 w-72 rounded-2xl p-3 transition-all duration-200 ${isDragOver ? 'bg-sky-50 dark:bg-sky-500/10 ring-2 ring-sky-400 dark:ring-sky-500 ring-inset scale-[1.01]' : 'bg-gray-50 dark:bg-gray-900/50'}`}
                     >
                       <div className="flex items-center justify-between mb-3 px-1">
                         <div className="flex items-center gap-2">
@@ -2817,49 +3234,137 @@ const ContentDashboardContent = () => {
           {section === 'calendar' && (
             <div className="space-y-6">
               {/* Header */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <h2 className="text-xl font-semibold">{tx('Content Kalender', 'Content Calendar')}</h2>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setCalendarWeek(prev => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; })} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Vorherige Woche', 'Previous week')}><ChevronLeft className="w-5 h-5" /></button>
-                  <button onClick={() => setCalendarWeek(new Date())} className="px-3 py-1.5 text-sm font-medium rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">{tx('Heute', 'Today')}</button>
-                  <button onClick={() => setCalendarWeek(prev => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; })} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Nächste Woche', 'Next week')}><ChevronRight className="w-5 h-5" /></button>
+                  {/* View toggle: Week / Month */}
+                  <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-0.5">
+                    <button onClick={() => setCalendarView('week')} className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${calendarView === 'week' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>{tx('Woche', 'Week')}</button>
+                    <button onClick={() => setCalendarView('month')} className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${calendarView === 'month' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>{tx('Monat', 'Month')}</button>
+                  </div>
+                  <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+                  {calendarView === 'week' ? (
+                    <>
+                      <button onClick={() => setCalendarWeek(prev => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; })} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Vorherige Woche', 'Previous week')}><ChevronLeft className="w-5 h-5" /></button>
+                      <button onClick={() => setCalendarWeek(new Date())} className="px-3 py-1.5 text-sm font-medium rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">{tx('Heute', 'Today')}</button>
+                      <button onClick={() => setCalendarWeek(prev => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; })} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Nächste Woche', 'Next week')}><ChevronRight className="w-5 h-5" /></button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => setCalendarMonth(prev => { const d = new Date(prev); d.setMonth(d.getMonth() - 1); return d; })} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Vorheriger Monat', 'Previous month')}><ChevronLeft className="w-5 h-5" /></button>
+                      <button onClick={() => setCalendarMonth(new Date())} className="px-3 py-1.5 text-sm font-medium rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">{tx('Heute', 'Today')}</button>
+                      <button onClick={() => setCalendarMonth(prev => { const d = new Date(prev); d.setMonth(d.getMonth() + 1); return d; })} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={tx('Nächster Monat', 'Next month')}><ChevronRight className="w-5 h-5" /></button>
+                    </>
+                  )}
                   <button onClick={() => setShowNewModal(true)} className="ml-2 px-4 py-2 bg-sky-500 text-white rounded-xl font-medium hover:bg-sky-600 flex items-center gap-2"><Plus className="w-4 h-4" />{tx('Content planen', 'Schedule Content')}</button>
                 </div>
               </div>
-              {/* Week label */}
-              <p className="text-sm text-gray-500 dark:text-gray-400">{weekLabel}</p>
-              {/* Week Grid */}
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
-                <div className="grid grid-cols-7 gap-4">
-                  {weekDays.map((day, di) => {
-                    const items = getItemsForDate(day);
-                    const isToday = new Date().toDateString() === day.toDateString();
-                    const dayName = (lang === 'de' ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])[di];
-                    return (
-                      <div key={di}>
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-medium text-gray-500 text-center">{dayName}</p>
-                          <p className={`text-sm font-semibold ${isToday ? 'text-sky-600 dark:text-sky-400' : 'text-gray-900 dark:text-white'}`}>{day.getDate()}</p>
+              {/* Label */}
+              <p className="text-sm text-gray-500 dark:text-gray-400">{calendarView === 'week' ? weekLabel : monthLabel}</p>
+
+              {/* WEEK VIEW */}
+              {calendarView === 'week' && (
+                <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
+                  <div className="grid grid-cols-7 gap-4">
+                    {weekDays.map((day, di) => {
+                      const items = getItemsForDate(day);
+                      const isToday = new Date().toDateString() === day.toDateString();
+                      const dayName = (lang === 'de' ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])[di];
+                      return (
+                        <div key={di}>
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-medium text-gray-500 text-center">{dayName}</p>
+                            <p className={`text-sm font-semibold ${isToday ? 'text-sky-600 dark:text-sky-400' : 'text-gray-900 dark:text-white'}`}>{day.getDate()}</p>
+                          </div>
+                          <div className="space-y-2 min-h-[200px]">
+                            {items.map(item => {
+                              const pConfig = platformConfig[item.platform];
+                              return (
+                                <div key={item.id} onClick={() => setSelectedItem(item)} className={`p-2 ${pConfig.bg} border ${item.platform === 'youtube' ? 'border-red-200 dark:border-red-500/20' : item.platform === 'instagram' ? 'border-pink-200 dark:border-pink-500/20' : 'border-blue-200 dark:border-blue-500/20'} rounded-lg cursor-pointer hover:opacity-80 transition-opacity`}>
+                                  <p className={`text-xs font-medium ${pConfig.text}`}>{item.scheduledDate ? new Date(item.scheduledDate).toLocaleTimeString(lang === 'de' ? 'de-DE' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-300 truncate">{item.title}</p>
+                                </div>
+                              );
+                            })}
+                            {items.length === 0 && (
+                              <button onClick={() => setShowNewModal(true)} className="w-full p-2 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-gray-400 hover:border-sky-300 hover:text-sky-500 transition-colors text-xs">+ Content</button>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-2 min-h-[200px]">
-                          {items.map(item => {
-                            const pConfig = platformConfig[item.platform];
-                            return (
-                              <div key={item.id} onClick={() => setSelectedItem(item)} className={`p-2 ${pConfig.bg} border ${item.platform === 'youtube' ? 'border-red-200 dark:border-red-500/20' : item.platform === 'instagram' ? 'border-pink-200 dark:border-pink-500/20' : 'border-blue-200 dark:border-blue-500/20'} rounded-lg cursor-pointer hover:opacity-80 transition-opacity`}>
-                                <p className={`text-xs font-medium ${pConfig.text}`}>{item.scheduledDate ? new Date(item.scheduledDate).toLocaleTimeString(lang === 'de' ? 'de-DE' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}</p>
-                                <p className="text-xs text-gray-600 dark:text-gray-300 truncate">{item.title}</p>
-                              </div>
-                            );
-                          })}
-                          {items.length === 0 && (
-                            <button onClick={() => setShowNewModal(true)} className="w-full p-2 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-gray-400 hover:border-sky-300 hover:text-sky-500 transition-colors text-xs">+ Content</button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* MONTH VIEW */}
+              {calendarView === 'month' && (
+                <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
+                  {/* Day headers */}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {(lang === 'de' ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']).map(d => (
+                      <div key={d} className="text-center text-xs font-medium text-gray-400 dark:text-gray-500 py-2">{d}</div>
+                    ))}
+                  </div>
+                  {/* Day cells */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {monthDays.map((day, idx) => {
+                      if (!day) return <div key={idx} />;
+                      const isCurrentMonth = day.getMonth() === calendarMonth.getMonth();
+                      const isToday = new Date().toDateString() === day.toDateString();
+                      const dayItems = getItemsForDate(day);
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            // Switch to week view for that week
+                            const d = new Date(day);
+                            const dayOfWeek = d.getDay();
+                            d.setDate(d.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                            d.setHours(0, 0, 0, 0);
+                            setCalendarWeek(d);
+                            setCalendarView('week');
+                          }}
+                          className={`min-h-[80px] p-1.5 rounded-xl border cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                            isToday
+                              ? 'border-sky-300 dark:border-sky-500/40 bg-sky-50/50 dark:bg-sky-500/5'
+                              : isCurrentMonth
+                                ? 'border-gray-100 dark:border-gray-800'
+                                : 'border-gray-50 dark:border-gray-800/50'
+                          }`}
+                        >
+                          <p className={`text-xs font-semibold mb-1 ${
+                            isToday
+                              ? 'text-sky-600 dark:text-sky-400'
+                              : isCurrentMonth
+                                ? 'text-gray-700 dark:text-gray-300'
+                                : 'text-gray-300 dark:text-gray-600'
+                          }`}>{day.getDate()}</p>
+                          <div className="space-y-0.5">
+                            {dayItems.slice(0, 3).map(item => {
+                              const pConfig = platformConfig[item.platform];
+                              return (
+                                <div
+                                  key={item.id}
+                                  onClick={e => { e.stopPropagation(); setSelectedItem(item); }}
+                                  className={`flex items-center gap-1 px-1 py-0.5 rounded ${pConfig.bg} cursor-pointer hover:opacity-80 transition-opacity`}
+                                >
+                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.platform === 'youtube' ? 'bg-red-500' : item.platform === 'instagram' ? 'bg-pink-500' : 'bg-blue-500'}`} />
+                                  <p className={`text-[10px] font-medium truncate ${pConfig.text}`}>{item.title}</p>
+                                </div>
+                              );
+                            })}
+                            {dayItems.length > 3 && (
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center">+{dayItems.length - 3} {tx('mehr', 'more')}</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Scheduled Items List */}
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
                 <h3 className="font-semibold mb-4">{tx('Geplante Inhalte', 'Scheduled Content')}</h3>
@@ -3018,6 +3523,7 @@ const ContentDashboardContent = () => {
                           <td className="px-4 py-3 text-xs text-gray-500">{new Date(file.updatedAt).toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-US', { day: 'numeric', month: 'short' })}</td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => setPreviewFile(file)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title={tx('Vorschau', 'Preview')}><Eye className="w-4 h-4 text-gray-500" /></button>
                               <button onClick={() => window.open(file.url, '_blank')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title={tx('Öffnen', 'Open')}><ExternalLink className="w-4 h-4 text-gray-500" /></button>
                               <button onClick={() => { setEditingFile(file); setModalLabels(file.labels); setModalCustomLabel(''); setModalCategory(file.category); setShowNewFileModal(true); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title={tx('Bearbeiten', 'Edit')}><Edit3 className="w-4 h-4 text-gray-500" /></button>
                               <button onClick={() => setDeleteFileId(file.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors" title={tx('Löschen', 'Delete')}><Trash2 className="w-4 h-4 text-red-500" /></button>
@@ -3153,6 +3659,101 @@ const ContentDashboardContent = () => {
                 onCancel={() => setDeleteFileId(null)}
               />
 
+              {/* File Preview Lightbox */}
+              {previewFile && (() => {
+                const fileName = previewFile.name.toLowerCase();
+                const isImage = /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(fileName) || /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(previewFile.url);
+                const isPdf = /\.pdf$/i.test(fileName) || /\.pdf$/i.test(previewFile.url);
+                const cat = categoryConfig[previewFile.category];
+                const CatIcon = cat.icon;
+                return (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setPreviewFile(null)}>
+                    <div className="absolute inset-0 bg-black/80" />
+                    <div className="relative max-w-2xl w-full mx-4" onClick={e => e.stopPropagation()}>
+                      {/* Close button */}
+                      <button onClick={() => setPreviewFile(null)} className="absolute -top-12 right-0 p-2 text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/10" title={tx('Schliessen', 'Close')}>
+                        <X className="w-6 h-6" />
+                      </button>
+
+                      <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl">
+                        {/* Preview content */}
+                        {isImage && (
+                          <div className="relative">
+                            <div className="aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                              {previewFile.url && (previewFile.url.startsWith('data:') || previewFile.url.startsWith('http')) ? (
+                                <img src={previewFile.url} alt={previewFile.name} className="max-w-full max-h-full object-contain" />
+                              ) : (
+                                <div className="text-center p-8">
+                                  <Camera className="w-16 h-16 text-gray-400 mx-auto mb-3" />
+                                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{previewFile.name}</p>
+                                  <p className="text-xs text-gray-400 mt-1">{tx('Bild-Vorschau', 'Image Preview')}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {isPdf && (
+                          <div className="aspect-[3/4] bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            <div className="text-center p-8">
+                              <div className="w-20 h-24 mx-auto mb-4 bg-white dark:bg-gray-700 rounded-lg shadow-md flex items-center justify-center border border-gray-200 dark:border-gray-600">
+                                <FileText className="w-10 h-10 text-red-500" />
+                              </div>
+                              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{previewFile.name}</p>
+                              <p className="text-xs text-gray-400 mt-1">PDF {tx('Dokument', 'Document')}</p>
+                              {previewFile.url && (
+                                <button onClick={() => window.open(previewFile.url, '_blank')} className="mt-4 px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors inline-flex items-center gap-2">
+                                  <ExternalLink className="w-4 h-4" />{tx('PDF oeffnen', 'Open PDF')}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {!isImage && !isPdf && (
+                          <div className="aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            <div className="text-center p-8">
+                              <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl ${cat.bg} flex items-center justify-center`}>
+                                <CatIcon className={`w-8 h-8 ${cat.text}`} />
+                              </div>
+                              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{previewFile.name}</p>
+                              <p className="text-xs text-gray-400 mt-1">{lang === 'de' ? cat.de : cat.en}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* File info footer */}
+                        <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${cat.bg} ${cat.text}`}>
+                                <CatIcon className="w-3 h-3" />{lang === 'de' ? cat.de : cat.en}
+                              </span>
+                              <span className="text-sm text-gray-600 dark:text-gray-300 truncate">{previewFile.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {previewFile.url && (
+                                <button onClick={() => window.open(previewFile.url, '_blank')} className="px-3 py-1.5 bg-sky-500 text-white rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors inline-flex items-center gap-1.5">
+                                  <ExternalLink className="w-3.5 h-3.5" />{tx('Oeffnen', 'Open')}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {previewFile.description && (
+                            <p className="text-xs text-gray-500 mt-2">{previewFile.description}</p>
+                          )}
+                          {previewFile.labels.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {previewFile.labels.map(l => <span key={l} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full text-xs">{l}</span>)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
             </div>
           )}
 
@@ -3200,7 +3801,10 @@ const ContentDashboardContent = () => {
                               </svg>
                               <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-emerald-600">{pct}%</span>
                             </div>
-                            <span className="text-[10px] text-gray-400">{onceDone}/{onceTotal} {tx('erledigt', 'done')}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-gray-400">{onceDone}/{onceTotal} {tx('erledigt', 'done')}</span>
+                              <button onClick={e => { e.stopPropagation(); duplicatePlan(plan.id); }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" title={tx('Duplizieren', 'Duplicate')}><Copy className="w-3.5 h-3.5 text-gray-400 hover:text-sky-500" /></button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -3243,7 +3847,10 @@ const ContentDashboardContent = () => {
                             <textarea value={activePlan.description} onChange={e => { const ta = e.target; setPlans(prev => prev.map(p => p.id === activePlanId ? { ...p, description: ta.value } : p)); ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }} onFocus={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} rows={1} placeholder={tx('Kurzbeschreibung...', 'Short description...')} className="text-sm text-gray-500 bg-transparent border-none focus:outline-none focus:ring-0 w-full resize-none overflow-hidden" />
                           </div>
                         </div>
-                        <button onClick={() => setPendingDelete({ action: () => { const remaining = plans.filter(p => p.id !== activePlanId); setPlans(remaining); if (remaining.length > 0) { setActivePlanId(remaining[0].id); } else { setV2SelectedPlan(null); setActivePlanId(''); } addToast(tx('Plan gelöscht', 'Plan deleted')); }, message: tx('Dieser Plan wird unwiderruflich entfernt.', 'This plan will be permanently removed.') })} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg" title={tx('Plan löschen', 'Delete plan')}><Trash2 className="w-4 h-4 text-red-500" /></button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => duplicatePlan(activePlanId)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title={tx('Duplizieren', 'Duplicate')}><Copy className="w-4 h-4 text-gray-400" /></button>
+                          <button onClick={() => setPendingDelete({ action: () => { const remaining = plans.filter(p => p.id !== activePlanId); setPlans(remaining); if (remaining.length > 0) { setActivePlanId(remaining[0].id); } else { setV2SelectedPlan(null); setActivePlanId(''); } addToast(tx('Plan gelöscht', 'Plan deleted')); }, message: tx('Dieser Plan wird unwiderruflich entfernt.', 'This plan will be permanently removed.') })} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg" title={tx('Plan löschen', 'Delete plan')}><Trash2 className="w-4 h-4 text-red-500" /></button>
+                        </div>
                       </div>
 
                       {/* Meta row: Deadline + Stats */}
@@ -4716,6 +5323,76 @@ const ContentDashboardContent = () => {
                     })}
                   </div>
                 </div>
+
+                {/* Performance Comparison Bar Charts */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Top 5 by Views */}
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2"><Eye className="w-5 h-5 text-sky-500" />{tx('Top 5 nach Views', 'Top 5 by Views')}</h3>
+                    {(() => {
+                      const itemsWithViews = contentItems.filter(i => i.performance?.views && i.performance.views > 0);
+                      const top5Views = [...itemsWithViews].sort((a, b) => (b.performance?.views || 0) - (a.performance?.views || 0)).slice(0, 5);
+                      const maxViews = top5Views.length > 0 ? (top5Views[0].performance?.views || 1) : 1;
+                      if (top5Views.length === 0) return <p className="text-sm text-gray-400 py-4">{tx('Keine Daten vorhanden', 'No data available')}</p>;
+                      const platformBarColor: Record<Platform, string> = { youtube: 'bg-red-500', instagram: 'bg-pink-500', 'facebook-linkedin': 'bg-blue-500' };
+                      return (
+                        <div className="space-y-3">
+                          {top5Views.map(item => {
+                            const views = item.performance?.views || 0;
+                            const pct = Math.round((views / maxViews) * 100);
+                            const PIcon = platformConfig[item.platform].icon;
+                            return (
+                              <div key={item.id} onClick={() => setSelectedItem(item)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl p-2 -mx-2 transition-colors">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <PIcon className={`w-3.5 h-3.5 flex-shrink-0 ${platformConfig[item.platform].text.split(' ')[0]}`} />
+                                  <span className="text-sm font-medium truncate flex-1">{item.title}</span>
+                                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">{views.toLocaleString()}</span>
+                                </div>
+                                <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full transition-all ${platformBarColor[item.platform]}`} style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Top 5 by Engagement */}
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-emerald-500" />{tx('Top 5 nach Engagement', 'Top 5 by Engagement')}</h3>
+                    {(() => {
+                      const calcEngagement = (i: ContentItem) => (i.performance?.likes || 0) + (i.performance?.comments || 0) + (i.performance?.shares || 0);
+                      const itemsWithEngagement = contentItems.filter(i => calcEngagement(i) > 0);
+                      const top5Engagement = [...itemsWithEngagement].sort((a, b) => calcEngagement(b) - calcEngagement(a)).slice(0, 5);
+                      const maxEng = top5Engagement.length > 0 ? calcEngagement(top5Engagement[0]) || 1 : 1;
+                      if (top5Engagement.length === 0) return <p className="text-sm text-gray-400 py-4">{tx('Keine Daten vorhanden', 'No data available')}</p>;
+                      const platformBarColor: Record<Platform, string> = { youtube: 'bg-red-500', instagram: 'bg-pink-500', 'facebook-linkedin': 'bg-blue-500' };
+                      return (
+                        <div className="space-y-3">
+                          {top5Engagement.map(item => {
+                            const eng = calcEngagement(item);
+                            const pct = Math.round((eng / maxEng) * 100);
+                            const PIcon = platformConfig[item.platform].icon;
+                            return (
+                              <div key={item.id} onClick={() => setSelectedItem(item)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl p-2 -mx-2 transition-colors">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <PIcon className={`w-3.5 h-3.5 flex-shrink-0 ${platformConfig[item.platform].text.split(' ')[0]}`} />
+                                  <span className="text-sm font-medium truncate flex-1">{item.title}</span>
+                                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">{eng.toLocaleString()}</span>
+                                </div>
+                                <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full transition-all ${platformBarColor[item.platform]}`} style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
               </>
             );
           })()}
@@ -4778,6 +5455,60 @@ const ContentDashboardContent = () => {
                   );
                 })}
               </div>
+
+              {/* Saved Templates (user-created from content items) */}
+              {savedTemplates.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2"><Save className="w-5 h-5 text-emerald-500" />{tx('Gespeicherte Templates', 'Saved Templates')} ({savedTemplates.length})</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {savedTemplates.map(st => {
+                      const Icon = platformConfig[st.platform].icon;
+                      return (
+                        <div key={st.id} className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800 hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className={`p-2 rounded-xl ${platformConfig[st.platform].bg}`}>
+                              <Icon className={`w-5 h-5 ${platformConfig[st.platform].text.split(' ')[0]}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm truncate">{st.name}</h4>
+                              <p className="text-xs text-gray-500">{new Date(st.createdAt).toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-US')}</p>
+                            </div>
+                            <button onClick={() => setSavedTemplates(prev => prev.filter(t => t.id !== st.id))} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 text-red-400 hover:text-red-500 rounded-lg transition-colors" title={tx('Template löschen', 'Delete template')}><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                          {st.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {st.tags.slice(0, 4).map(tag => <span key={tag} className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 rounded-full text-xs">{tag}</span>)}
+                            </div>
+                          )}
+                          {st.checklist.length > 0 && (
+                            <p className="text-xs text-gray-400 mb-3">{st.checklist.length} {tx('Checklist-Punkte', 'checklist items')}</p>
+                          )}
+                          <button
+                            onClick={() => {
+                              const now = new Date().toISOString();
+                              const newItem: ContentItem = {
+                                id: Date.now().toString(), platform: st.platform, status: 'idea', priority: 'medium', quality: 'neutral',
+                                createdAt: now, updatedAt: now, title: st.name, concept: st.concept, angle: '', notes: '', tags: [...st.tags],
+                                checklist: st.checklist.map((label, i) => ({ id: `c${i}`, label, done: false })),
+                                ...(st.platform === 'youtube' ? { yt: { videoTitle: '', videoDescription: '', keywords: [], thumbnails: [], category: 'Business', targetAudience: '' } } : {}),
+                                ...(st.platform === 'instagram' ? { ig: { caption: '', hashtags: [], postType: 'reel' as InstagramPostType, audioReference: '' } } : {}),
+                                ...(st.platform === 'facebook-linkedin' ? { fb: { caption: '', hashtags: [], postType: 'post' as FBPostType, linkUrl: '', coverImage: undefined } } : {}),
+                                versions: [],
+                              };
+                              setContentItems(prev => [...prev, newItem]);
+                              addToast(tx('Content aus Template erstellt!', 'Content created from template!'));
+                              setSelectedItem(newItem);
+                            }}
+                            className="w-full py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm font-medium hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Plus className="w-4 h-4" />{tx('Aus Template erstellen', 'Create from Template')}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Template Preview Modal */}
               {previewTemplate && (() => {
@@ -4893,6 +5624,19 @@ const ContentDashboardContent = () => {
                         {note.platform !== 'general' && <PlatformBadge platform={note.platform as Platform} />}
                       </div>
                       <p className="text-xs text-gray-500 line-clamp-3 mb-3">{note.content}</p>
+                      {note.linkedContentId && (() => {
+                        const linked = contentItems.find(ci => ci.id === note.linkedContentId);
+                        if (!linked) return null;
+                        return (
+                          <button
+                            onClick={e => { e.stopPropagation(); setSelectedItem(linked); }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 rounded-full text-xs font-medium hover:bg-sky-200 dark:hover:bg-sky-500/30 transition-colors"
+                          >
+                            <Link2 className="w-3 h-3" />
+                            {linked.title}
+                          </button>
+                        );
+                      })()}
                       <div className="flex items-center justify-between">
                         <div className="flex gap-1">
                           {note.tags.slice(0, 3).map(tag => <span key={tag} className="px-2 py-0.5 bg-purple-100 dark:bg-purple-500/20 text-purple-600 rounded-full text-xs">{tag}</span>)}
@@ -4951,39 +5695,53 @@ const ContentDashboardContent = () => {
               {settingsTab === 'export' && (
                 <div className="space-y-6">
                   <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
-                    <h3 className="font-semibold mb-4">CSV Export</h3>
-                    <p className="text-sm text-gray-500 mb-4">{tx('Exportiere alle Content-Items als CSV-Datei.', 'Export all content items as a CSV file.')}</p>
-                    <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-medium hover:bg-sky-600"><Download className="w-4 h-4" />CSV Export</button>
+                    <h3 className="font-semibold mb-2">{tx('CSV exportieren', 'Export CSV')}</h3>
+                    <p className="text-sm text-gray-500 mb-4">{tx('Exportiere alle Content-Items als CSV-Datei (Title, Platform, Status, Priority, Concept, Tags, Scheduled, Created).', 'Export all content items as a CSV file (Title, Platform, Status, Priority, Concept, Tags, Scheduled, Created).')}</p>
+                    <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-medium hover:bg-sky-600 transition-colors"><Download className="w-4 h-4" />{tx('CSV exportieren', 'Export CSV')}</button>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
-                    <h3 className="font-semibold mb-4">JSON Backup</h3>
-                    <p className="text-sm text-gray-500 mb-4">{tx('Exportiere oder importiere ein komplettes Backup (inkl. Research-Notizen).', 'Export or import a complete backup (incl. research notes).')}</p>
-                    <div className="flex gap-3">
-                      <button onClick={handleExportJSON} className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-medium hover:bg-sky-600"><Download className="w-4 h-4" />JSON Export</button>
-                      <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium hover:bg-gray-200 cursor-pointer">
-                        <Upload className="w-4 h-4" />JSON Import
-                        <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
-                      </label>
-                    </div>
+                    <h3 className="font-semibold mb-2">JSON Backup</h3>
+                    <p className="text-sm text-gray-500 mb-4">{tx('Exportiere ein komplettes Backup aller Daten (Content, Research, Dateien, Pläne, Templates).', 'Export a complete backup of all data (Content, Research, Files, Plans, Templates).')}</p>
+                    <button onClick={handleExportJSON} className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-medium hover:bg-sky-600 transition-colors"><Download className="w-4 h-4" />{tx('JSON Backup exportieren', 'Export JSON Backup')}</button>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
+                    <h3 className="font-semibold mb-2">{tx('Importieren', 'Import')}</h3>
+                    <p className="text-sm text-gray-500 mb-4">{tx('Importiere ein zuvor exportiertes JSON-Backup. Aktuelle Daten werden überschrieben.', 'Import a previously exported JSON backup. Current data will be overwritten.')}</p>
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                      <Upload className="w-4 h-4" />{tx('JSON importieren', 'Import JSON')}
+                      <input ref={importFileRef} type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
+                    </label>
                   </div>
                 </div>
               )}
+
+              {/* Import confirmation dialog */}
+              <ConfirmDialog
+                open={!!pendingImportData}
+                title={tx('Daten importieren', 'Import Data')}
+                message={tx('Aktuelle Daten werden überschrieben. Fortfahren?', 'Current data will be overwritten. Continue?')}
+                confirmLabel={tx('Importieren', 'Import')}
+                cancelLabel={tx('Abbrechen', 'Cancel')}
+                variant="warning"
+                onConfirm={confirmImport}
+                onCancel={() => setPendingImportData(null)}
+              />
 
               {settingsTab === 'data' && (
                 <div className="space-y-6">
                   <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-red-200 dark:border-red-500/30">
                     <h3 className="font-semibold mb-2 text-red-600">{tx('Daten zurücksetzen', 'Reset Data')}</h3>
-                    <p className="text-sm text-gray-500 mb-4">{tx('Setzt alle Daten auf die Demo-Daten zurück. Diese Aktion kann nicht rückgängig gemacht werden.', 'Resets all data to demo data. This action cannot be undone.')}</p>
+                    <p className="text-sm text-gray-500 mb-4">{tx('Alle Daten werden gelöscht und Demo-Daten wiederhergestellt. Diese Aktion kann nicht rückgängig gemacht werden.', 'All data will be deleted and demo data restored. This action cannot be undone.')}</p>
                     {resetSuccess && (
                       <div className="mb-4 px-4 py-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 rounded-xl text-sm font-medium inline-flex items-center gap-2"><Check className="w-4 h-4" />{tx('Daten zurückgesetzt!', 'Data reset!')}</div>
                     )}
                     {!showResetConfirm ? (
-                      <button onClick={() => setShowResetConfirm(true)} className="px-4 py-2 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-xl text-sm font-medium hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center gap-2"><Trash2 className="w-4 h-4" />{tx('Alle Daten zurücksetzen', 'Reset all data')}</button>
+                      <button onClick={() => setShowResetConfirm(true)} className="px-4 py-2 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-xl text-sm font-medium hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center gap-2 transition-colors"><Trash2 className="w-4 h-4" />{tx('Alle Daten zurücksetzen', 'Reset all data')}</button>
                     ) : (
                       <div className="flex items-center gap-3">
                         <p className="text-sm text-red-600 font-medium">{tx('Bist du sicher?', 'Are you sure?')}</p>
-                        <button onClick={handleResetAll} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600">{tx('Ja, zurücksetzen', 'Yes, reset')}</button>
-                        <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium hover:bg-gray-200">{tx('Abbrechen', 'Cancel')}</button>
+                        <button onClick={handleResetAll} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors">{tx('Ja, zurücksetzen', 'Yes, reset')}</button>
+                        <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">{tx('Abbrechen', 'Cancel')}</button>
                       </div>
                     )}
                   </div>
