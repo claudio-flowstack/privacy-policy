@@ -442,6 +442,126 @@ export const DEMO_SYSTEMS: AutomationSystem[] = [
     outputs: [],
     executionCount: 0,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. Recruiting Fulfillment — 27 Nodes
+  // Vom Transcript zum Live-Funnel, Meta-Kampagne und Tracking-Dashboard
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: 'demo-recruiting-fulfillment',
+    name: 'Recruiting Fulfillment',
+    description: 'Vollautomatisches Recruiting-System: Vom Kunden-Transcript zum Live-Funnel (3 Seiten), Meta-Kampagne und öffentlichem Tracking-Dashboard – mit Slack-Benachrichtigungen im gesamten Flow.',
+    category: 'Recruiting',
+    icon: 'users',
+    status: 'active',
+    webhookUrl: '',
+    nodes: [
+      // ─── Phase 0: Start & Input (cols 0–1) ───
+      { id: 'rf1',  label: 'Manueller Start',           description: 'Workflow per Klick starten — Transcript liegt vor',                icon: 'play',              type: 'trigger', ...p(0, 2) },
+      { id: 'rf2',  label: 'Workflow initialisieren',    description: 'Workflow-Zustand & Variablen setzen',                              icon: 'code',              type: 'process', ...p(1, 2) },
+      { id: 'rf3',  label: 'Slack: Workflow gestartet',  description: 'Team benachrichtigen: Recruiting-Workflow läuft',                  icon: 'logo-slack',        type: 'output',  ...p(1, 3) },
+
+      // ─── Phase 1: Brief Extraction (cols 2–6, zigzag rows 1–2) ───
+      { id: 'rf4',  label: 'Pain Points extrahieren',    description: 'KI analysiert Transcript nach Schmerzpunkten der Zielgruppe',     icon: 'logo-openai',       type: 'ai',      ...p(2, 2) },
+      { id: 'rf5',  label: 'Benefits extrahieren',       description: 'Vorteile & Alleinstellungsmerkmale des Arbeitgebers ableiten',    icon: 'logo-openai',       type: 'ai',      ...p(3, 2) },
+      { id: 'rf6',  label: 'Employer Avatar erstellen',  description: 'Detailliertes Profil des idealen Kandidaten generieren',          icon: 'logo-claude',       type: 'ai',      ...p(4, 1) },
+      { id: 'rf7',  label: 'Company Profile erstellen',  description: 'Arbeitgeber-Profil mit Kultur, Werten & USPs aufbauen',           icon: 'logo-claude',       type: 'ai',      ...p(5, 1) },
+      { id: 'rf8',  label: 'Creative Strategy Brief',    description: 'Gesamtstrategie für Messaging, Tonalität & Positionierung',       icon: 'logo-claude',       type: 'ai',      ...p(5, 2) },
+      { id: 'rf9',  label: 'Master Brief',               description: 'Alle Analysen zum zentralen Briefing-Dokument zusammenführen',    icon: 'git-merge',         type: 'process', ...p(6, 2) },
+      { id: 'rf10', label: 'Slack: Brief fertig',        description: 'Team informieren: Master Brief wurde erstellt',                   icon: 'logo-slack',        type: 'output',  ...p(6, 3) },
+
+      // ─── Phase 2+3: Copy Package & Split (cols 7–8) ───
+      { id: 'rf11', label: 'Copy Package erstellen',     description: 'Core Promise, Mechanism, Objections, CTA-Logik & Funnel-Messaging generieren', icon: 'logo-openai', type: 'ai',      ...p(7, 2) },
+      { id: 'rf12', label: 'Pipeline Split',             description: 'Zwei parallele Pfade: Recruiting Funnel + Meta Ads',              icon: 'split',             type: 'process', ...p(8, 2) },
+
+      // ─── Pipeline A: Recruiting Funnel (cols 9–12, rows 0–1) ───
+      { id: 'rf13', label: 'Funnel-Struktur',            description: 'Landingpage, Formularseite, Danke-Seite & Conversion-Logik definieren', icon: 'logo-openai',  type: 'ai',      ...p(9, 0) },
+      { id: 'rf14', label: 'Funnel Copy',                description: 'Alle Texte für alle 3 Funnel-Seiten generieren',                  icon: 'logo-claude',       type: 'ai',      ...p(10, 0) },
+      { id: 'rf15', label: 'Funnel Builder',             description: 'KI-Agent fügt Struktur + Copy zu deploymentem Funnel-Code zusammen', icon: 'logo-claude',    type: 'ai',      ...p(11, 0) },
+      { id: 'rf16', label: 'Funnel deployen',            description: 'Recruiting-Funnel (3 Seiten) live veröffentlichen',               icon: 'logo-wordpress',    type: 'output',  ...p(12, 0) },
+      { id: 'rf17', label: 'Slack: Funnel live',         description: 'Team benachrichtigen: Recruiting-Funnel ist online',              icon: 'logo-slack',        type: 'output',  ...p(12, 1) },
+
+      // ─── Pipeline B: Meta Ads (cols 9–12, row 4) ───
+      { id: 'rf18', label: 'Kampagnen-Struktur',         description: 'Campaign, Adset & Audience-Struktur für Meta definieren',         icon: 'logo-openai',       type: 'ai',      ...p(9, 4) },
+      { id: 'rf19', label: 'Ad Copy & Hooks',            description: 'Anzeigentexte, Headlines & Hooks für verschiedene Creatives',     icon: 'logo-claude',       type: 'ai',      ...p(10, 4) },
+      { id: 'rf20', label: 'Meta Kampagne live',         description: 'Kampagne in Meta Ads Manager veröffentlichen & starten',          icon: 'logo-meta',         type: 'output',  ...p(11, 4) },
+      { id: 'rf21', label: 'Slack: Ads live',            description: 'Team benachrichtigen: Meta-Kampagne läuft',                       icon: 'logo-slack',        type: 'output',  ...p(12, 4) },
+
+      // ─── Tracking & Dashboard (cols 13–15, rows 0–1) ───
+      { id: 'rf22', label: 'Tracking einrichten',        description: 'Conversion-Pixel, UTM-Parameter & Event-Tracking konfigurieren',  icon: 'code',              type: 'process', ...p(13, 0) },
+      { id: 'rf23', label: 'Dashboard generieren',       description: 'Live-Dashboard mit Impressions, Klicks, Leads, CPL & Conversion Rate', icon: 'logo-openai',  type: 'ai',      ...p(14, 0) },
+      { id: 'rf24', label: 'Dashboard veröffentlichen',  description: 'Öffentliches Tracking-Dashboard online stellen',                  icon: 'logo-wordpress',    type: 'output',  ...p(15, 0) },
+      { id: 'rf25', label: 'Slack: Dashboard live',      description: 'Team benachrichtigen: Tracking-Dashboard ist online',             icon: 'logo-slack',        type: 'output',  ...p(15, 1) },
+
+      // ─── Finaler Abschluss (col 16) ───
+      { id: 'rf26', label: 'Alle Systeme live?',         description: 'Prüfen: Funnel, Kampagne & Dashboard erfolgreich deployed',       icon: 'git-branch',        type: 'process', ...p(16, 2) },
+      { id: 'rf27', label: 'Slack: System deployed',     description: 'Full Recruiting System deployed successfully',                    icon: 'logo-slack',        type: 'output',  ...p(16, 3) },
+    ],
+    connections: [
+      // Phase 0: Start → Code → Slack
+      { from: 'rf1',  to: 'rf2' },
+      { from: 'rf2',  to: 'rf3',  fromPort: 'bottom', toPort: 'top' },
+
+      // Phase 0 → Phase 1
+      { from: 'rf2',  to: 'rf4' },
+
+      // Phase 1: Brief Extraction (sequential zigzag)
+      { from: 'rf4',  to: 'rf5' },
+      { from: 'rf5',  to: 'rf6' },
+      { from: 'rf6',  to: 'rf7' },
+      { from: 'rf7',  to: 'rf8',  fromPort: 'bottom', toPort: 'top' },
+      { from: 'rf8',  to: 'rf9' },
+
+      // Phase 1: Merge → Slack + Copy Package
+      { from: 'rf9',  to: 'rf10', fromPort: 'bottom', toPort: 'top' },
+      { from: 'rf9',  to: 'rf11' },
+
+      // Phase 2 → Split
+      { from: 'rf11', to: 'rf12' },
+
+      // Pipeline A: Recruiting Funnel
+      { from: 'rf12', to: 'rf13', label: 'Funnel' },
+      { from: 'rf13', to: 'rf14' },
+      { from: 'rf14', to: 'rf15' },
+      { from: 'rf15', to: 'rf16' },
+      { from: 'rf16', to: 'rf17', fromPort: 'bottom', toPort: 'top' },
+
+      // Pipeline B: Meta Ads
+      { from: 'rf12', to: 'rf18', label: 'Ads' },
+      { from: 'rf18', to: 'rf19' },
+      { from: 'rf19', to: 'rf20' },
+      { from: 'rf20', to: 'rf21' },
+
+      // Tracking & Dashboard (starts after Funnel deploy)
+      { from: 'rf16', to: 'rf22' },
+      { from: 'rf22', to: 'rf23' },
+      { from: 'rf23', to: 'rf24' },
+      { from: 'rf24', to: 'rf25', fromPort: 'bottom', toPort: 'top' },
+
+      // Final: alle Pipelines → If/Then → Slack
+      { from: 'rf17', to: 'rf26' },
+      { from: 'rf21', to: 'rf26' },
+      { from: 'rf25', to: 'rf26' },
+      { from: 'rf26', to: 'rf27', fromPort: 'bottom', toPort: 'top' },
+    ],
+    groups: [
+      { id: 'grf0', label: 'Start & Input',           x: 15,   y: 328, width: 620,  height: 308, color: 'blue' },
+      { id: 'grf1', label: 'Brief Extraction',         x: 695,  y: 168, width: 1640, height: 468, color: 'purple' },
+      { id: 'grf2', label: 'Copy & Distribution',      x: 2395, y: 328, width: 620,  height: 148, color: 'orange' },
+      { id: 'grf3', label: 'Recruiting Funnel',        x: 3075, y: 8,   width: 1300, height: 308, color: 'green' },
+      { id: 'grf4', label: 'Meta Ads',                 x: 3075, y: 648, width: 1300, height: 148, color: 'red' },
+      { id: 'grf5', label: 'Tracking & Dashboard',     x: 4435, y: 8,   width: 960,  height: 308, color: 'blue' },
+      { id: 'grf6', label: 'Finaler Check',            x: 5455, y: 328, width: 280,  height: 308, color: 'green' },
+    ],
+    outputs: [
+      { id: 'orf1', name: 'Recruiting Funnel (3 Seiten)',   type: 'website',     link: '', createdAt: '2026-02-18T10:00:00Z' },
+      { id: 'orf2', name: 'Meta Kampagne',                  type: 'other',       link: '', createdAt: '2026-02-18T10:00:00Z' },
+      { id: 'orf3', name: 'Tracking Dashboard',             type: 'website',     link: '', createdAt: '2026-02-18T10:00:00Z' },
+      { id: 'orf4', name: 'Master Brief',                   type: 'document',    link: '', createdAt: '2026-02-18T10:00:00Z' },
+      { id: 'orf5', name: 'Copy Package',                   type: 'document',    link: '', createdAt: '2026-02-18T10:00:00Z' },
+    ],
+    executionCount: 0,
+  },
 ];
 
 // ─── English Translations for Demo Systems ──────────────────────────────────
@@ -456,6 +576,7 @@ const DEMO_META_EN: Record<string, { name: string; description: string }> = {
   'demo-recruiting-content':    { name: 'Content & Asset Production',  description: 'Generate marketing copy, build website, prepare images and publish everything.' },
   'demo-recruiting-review':     { name: 'Review & Launch',             description: 'Prepare campaigns, run internal reviews, final approval and generate summary.' },
   'demo-recruiting-tracking':   { name: 'Performance Tracking',        description: 'Collect daily performance data, analyze KPIs, create reports and AI-based optimization suggestions.' },
+  'demo-recruiting-fulfillment': { name: 'Recruiting Fulfillment',     description: 'Fully automated recruiting system: From client transcript to live funnel (3 pages), Meta campaign and public tracking dashboard — with Slack notifications throughout the flow.' },
 };
 
 /** Composite key: "systemId:nodeId" → { label, description } */
@@ -572,6 +693,34 @@ const DEMO_NODE_EN: Record<string, { label: string; description: string }> = {
   'demo-recruiting-tracking:pt5': { label: 'Dashboard Update',       description: 'Live dashboard for team & client' },
   'demo-recruiting-tracking:pt6': { label: 'Slack: Daily Report',    description: 'Post daily performance report' },
   'demo-recruiting-tracking:pt7': { label: 'AI Optimization',        description: 'Automatic campaign adjustment suggestions' },
+  // ─── demo-recruiting-fulfillment ───
+  'demo-recruiting-fulfillment:rf1':  { label: 'Manual Start',              description: 'Start workflow manually — transcript is ready' },
+  'demo-recruiting-fulfillment:rf2':  { label: 'Initialize Workflow',       description: 'Set workflow state & variables' },
+  'demo-recruiting-fulfillment:rf3':  { label: 'Slack: Workflow Started',   description: 'Notify team: Recruiting workflow running' },
+  'demo-recruiting-fulfillment:rf4':  { label: 'Extract Pain Points',      description: 'AI analyzes transcript for target audience pain points' },
+  'demo-recruiting-fulfillment:rf5':  { label: 'Extract Benefits',         description: 'Derive employer advantages & unique selling points' },
+  'demo-recruiting-fulfillment:rf6':  { label: 'Create Employer Avatar',   description: 'Generate detailed ideal candidate profile' },
+  'demo-recruiting-fulfillment:rf7':  { label: 'Create Company Profile',   description: 'Build employer profile with culture, values & USPs' },
+  'demo-recruiting-fulfillment:rf8':  { label: 'Creative Strategy Brief',  description: 'Overall strategy for messaging, tonality & positioning' },
+  'demo-recruiting-fulfillment:rf9':  { label: 'Master Brief',             description: 'Merge all analyses into central briefing document' },
+  'demo-recruiting-fulfillment:rf10': { label: 'Slack: Brief Done',        description: 'Notify team: Master Brief created' },
+  'demo-recruiting-fulfillment:rf11': { label: 'Create Copy Package',      description: 'Generate core promise, mechanism, objections, CTA logic & funnel messaging' },
+  'demo-recruiting-fulfillment:rf12': { label: 'Pipeline Split',           description: 'Two parallel paths: Recruiting Funnel + Meta Ads' },
+  'demo-recruiting-fulfillment:rf13': { label: 'Funnel Structure',         description: 'Define landing page, form page, thank-you page & conversion logic' },
+  'demo-recruiting-fulfillment:rf14': { label: 'Funnel Copy',              description: 'Generate all copy for all 3 funnel pages' },
+  'demo-recruiting-fulfillment:rf15': { label: 'Funnel Builder',           description: 'AI agent merges structure + copy into deployable funnel code' },
+  'demo-recruiting-fulfillment:rf16': { label: 'Deploy Funnel',            description: 'Publish recruiting funnel (3 pages) live' },
+  'demo-recruiting-fulfillment:rf17': { label: 'Slack: Funnel Live',       description: 'Notify team: Recruiting funnel is online' },
+  'demo-recruiting-fulfillment:rf18': { label: 'Campaign Structure',       description: 'Define campaign, adset & audience structure for Meta' },
+  'demo-recruiting-fulfillment:rf19': { label: 'Ad Copy & Hooks',          description: 'Ad texts, headlines & hooks for various creatives' },
+  'demo-recruiting-fulfillment:rf20': { label: 'Meta Campaign Live',       description: 'Publish & start campaign in Meta Ads Manager' },
+  'demo-recruiting-fulfillment:rf21': { label: 'Slack: Ads Live',          description: 'Notify team: Meta campaign running' },
+  'demo-recruiting-fulfillment:rf22': { label: 'Setup Tracking',           description: 'Configure conversion pixel, UTM parameters & event tracking' },
+  'demo-recruiting-fulfillment:rf23': { label: 'Generate Dashboard',       description: 'Live dashboard with impressions, clicks, leads, CPL & conversion rate' },
+  'demo-recruiting-fulfillment:rf24': { label: 'Publish Dashboard',        description: 'Deploy public tracking dashboard' },
+  'demo-recruiting-fulfillment:rf25': { label: 'Slack: Dashboard Live',    description: 'Notify team: Tracking dashboard is online' },
+  'demo-recruiting-fulfillment:rf26': { label: 'All Systems Live?',        description: 'Check: Funnel, campaign & dashboard successfully deployed' },
+  'demo-recruiting-fulfillment:rf27': { label: 'Slack: System Deployed',   description: 'Full Recruiting System deployed successfully' },
 };
 
 /** Composite key: "systemId:groupId" → English label */
@@ -602,6 +751,11 @@ const DEMO_GROUP_EN: Record<string, string> = {
   'demo-recruiting-review:grl3': 'Approval & Launch',
   // demo-recruiting-tracking
   'demo-recruiting-tracking:gpt1': 'Data Collection',    'demo-recruiting-tracking:gpt2': 'Analysis & Reporting',
+  // demo-recruiting-fulfillment
+  'demo-recruiting-fulfillment:grf0': 'Start & Input',       'demo-recruiting-fulfillment:grf1': 'Brief Extraction',
+  'demo-recruiting-fulfillment:grf2': 'Copy & Distribution', 'demo-recruiting-fulfillment:grf3': 'Recruiting Funnel',
+  'demo-recruiting-fulfillment:grf4': 'Meta Ads',            'demo-recruiting-fulfillment:grf5': 'Tracking & Dashboard',
+  'demo-recruiting-fulfillment:grf6': 'Final Check',
 };
 
 export function getLocalizedDemoSystem(sys: AutomationSystem, lang: 'de' | 'en'): AutomationSystem {

@@ -9,6 +9,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Zap, Plus, Trash2, Save, Users, FileText, Globe, Mail,
   Target, BarChart3, Database, Sparkles, Search, Image,
@@ -770,6 +771,7 @@ export default function WorkflowCanvas({ onSave, onExecute, onStop, initialSyste
   const [showExecKpis, setShowExecKpis] = useState(false);
   const [execDuration, setExecDuration] = useState(0);
   const execStartRef = useRef<number>(0);
+  const presBarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Feature Log + Presentation panels
   const [showFeatureLog, setShowFeatureLog] = useState(false);
@@ -2836,10 +2838,10 @@ export default function WorkflowCanvas({ onSave, onExecute, onStop, initialSyste
             >
               <Settings size={15} />
             </button>
-            {showCanvasSettings && (
+            {showCanvasSettings && createPortal(
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setShowCanvasSettings(false)} />
-                <div className="fixed right-4 z-40 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-2xl p-4 min-w-[220px] max-h-[80vh] overflow-y-auto" style={{ top: '60px' }}>
+                <div className="fixed inset-0 z-[100]" onClick={() => setShowCanvasSettings(false)} />
+                <div className="fixed right-4 z-[110] bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-2xl p-4 min-w-[220px] max-h-[80vh] overflow-y-auto" style={{ top: '60px' }}>
                   <div className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-3">{t('toolbar.canvasSettings')}</div>
 
                   {/* Phase navigation section */}
@@ -3159,7 +3161,8 @@ export default function WorkflowCanvas({ onSave, onExecute, onStop, initialSyste
                     </button>
                   </div>
                 </div>
-              </>
+              </>,
+              document.body
             )}
           </div>
 
@@ -5122,9 +5125,9 @@ export default function WorkflowCanvas({ onSave, onExecute, onStop, initialSyste
 
               {/* Bottom floating bar */}
               <div
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 p-2"
-                onMouseEnter={() => setPresBarVisible(true)}
-                onMouseLeave={() => setPresBarVisible(false)}
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 z-50 px-2 pt-6 pb-4"
+                onMouseEnter={() => { if (presBarTimerRef.current) { clearTimeout(presBarTimerRef.current); presBarTimerRef.current = null; } setPresBarVisible(true); }}
+                onMouseLeave={() => { presBarTimerRef.current = setTimeout(() => setPresBarVisible(false), 1500); }}
               >
                 <div
                   className="flex items-center gap-3 px-5 py-2.5 bg-black/70 backdrop-blur-xl rounded-full shadow-2xl border border-white/10"
