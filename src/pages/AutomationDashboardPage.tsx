@@ -1755,8 +1755,8 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
         </div>
       )}
 
-      {/* Premium Header Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800/60 mb-8">
+      {/* Premium Header Card — hidden in workflow tab to maximize canvas space */}
+      <div className={`relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800/60 mb-8 transition-all duration-300 ${detailTab === 'workflow' ? 'hidden' : ''}`}>
         {/* Decorative glow */}
         <div className="absolute -top-20 -right-20 w-60 h-60 bg-purple-500/5 dark:bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-blue-500/5 dark:bg-blue-500/8 rounded-full blur-3xl pointer-events-none" />
@@ -1871,18 +1871,6 @@ function SystemDetailView({ system, onSave, onExecute, onDelete, onToggleStatus,
       {detailTab === 'workflow' && (<>
       {/* Workflow Canvas Section */}
       <section className="mb-8">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
-              <Activity size={16} className="text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('detail.workflowTitle')}</h3>
-              <span className="text-xs text-gray-400 dark:text-zinc-600">{t('detail.stepsAndConnections', { steps: system.nodes.length, connections: system.connections.length })}</span>
-            </div>
-          </div>
-          {/* Presentation mode is available via the canvas toolbar */}
-        </div>
         <div className="rounded-2xl border border-gray-200 dark:border-zinc-800/40 overflow-hidden mr-3">
           <CanvasErrorBoundary>
             <WorkflowCanvas initialSystem={system} onSave={handleSaveWithVersion} onExecute={handleExecuteWithEvents} onStop={() => { stop(); execTimersRef.current.forEach(t => clearTimeout(t)); execTimersRef.current = []; }} onDrillDown={onDrillDown} nodeStates={nodeStates} subSystemInfo={subSystemInfo} presNavigationSystems={presNavigationSystems} startInPresentationMode={startInPresentationMode} onPresNavigate={onPresNavigate} onPresentationModeChange={onPresentationModeChange} style={{ height: canvasHeight }} />
