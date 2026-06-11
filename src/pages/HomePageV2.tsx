@@ -1071,7 +1071,7 @@ export const HomePageV2 = () => {
                 </li>
                 <li className="flex items-center gap-3">
                   <Mail className="w-4 h-4" />
-                  <a href="mailto:claudio@flowstack-system.de" className="hover:text-white transition-colors">claudio@flowstack-system.de</a>
+                  <a href="mailto:kontakt@flowstack-systems.de" className="hover:text-white transition-colors">kontakt@flowstack-systems.de</a>
                 </li>
               </ul>
             </div>

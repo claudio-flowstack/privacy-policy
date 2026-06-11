@@ -86,7 +86,7 @@ export const trackAddToCart = (): void => {
     content_name: 'Prozess-Analyse Anfrage',
     content_category: 'Lead Form',
     currency: 'EUR',
-    value: 0
+    value: 50
   });
   console.log('[FB Pixel] AddToCart tracked');
 };
@@ -98,7 +98,7 @@ export const trackLead = (): void => {
     content_name: 'Prozess-Analyse Anfrage',
     content_category: 'Form Submission',
     currency: 'EUR',
-    value: 0
+    value: 150
   });
   console.log('[FB Pixel] Lead tracked');
 };

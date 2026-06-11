@@ -1,14 +1,54 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { X, Cookie, Shield, BarChart3, Megaphone, Sparkles } from 'lucide-react';
-import { initFBPixel } from '@/utils/fbPixel';
+import { X, Cookie, Shield, Megaphone, BarChart3 } from 'lucide-react';
 
 interface CookieSettings {
   notwendig: boolean;
-  statistik: boolean;
+  analytics: boolean;
   marketing: boolean;
-  komfort: boolean;
+}
+
+// Push consent update to GTM dataLayer
+const updateConsent = (settings: CookieSettings) => {
+  window.dataLayer = window.dataLayer || [];
+  function gtag(...args: unknown[]) {
+    window.dataLayer!.push(args);
+  }
+
+  gtag('consent', 'update', {
+    'ad_storage': settings.marketing ? 'granted' : 'denied',
+    'ad_user_data': settings.marketing ? 'granted' : 'denied',
+    'ad_personalization': settings.marketing ? 'granted' : 'denied',
+    'analytics_storage': settings.analytics ? 'granted' : 'denied',
+  });
+
+  // Fire custom event so GTM can react
+  window.dataLayer.push({
+    event: 'consent_update',
+    consent_analytics: settings.analytics,
+    consent_marketing: settings.marketing,
+  });
+};
+
+// Check stored consent on page load
+const getStoredConsent = (): CookieSettings | null => {
+  try {
+    const consent = localStorage.getItem('cookieConsent');
+    if (!consent) return null;
+    return JSON.parse(consent);
+  } catch {
+    return null;
+  }
+};
+
+// Declare dataLayer on window
+declare global {
+  interface Window {
+    dataLayer?: Record<string, unknown>[];
+    fbq?: (...args: unknown[]) => void;
+    _fbq?: (...args: unknown[]) => void;
+  }
 }
 
 const CookieBanner = () => {
@@ -16,103 +56,52 @@ const CookieBanner = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [cookieSettings, setCookieSettings] = useState<CookieSettings>({
     notwendig: true,
-    statistik: false,
+    analytics: false,
     marketing: false,
-    komfort: false
   });
 
-  // Banner beim Laden prüfen & FB Pixel initialisieren wenn bereits Consent
   useEffect(() => {
-    const existingConsent = localStorage.getItem("cookieConsent");
-    if (!existingConsent) {
+    const existing = getStoredConsent();
+    if (!existing) {
       setVisible(true);
     } else {
-      // Consent existiert bereits - FB Pixel initialisieren wenn marketing=true
-      try {
-        const parsed = JSON.parse(existingConsent);
-        if (parsed.marketing) {
-          initFBPixel();
-        }
-      } catch {
-        // Invalid consent data
-      }
+      // Restore consent state to GTM
+      updateConsent(existing);
+      setCookieSettings(existing);
     }
   }, []);
 
-  // Event-Listener für Cookie-Einstellungen zurücksetzen
   useEffect(() => {
     const handleResetConsent = () => {
       localStorage.removeItem("cookieConsent");
       setVisible(true);
     };
-
     window.addEventListener('resetCookieConsent', handleResetConsent);
     return () => window.removeEventListener('resetCookieConsent', handleResetConsent);
   }, []);
 
-  // Event-Listener für Einstellungen öffnen
   useEffect(() => {
     const handleOpenSettings = () => {
       setShowSettings(true);
       setVisible(true);
     };
-
     window.addEventListener('openCookieSettings', handleOpenSettings);
     return () => window.removeEventListener('openCookieSettings', handleOpenSettings);
   }, []);
 
-  // Consent verarbeiten und speichern
-  const handleConsent = (type: 'accepted' | 'rejected') => {
-    const consentData = {
-      marketing: type === "accepted",
-      statistik: type === "accepted",
-      komfort: type === "accepted"
-    };
-
-    // Cookie speichern (1 Jahr)
-    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `cookieConsent=${JSON.stringify(consentData)}; path=/; max-age=31536000${secure}; SameSite=Lax`;
-
-    // GTM Event
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({
-      event: "cookieConsentUpdate",
-      ...consentData,
-      timestamp: new Date().toISOString(),
-    });
-
-    localStorage.setItem("cookieConsent", JSON.stringify(consentData));
-
-    // FB Pixel initialisieren wenn marketing akzeptiert
-    if (consentData.marketing) {
-      initFBPixel();
-    }
-
+  const saveConsent = (settings: CookieSettings) => {
+    localStorage.setItem("cookieConsent", JSON.stringify(settings));
+    updateConsent(settings);
     setVisible(false);
     setShowSettings(false);
   };
 
-  // Custom Settings speichern
-  const saveCustomSettings = () => {
-    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `cookieConsent=${JSON.stringify(cookieSettings)}; path=/; max-age=31536000${secure}; SameSite=Lax`;
+  const handleAcceptAll = () => {
+    saveConsent({ notwendig: true, analytics: true, marketing: true });
+  };
 
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({
-      event: "cookieConsentUpdate",
-      ...cookieSettings,
-      timestamp: new Date().toISOString(),
-    });
-
-    localStorage.setItem("cookieConsent", JSON.stringify(cookieSettings));
-
-    // FB Pixel initialisieren wenn marketing akzeptiert
-    if (cookieSettings.marketing) {
-      initFBPixel();
-    }
-
-    setVisible(false);
-    setShowSettings(false);
+  const handleRejectAll = () => {
+    saveConsent({ notwendig: true, analytics: false, marketing: false });
   };
 
   if (!visible) return null;
@@ -123,7 +112,6 @@ const CookieBanner = () => {
       {!showSettings && (
         <div className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-full sm:max-w-2xl z-50">
           <div className="bg-[#0a0a0e]/95 backdrop-blur-xl border border-gray-800/50 shadow-2xl rounded-2xl p-6 flex flex-col gap-4">
-            {/* Header */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
                 <Cookie className="w-5 h-5 text-purple-400" />
@@ -133,28 +121,24 @@ const CookieBanner = () => {
               </h3>
             </div>
 
-            {/* Description */}
             <p className="text-gray-400 text-sm leading-relaxed">
-              Wir verwenden Cookies, um Inhalte zu personalisieren und die Zugriffe auf unsere Website zu analysieren.
-              Du kannst selbst entscheiden, welche Kategorien du zulassen möchtest. Weitere Infos findest du in unserer{" "}
-              <Link
-                to="/datenschutz"
-                className="text-purple-400 hover:underline"
-              >
+              Wir verwenden notwendige Cookies für den Betrieb der Website, Analytics-Cookies zur Verbesserung
+              unseres Angebots und Marketing-Cookies für personalisierte Werbung.
+              Weitere Infos findest du in unserer{" "}
+              <Link to="/datenschutz" className="text-purple-400 hover:underline">
                 Datenschutzerklärung
               </Link>.
             </p>
 
-            {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={() => handleConsent("accepted")}
+                onClick={handleAcceptAll}
                 className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:shadow-lg hover:shadow-purple-500/25 text-white rounded-xl px-5 py-2.5 text-sm font-semibold transition-all"
               >
                 Alle akzeptieren
               </button>
               <button
-                onClick={() => handleConsent("rejected")}
+                onClick={handleRejectAll}
                 className="flex-1 bg-gray-900/80 hover:bg-gray-800/80 border border-gray-700/50 text-white rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors"
               >
                 Nur notwendige
@@ -174,7 +158,6 @@ const CookieBanner = () => {
       {showSettings && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#0a0a0e] border border-gray-800/50 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
@@ -192,13 +175,11 @@ const CookieBanner = () => {
               </button>
             </div>
 
-            {/* Modal Content */}
             <div className="space-y-4 mb-6">
               <p className="text-gray-400 text-sm">
                 Wähle aus, welche Arten von Cookies du zulassen möchtest.
               </p>
 
-              {/* Cookie Categories */}
               <div className="space-y-3">
                 {/* Notwendig - immer aktiv */}
                 <div className="flex items-center justify-between p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
@@ -206,7 +187,7 @@ const CookieBanner = () => {
                     <Shield className="w-5 h-5 text-purple-400" />
                     <div>
                       <h4 className="font-medium text-white">Notwendig</h4>
-                      <p className="text-xs text-gray-500">Erforderlich für den Betrieb</p>
+                      <p className="text-xs text-gray-500">Erforderlich für den Betrieb der Website</p>
                     </div>
                   </div>
                   <div className="w-11 h-6 bg-purple-500 rounded-full flex items-center justify-end px-1">
@@ -214,19 +195,19 @@ const CookieBanner = () => {
                   </div>
                 </div>
 
-                {/* Statistik */}
+                {/* Analytics */}
                 <div className="flex items-center justify-between p-4 border border-gray-800/50 rounded-xl hover:bg-gray-900/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <BarChart3 className="w-5 h-5 text-gray-500" />
                     <div>
-                      <h4 className="font-medium text-white">Statistik</h4>
-                      <p className="text-xs text-gray-500">Für Website-Analysen</p>
+                      <h4 className="font-medium text-white">Analytics</h4>
+                      <p className="text-xs text-gray-500">Google Analytics zur Verbesserung der Website</p>
                     </div>
                   </div>
                   <button
-                    onClick={() => setCookieSettings(prev => ({ ...prev, statistik: !prev.statistik }))}
+                    onClick={() => setCookieSettings(prev => ({ ...prev, analytics: !prev.analytics }))}
                     className={`w-11 h-6 rounded-full flex items-center transition-colors duration-300 ${
-                      cookieSettings.statistik ? 'bg-purple-500 justify-end' : 'bg-gray-700 justify-start'
+                      cookieSettings.analytics ? 'bg-purple-500 justify-end' : 'bg-gray-700 justify-start'
                     }`}
                   >
                     <div className="w-4 h-4 bg-white rounded-full mx-1 shadow-sm"></div>
@@ -239,7 +220,7 @@ const CookieBanner = () => {
                     <Megaphone className="w-5 h-5 text-gray-500" />
                     <div>
                       <h4 className="font-medium text-white">Marketing</h4>
-                      <p className="text-xs text-gray-500">Für personalisierte Werbung</p>
+                      <p className="text-xs text-gray-500">Google Ads & Facebook Pixel für personalisierte Werbung</p>
                     </div>
                   </div>
                   <button
@@ -251,32 +232,12 @@ const CookieBanner = () => {
                     <div className="w-4 h-4 bg-white rounded-full mx-1 shadow-sm"></div>
                   </button>
                 </div>
-
-                {/* Komfort */}
-                <div className="flex items-center justify-between p-4 border border-gray-800/50 rounded-xl hover:bg-gray-900/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-gray-500" />
-                    <div>
-                      <h4 className="font-medium text-white">Komfort</h4>
-                      <p className="text-xs text-gray-500">Für bessere Benutzerfreundlichkeit</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setCookieSettings(prev => ({ ...prev, komfort: !prev.komfort }))}
-                    className={`w-11 h-6 rounded-full flex items-center transition-colors duration-300 ${
-                      cookieSettings.komfort ? 'bg-purple-500 justify-end' : 'bg-gray-700 justify-start'
-                    }`}
-                  >
-                    <div className="w-4 h-4 bg-white rounded-full mx-1 shadow-sm"></div>
-                  </button>
-                </div>
               </div>
             </div>
 
-            {/* Modal Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={saveCustomSettings}
+                onClick={() => saveConsent(cookieSettings)}
                 className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:shadow-lg hover:shadow-purple-500/25 text-white rounded-xl px-5 py-3 text-sm font-semibold transition-all"
               >
                 Auswahl speichern
@@ -295,12 +256,5 @@ const CookieBanner = () => {
     document.body
   );
 };
-
-// Declare dataLayer for TypeScript
-declare global {
-  interface Window {
-    dataLayer: Record<string, unknown>[];
-  }
-}
 
 export default CookieBanner;

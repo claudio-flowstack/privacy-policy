@@ -12,17 +12,25 @@
       content="width=device-width, initial-scale=1.0"
     />
 
-    <!-- Satoshi Font from Fontshare -->
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://flowstack-systems.de/" />
+
+    <!-- Satoshi Font from Fontshare (non-blocking) -->
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
     <link
       rel="preload"
       as="style"
-      href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap"
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap"
     />
     <link
-      href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap"
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
+    </noscript>
 
     <!-- Primary Meta Tags -->
     <title>Flowstack Systems | Skalieren ohne Neueinstellungen</title>
@@ -52,6 +60,10 @@
       property="og:description"
       content="KI-Automatisierung für Agenturen. Mehr Kapazität ohne neue Mitarbeiter – 50%+ Umsatzrendite möglich."
     />
+    <meta
+      property="og:image"
+      content="https://flowstack-systems.de/og-image.jpg"
+    />
 
     <!-- Twitter -->
     <meta
@@ -66,12 +78,70 @@
       name="twitter:description"
       content="KI-Automatisierung für Agenturen. Mehr Kapazität ohne neue Mitarbeiter – 50%+ Umsatzrendite möglich."
     />
+    <meta
+      name="twitter:image"
+      content="https://flowstack-systems.de/og-image.jpg"
+    />
+
+    <!-- Google Consent Mode v2 (MUSS vor GTM laden!) -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('consent', 'default', {
+        'ad_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied',
+        'analytics_storage': 'denied',
+        'functionality_storage': 'granted',
+        'security_storage': 'granted',
+        'wait_for_update': 500
+      });
+      gtag('set', 'ads_data_redaction', true);
+      gtag('set', 'url_passthrough', true);
+    </script>
+
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-MSKQHK3T');</script>
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Flowstack Systems",
+      "url": "https://flowstack-systems.de",
+      "description": "KI-Automatisierung für Agenturen und B2B-Dienstleister. Done-for-You in 2-4 Wochen.",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "kontakt@flowstack-systems.de",
+        "telephone": "+491735837927",
+        "contactType": "sales"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Falkenweg 2",
+        "addressLocality": "Pfinztal",
+        "postalCode": "76327",
+        "addressCountry": "DE"
+      }
+    }
+    </script>
   </head>
   <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MSKQHK3T"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
     <div id="root"></div>
     <script
       type="module"
       src="/src/main.tsx"
     ></script>
+
+    <!-- FB Pixel noscript: entfernt — wird jetzt DSGVO-konform über GTM + Consent Mode gesteuert -->
   </body>
 </html>

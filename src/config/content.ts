@@ -597,6 +597,7 @@ export const faqItems: FAQItem[] = [
 // ============================================
 export const footerLinks = {
   social: [
+    // TODO: Echte LinkedIn-Firmenprofilseite verlinken
     { label: "LinkedIn", href: "https://linkedin.com", icon: "Linkedin" },
   ],
   legal: [

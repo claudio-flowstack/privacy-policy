@@ -68,7 +68,7 @@ const DatenschutzPage = () => {
                 </p>
                 <p>
                   Telefon:{" "}
-                  <a href="tel:+4917358379 27" className="text-purple-400 hover:underline">
+                  <a href="tel:+491735837927" className="text-purple-400 hover:underline">
                     0173 583 79 27
                   </a>
                 </p>
@@ -301,8 +301,8 @@ const DatenschutzPage = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-6 text-sm text-gray-500">
               <Link to="/" className="hover:text-white transition-colors">Startseite</Link>
-              <a href="/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Impressum</a>
-              <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Datenschutz</a>
+              <Link to="/impressum" className="hover:text-white transition-colors">Impressum</Link>
+              <Link to="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link>
             </div>
             <p className="text-sm text-gray-600">&copy; {new Date().getFullYear()} {siteConfig.name}</p>
           </div>

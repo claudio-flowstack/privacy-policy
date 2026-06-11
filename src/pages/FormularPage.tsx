@@ -15,37 +15,71 @@ const FormularPage = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [honeypot, setHoneypot] = useState("");
 
   useEffect(() => {
     document.title = "Erstgespräch anfragen - Flowstack Systems";
     window.scrollTo(0, 0);
-    // FB Pixel: AddToCart Event
     trackAddToCart();
   }, []);
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwuWXRv4p1s62FUBNIuAE7-O5E2qWZZRsWgqsOZbHxfCkDB9yP8mWY9EUCKlXGk5Df5ow/exec";
 
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      errors.name = "Bitte gib deinen Namen ein";
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = "Bitte gib deine E-Mail ein";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      errors.email = "Bitte gib eine gültige E-Mail-Adresse ein";
+    }
+
+    if (!formData.telefon.trim()) {
+      errors.telefon = "Bitte gib deine Telefonnummer ein";
+    } else if (!/^[\d\s+\-()]{6,}$/.test(formData.telefon.trim())) {
+      errors.telefon = "Bitte gib eine gültige Telefonnummer ein";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Bot-Schutz: Honeypot-Feld sollte leer bleiben
+    if (honeypot) return;
+
+    if (!validateForm()) return;
+
     setIsSubmitting(true);
     setSubmitError(false);
 
     try {
-      // Formulardaten als URL-encoded senden (Google Apps Script erwartet dieses Format)
-      const params = new URLSearchParams();
-      params.append("name", formData.name);
-      params.append("email", formData.email);
-      params.append("telefon", formData.telefon);
-      params.append("firma", formData.firma);
-      params.append("nachricht", formData.nachricht);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
 
+      const params = new URLSearchParams();
+      params.append("name", formData.name.trim());
+      params.append("email", formData.email.trim());
+      params.append("telefon", formData.telefon.trim());
+      params.append("firma", formData.firma.trim());
+      params.append("nachricht", formData.nachricht.trim());
+
+      // Google Apps Script erfordert no-cors wegen Redirect-Verhalten
       await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
         body: params,
         mode: "no-cors",
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
-      // Bei Erfolg zur Danke-Seite navigieren
       navigate("/danke");
     } catch (error) {
       console.error("Fehler beim Senden:", error);
@@ -57,8 +91,17 @@ const FormularPage = () => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    if (validationErrors[name]) {
+      setValidationErrors({ ...validationErrors, [name]: "" });
+    }
   };
+
+  const inputClass = (field: string) =>
+    `w-full px-4 py-3 bg-gray-800/50 border rounded-xl text-white placeholder:text-gray-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors ${
+      validationErrors[field] ? "border-red-500/50" : "border-gray-700/50"
+    }`;
 
   return (
     <div className="min-h-screen bg-[#0a0a0e] text-white">
@@ -155,66 +198,94 @@ const FormularPage = () => {
                 <h2 className="text-xl font-bold mb-6">Jetzt Erstgespräch anfragen</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Name *</label>
+                  {/* Honeypot - unsichtbar fuer echte User, Bots fuellen es aus */}
+                  <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
+                    <label htmlFor="website">Website</label>
                     <input
                       type="text"
+                      id="website"
+                      name="website"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="name" className="block text-sm text-gray-400 mb-2">Name *</label>
+                    <input
+                      type="text"
+                      id="name"
                       name="name"
                       required
                       value={formData.name}
                       onChange={handleChange}
                       placeholder="Dein vollständiger Name"
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder:text-gray-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors"
+                      className={inputClass("name")}
                     />
+                    {validationErrors.name && (
+                      <p className="text-sm text-red-400 mt-1">{validationErrors.name}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">E-Mail *</label>
+                    <label htmlFor="email" className="block text-sm text-gray-400 mb-2">E-Mail *</label>
                     <input
                       type="email"
+                      id="email"
                       name="email"
                       required
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="deine@email.de"
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder:text-gray-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors"
+                      className={inputClass("email")}
                     />
+                    {validationErrors.email && (
+                      <p className="text-sm text-red-400 mt-1">{validationErrors.email}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">Telefon *</label>
+                    <label htmlFor="telefon" className="block text-sm text-gray-400 mb-2">Telefon *</label>
                     <input
                       type="tel"
+                      id="telefon"
                       name="telefon"
                       required
                       value={formData.telefon}
                       onChange={handleChange}
                       placeholder="+49 123 456789"
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder:text-gray-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors"
+                      className={inputClass("telefon")}
                     />
+                    {validationErrors.telefon && (
+                      <p className="text-sm text-red-400 mt-1">{validationErrors.telefon}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">Firma</label>
+                    <label htmlFor="firma" className="block text-sm text-gray-400 mb-2">Firma</label>
                     <input
                       type="text"
+                      id="firma"
                       name="firma"
                       value={formData.firma}
                       onChange={handleChange}
                       placeholder="Name deines Unternehmens"
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder:text-gray-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors"
+                      className={inputClass("firma")}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">Nachricht</label>
+                    <label htmlFor="nachricht" className="block text-sm text-gray-400 mb-2">Nachricht</label>
                     <textarea
+                      id="nachricht"
                       name="nachricht"
                       rows={4}
                       value={formData.nachricht}
                       onChange={handleChange}
                       placeholder="Beschreibe kurz deine aktuelle Situation..."
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder:text-gray-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors resize-none"
+                      className={`${inputClass("nachricht")} resize-none`}
                     />
                   </div>
 
@@ -235,7 +306,7 @@ const FormularPage = () => {
 
                   {submitError && (
                     <p className="text-sm text-red-400 text-center">
-                      Beim Senden ist ein Fehler aufgetreten. Bitte versuche es erneut.
+                      Beim Senden ist ein Fehler aufgetreten. Bitte versuche es erneut oder schreibe uns direkt an kontakt@flowstack-systems.de
                     </p>
                   )}
 
@@ -259,8 +330,8 @@ const FormularPage = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-6 text-sm text-gray-500">
               <Link to="/" className="hover:text-white transition-colors">Startseite</Link>
-              <a href="/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Impressum</a>
-              <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Datenschutz</a>
+              <Link to="/impressum" className="hover:text-white transition-colors">Impressum</Link>
+              <Link to="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link>
             </div>
             <p className="text-sm text-gray-600">&copy; {new Date().getFullYear()} {siteConfig.name}</p>
           </div>

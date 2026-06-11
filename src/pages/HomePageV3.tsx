@@ -1678,8 +1678,8 @@ export const HomePageV3 = () => {
               <h4 className="font-semibold mb-6">Unternehmen</h4>
               <ul className="space-y-4 text-gray-400">
                 <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
-                <li><a href="/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Impressum</a></li>
-                <li><a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Datenschutz</a></li>
+                <li><Link to="/impressum" className="hover:text-white transition-colors">Impressum</Link></li>
+                <li><Link to="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link></li>
                 <li><button onClick={() => window.dispatchEvent(new CustomEvent('openCookieSettings'))} className="hover:text-white transition-colors">Cookie-Einstellungen</button></li>
               </ul>
             </div>
@@ -1692,7 +1692,7 @@ export const HomePageV3 = () => {
                 </li>
                 <li className="flex items-center gap-3">
                   <Mail className="w-4 h-4" />
-                  <a href="mailto:claudio@flowstack-system.de" className="hover:text-white transition-colors">claudio@flowstack-system.de</a>
+                  <a href="mailto:kontakt@flowstack-systems.de" className="hover:text-white transition-colors">kontakt@flowstack-systems.de</a>
                 </li>
               </ul>
             </div>

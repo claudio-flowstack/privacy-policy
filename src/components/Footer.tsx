@@ -122,8 +122,8 @@ export const Footer = ({ hideCta = true }: FooterProps) => {
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                <a href="mailto:claudio@flowstack-system.de" className="text-muted-foreground hover:text-primary transition-colors">
-                  claudio@flowstack-system.de
+                <a href="mailto:kontakt@flowstack-systems.de" className="text-muted-foreground hover:text-primary transition-colors">
+                  kontakt@flowstack-systems.de
                 </a>
               </li>
               <li className="flex items-center gap-3">
@@ -170,12 +170,6 @@ export const Footer = ({ hideCta = true }: FooterProps) => {
                 className="text-muted-foreground hover:text-primary transition-colors"
               >
                 Datenschutz
-              </Link>
-              <Link
-                to="/agb"
-                className="text-muted-foreground hover:text-primary transition-colors"
-              >
-                AGB
               </Link>
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('openCookieSettings'))}
